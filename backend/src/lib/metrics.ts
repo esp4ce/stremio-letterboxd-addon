@@ -6,6 +6,8 @@ export type EventType =
   | 'catalog_diary'
   | 'catalog_friends'
   | 'catalog_list'
+  | 'catalog_popular'
+  | 'catalog_top250'
   | 'stream'
   | 'action_watched'
   | 'action_liked'
