@@ -48,6 +48,27 @@ function buildPosterUrl(originalPoster: string | undefined, rating?: number): st
 }
 
 /**
+ * Format a personal rating as star glyphs only: "★★★★½"
+ */
+function formatStarsOnly(rating: number): string {
+  const full = Math.floor(rating);
+  const half = rating % 1 >= 0.5 ? '½' : '';
+  return `${'★'.repeat(full)}${half}`;
+}
+
+/**
+ * Format ISO date string to readable: "2024-01-15" → "15 Jan 2024"
+ */
+function formatDiaryDate(isoDate: string): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const [year, month, day] = isoDate.split('-');
+  if (!year || !month || !day) return isoDate;
+  const monthName = months[parseInt(month, 10) - 1];
+  if (!monthName) return isoDate;
+  return `${parseInt(day, 10)} ${monthName} ${year}`;
+}
+
+/**
  * Transform Letterboxd watchlist film to Stremio Meta
  */
 export function transformToStremioMeta(film: WatchlistFilm): StremioMeta | null {
@@ -121,17 +142,17 @@ export function transformLogEntryToMeta(entry: LogEntry): StremioMeta | null {
   // Cache IMDb → Letterboxd mapping
   imdbToLetterboxdCache.set(imdbId, entry.film.id);
 
-  // Build description with rating info if available
-  let description: string | undefined;
-  if (entry.rating) {
-    const stars = '★'.repeat(Math.floor(entry.rating)) + (entry.rating % 1 >= 0.5 ? '½' : '');
-    description = `Rated ${stars}`;
-    if (entry.diaryDate) {
-      description += ` on ${entry.diaryDate}`;
-    }
-    if (entry.owner) {
-      description += ` by ${entry.owner.displayName || entry.owner.username}`;
-    }
+  // Build description: "Liked · My rating ★★★★ · 15 Jan 2024"
+  const descParts: string[] = [];
+  if (entry.like) descParts.push('♥ Liked');
+  if (entry.rating) descParts.push(`My rating ${formatStarsOnly(entry.rating)}`);
+  if (entry.diaryDate) descParts.push(formatDiaryDate(entry.diaryDate));
+  let description = descParts.length > 0 ? descParts.join(' · ') : undefined;
+
+  // Append review excerpt if available
+  if (entry.review?.lbml) {
+    const excerpt = entry.review.lbml.length > 100 ? entry.review.lbml.slice(0, 100) + '…' : entry.review.lbml;
+    description = description ? `${description}\n"${excerpt}"` : `"${excerpt}"`;
   }
 
   return {
@@ -181,6 +202,9 @@ export function transformListEntryToMeta(entry: ListEntry): StremioMeta | null {
   // Cache IMDb → Letterboxd mapping
   imdbToLetterboxdCache.set(imdbId, film.id);
 
+  // Build description: "#42" (rank only, for ranked lists)
+  const description = entry.rank != null ? `#${entry.rank}` : undefined;
+
   return {
     id: imdbId,
     type: 'movie',
@@ -190,6 +214,7 @@ export function transformListEntryToMeta(entry: ListEntry): StremioMeta | null {
     genres: film.genres?.map((g) => g.name),
     director: film.directors?.map((d) => d.name),
     runtime: film.runTime ? `${film.runTime} min` : undefined,
+    description,
   };
 }
 
@@ -263,13 +288,11 @@ function transformActivityItemToMeta(item: ActivityItem): StremioMeta | null {
     description = `Activity by ${memberName}`;
   }
 
-  const activityRating = item.rating ?? item.diaryEntry?.rating;
-
   return {
     id: imdbId,
     type: 'movie',
     name: film.name,
-    poster: buildPosterUrl(getPosterUrl(film), activityRating),
+    poster: buildPosterUrl(getPosterUrl(film), film.rating),
     year: film.releaseYear,
     genres: film.genres?.map((g) => g.name),
     director: film.directors?.map((d) => d.name),

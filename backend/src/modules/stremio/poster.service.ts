@@ -35,8 +35,8 @@ export async function generateRatedPoster(
   const width = metadata.width ?? 300;
   const height = metadata.height ?? 450;
 
-  // Badge dimensions scaled to image size
-  const badgeW = Math.round(width * 0.22);
+  // Badge dimensions scaled to image size (increased)
+  const badgeW = Math.round(width * 0.28);
   const badgeH = Math.round(badgeW * 0.55);
   const margin = Math.round(width * 0.03);
   const fontSize = Math.round(badgeH * 0.58);
