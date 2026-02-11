@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Fond noir avec coins arrondis -->
+  <rect width="32" height="32" rx="8" fill="#0a0a0a"/>
+
+  <!-- 3 points minimalistes en blanc/gris -->
+  <circle cx="8" cy="16" r="3" fill="#ffffff"/>
+  <circle cx="16" cy="16" r="3" fill="#e4e4e7"/>
+  <circle cx="24" cy="16" r="3" fill="#a1a1aa"/>
+</svg>
