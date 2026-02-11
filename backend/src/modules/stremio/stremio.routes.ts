@@ -36,8 +36,8 @@ const logger = createChildLogger('stremio-routes');
 
 const IMDB_REGEX = /^tt\d{1,10}$/;
 
-// Top 250 list by Dave: cached ID to avoid repeated resolution
-let top250ListId: string | null = null;
+// Top 250 Narrative Feature Films list by Dave (LID)
+const TOP_250_LIST_ID = '8HjM';
 
 const actionParamsSchema = {
   type: 'object' as const,
@@ -291,99 +291,6 @@ async function fetchPopularCatalog(
   return { metas };
 }
 
-/**
- * Resolve Top 250 list ID if not already cached
- */
-async function resolveTop250ListId(client: AuthenticatedClient): Promise<string | null> {
-  if (top250ListId) {
-    return top250ListId;
-  }
-
-  try {
-    // Search for Dave's member profile
-    const member = await client.searchMemberByUsername('dave');
-    if (!member) {
-      logger.error('Member "dave" not found');
-      return null;
-    }
-
-    // Fetch Dave's lists and find Top 250
-    const listsResponse = await client.searchLists({
-      member: member.id,
-      memberRelationship: 'Owner',
-      perPage: 100,
-    });
-
-    const normalizeSlug = (name: string) =>
-      name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-
-    const list = listsResponse.items.find(
-      (l) => normalizeSlug(l.name) === 'official-top-250-narrative-feature-films'
-    );
-
-    if (!list) {
-      logger.error('Top 250 list not found in Dave\'s lists');
-      return null;
-    }
-
-    top250ListId = list.id;
-    logger.info({ listId: top250ListId, listName: list.name }, 'Top 250 list ID resolved and cached');
-    return top250ListId;
-  } catch (error) {
-    logger.error({ error }, 'Failed to resolve Top 250 list ID');
-    return null;
-  }
-}
-
-/**
- * Fetch Top 250 list and return Stremio metas
- */
-async function fetchTop250Catalog(
-  user: User,
-  skip: number = 0
-): Promise<{ metas: StremioMeta[] }> {
-  const client = await createClientForUser(user);
-
-  // Resolve list ID if not cached
-  const listId = await resolveTop250ListId(client);
-  if (!listId) {
-    logger.error('Could not resolve Top 250 list ID');
-    return { metas: [] };
-  }
-
-  // Fetch list entries
-  const allEntries: ListEntry[] = [];
-  let cursor: string | undefined;
-  let page = 0;
-
-  do {
-    page++;
-    const response = await client.getListEntries(listId, { perPage: 100, cursor });
-    logger.info({ page, listId, itemsCount: response.items.length, hasCursor: !!response.cursor }, 'Top 250 page fetched');
-    allEntries.push(...response.items);
-    cursor = response.cursor;
-  } while (cursor && page < 10); // Safety limit
-
-  const allMetas = transformListEntriesToMetas(allEntries);
-
-  // Cache IMDb→Letterboxd mappings
-  for (const entry of allEntries) {
-    cacheFilmMapping(entry.film);
-  }
-
-  // Apply skip for Stremio pagination
-  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
-
-  logger.info(
-    { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
-    'Top 250 fetched'
-  );
-
-  return { metas };
-}
 
 /**
  * Fetch user's lists for dynamic catalog generation
@@ -466,7 +373,7 @@ async function handleCatalogRequest(
 
     if (catalogId === 'letterboxd-top250') {
       trackEvent('catalog_top250', userId);
-      return await fetchTop250Catalog(user, skip);
+      return await fetchListCatalog(user, TOP_250_LIST_ID, skip);
     }
 
     // Handle custom lists (letterboxd-list-{listId})

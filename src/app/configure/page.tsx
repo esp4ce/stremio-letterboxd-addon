@@ -102,10 +102,11 @@ export default function Configure() {
       const loginResult = data as LoginResponse;
       setResult(loginResult);
 
-      // Initialize preferences: use existing or create defaults
-      const prefs =
-        loginResult.preferences ??
-        getDefaultPreferences(loginResult.lists);
+      // Initialize preferences: use existing or create defaults, backfill new catalog fields
+      const defaults = getDefaultPreferences(loginResult.lists);
+      const prefs = loginResult.preferences
+        ? { ...loginResult.preferences, catalogs: { ...defaults.catalogs, ...loginResult.preferences.catalogs } }
+        : defaults;
       setPreferences(prefs);
       setShowConfig(true);
     } catch (err) {
