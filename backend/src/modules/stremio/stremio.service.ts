@@ -72,6 +72,18 @@ function getBaseCatalogs(displayName: string): StremioCatalog[] {
       name: `${displayName}'s Friends Activity`,
       extra: [{ name: 'skip', isRequired: false }],
     },
+    {
+      type: 'movie',
+      id: 'letterboxd-popular',
+      name: 'Popular This Week',
+      extra: [{ name: 'skip', isRequired: false }],
+    },
+    {
+      type: 'movie',
+      id: 'letterboxd-top250',
+      name: 'Top 250 Narrative Features',
+      extra: [{ name: 'skip', isRequired: false }],
+    },
   ];
 }
 
@@ -79,6 +91,8 @@ const catalogIdMap: Record<string, keyof UserPreferences['catalogs']> = {
   'letterboxd-watchlist': 'watchlist',
   'letterboxd-diary': 'diary',
   'letterboxd-friends': 'friends',
+  'letterboxd-popular': 'popular',
+  'letterboxd-top250': 'top250',
 };
 
 /**

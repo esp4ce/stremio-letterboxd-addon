@@ -9,7 +9,7 @@ const TOAST_DURATION = 3000;
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
 interface UserPreferences {
-  catalogs: { watchlist: boolean; diary: boolean; friends: boolean };
+  catalogs: { watchlist: boolean; diary: boolean; friends: boolean; popular: boolean; top250: boolean };
   ownLists: string[];
   externalLists: Array<{
     id: string;
@@ -45,7 +45,7 @@ function getDefaultPreferences(
   lists: LoginResponse["lists"]
 ): UserPreferences {
   return {
-    catalogs: { watchlist: true, diary: true, friends: true },
+    catalogs: { watchlist: true, diary: true, friends: true, popular: false, top250: true },
     ownLists: lists.map((l) => l.id),
     externalLists: [],
   };

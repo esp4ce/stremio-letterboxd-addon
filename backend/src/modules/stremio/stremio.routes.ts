@@ -27,6 +27,7 @@ import {
   StremioMeta,
 } from './catalog.service.js';
 import { buildLetterboxdStreams } from './meta.service.js';
+import { generateRatedPoster } from './poster.service.js';
 import { createChildLogger } from '../../lib/logger.js';
 import { userListsCache } from '../../lib/cache.js';
 import { trackEvent } from '../../lib/metrics.js';
@@ -34,6 +35,9 @@ import { trackEvent } from '../../lib/metrics.js';
 const logger = createChildLogger('stremio-routes');
 
 const IMDB_REGEX = /^tt\d{1,10}$/;
+
+// Top 250 list by Dave: cached ID to avoid repeated resolution
+let top250ListId: string | null = null;
 
 const actionParamsSchema = {
   type: 'object' as const,
@@ -261,6 +265,127 @@ async function fetchListCatalog(
 }
 
 /**
+ * Fetch popular films and return Stremio metas
+ */
+async function fetchPopularCatalog(
+  user: User,
+  skip: number = 0
+): Promise<{ metas: StremioMeta[] }> {
+  const client = await createClientForUser(user);
+
+  const response = await client.getFilms({ sort: 'FilmPopularityThisWeek', perPage: 20 });
+  const allMetas = transformWatchlistToMetas(response.items);
+
+  // Cache IMDb→Letterboxd mappings
+  for (const film of response.items) {
+    cacheFilmMapping(film);
+  }
+
+  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+
+  logger.info(
+    { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
+    'Popular films fetched'
+  );
+
+  return { metas };
+}
+
+/**
+ * Resolve Top 250 list ID if not already cached
+ */
+async function resolveTop250ListId(client: AuthenticatedClient): Promise<string | null> {
+  if (top250ListId) {
+    return top250ListId;
+  }
+
+  try {
+    // Search for Dave's member profile
+    const member = await client.searchMemberByUsername('dave');
+    if (!member) {
+      logger.error('Member "dave" not found');
+      return null;
+    }
+
+    // Fetch Dave's lists and find Top 250
+    const listsResponse = await client.searchLists({
+      member: member.id,
+      memberRelationship: 'Owner',
+      perPage: 100,
+    });
+
+    const normalizeSlug = (name: string) =>
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+
+    const list = listsResponse.items.find(
+      (l) => normalizeSlug(l.name) === 'official-top-250-narrative-feature-films'
+    );
+
+    if (!list) {
+      logger.error('Top 250 list not found in Dave\'s lists');
+      return null;
+    }
+
+    top250ListId = list.id;
+    logger.info({ listId: top250ListId, listName: list.name }, 'Top 250 list ID resolved and cached');
+    return top250ListId;
+  } catch (error) {
+    logger.error({ error }, 'Failed to resolve Top 250 list ID');
+    return null;
+  }
+}
+
+/**
+ * Fetch Top 250 list and return Stremio metas
+ */
+async function fetchTop250Catalog(
+  user: User,
+  skip: number = 0
+): Promise<{ metas: StremioMeta[] }> {
+  const client = await createClientForUser(user);
+
+  // Resolve list ID if not cached
+  const listId = await resolveTop250ListId(client);
+  if (!listId) {
+    logger.error('Could not resolve Top 250 list ID');
+    return { metas: [] };
+  }
+
+  // Fetch list entries
+  const allEntries: ListEntry[] = [];
+  let cursor: string | undefined;
+  let page = 0;
+
+  do {
+    page++;
+    const response = await client.getListEntries(listId, { perPage: 100, cursor });
+    logger.info({ page, listId, itemsCount: response.items.length, hasCursor: !!response.cursor }, 'Top 250 page fetched');
+    allEntries.push(...response.items);
+    cursor = response.cursor;
+  } while (cursor && page < 10); // Safety limit
+
+  const allMetas = transformListEntriesToMetas(allEntries);
+
+  // Cache IMDb→Letterboxd mappings
+  for (const entry of allEntries) {
+    cacheFilmMapping(entry.film);
+  }
+
+  // Apply skip for Stremio pagination
+  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+
+  logger.info(
+    { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
+    'Top 250 fetched'
+  );
+
+  return { metas };
+}
+
+/**
  * Fetch user's lists for dynamic catalog generation
  */
 async function fetchUserLists(user: User): Promise<UserList[]> {
@@ -334,6 +459,16 @@ async function handleCatalogRequest(
       return await fetchFriendsCatalog(user, skip);
     }
 
+    if (catalogId === 'letterboxd-popular') {
+      trackEvent('catalog_popular', userId);
+      return await fetchPopularCatalog(user, skip);
+    }
+
+    if (catalogId === 'letterboxd-top250') {
+      trackEvent('catalog_top250', userId);
+      return await fetchTop250Catalog(user, skip);
+    }
+
     // Handle custom lists (letterboxd-list-{listId})
     if (catalogId.startsWith('letterboxd-list-')) {
       const listId = catalogId.replace('letterboxd-list-', '');
@@ -351,6 +486,53 @@ async function handleCatalogRequest(
 }
 
 export async function stremioRoutes(app: FastifyInstance) {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Poster Proxy: Rating badge overlay on poster images
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  app.get(
+    '/poster',
+    async (
+      request: FastifyRequest<{
+        Querystring: { url?: string; rating?: string };
+      }>,
+      reply
+    ) => {
+      const { url, rating: ratingStr } = request.query;
+
+      if (!url || !ratingStr) {
+        return reply.status(400).send({ error: 'Missing url or rating parameter' });
+      }
+
+      const rating = parseFloat(ratingStr);
+      if (isNaN(rating) || rating < 0 || rating > 5) {
+        return reply.status(400).send({ error: 'Rating must be between 0 and 5' });
+      }
+
+      // Only allow Letterboxd CDN URLs
+      try {
+        const parsed = new URL(url);
+        if (!parsed.hostname.endsWith('.ltrbxd.com') && !parsed.hostname.endsWith('.letterboxd.com')) {
+          return reply.status(400).send({ error: 'Invalid poster URL' });
+        }
+      } catch {
+        return reply.status(400).send({ error: 'Invalid URL' });
+      }
+
+      try {
+        const imageBuffer = await generateRatedPoster(url, rating);
+
+        return reply
+          .header('Content-Type', 'image/jpeg')
+          .header('Cache-Control', 'public, max-age=3600')
+          .send(imageBuffer);
+      } catch (error) {
+        logger.error({ error, url, rating }, 'Failed to generate rated poster');
+        return reply.status(500).send({ error: 'Failed to generate poster' });
+      }
+    }
+  );
+
   app.get(
     '/stremio/:userId/manifest.json',
     async (

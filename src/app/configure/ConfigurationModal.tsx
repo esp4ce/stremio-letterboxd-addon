@@ -1,7 +1,7 @@
 "use client";
 
 interface UserPreferences {
-  catalogs: { watchlist: boolean; diary: boolean; friends: boolean };
+  catalogs: { watchlist: boolean; diary: boolean; friends: boolean; popular: boolean; top250: boolean };
   ownLists: string[];
   externalLists: Array<{
     id: string;
@@ -82,6 +82,16 @@ export default function ConfigurationModal({
       key: "friends",
       label: "Friends Activity",
       description: "What your friends are watching",
+    },
+    {
+      key: "popular",
+      label: "Popular This Week",
+      description: "Trending films on Letterboxd",
+    },
+    {
+      key: "top250",
+      label: "Top 250 Narrative Features",
+      description: "Official Top 250 by Dave",
     },
   ];
 
