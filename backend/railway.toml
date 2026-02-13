@@ -1,0 +1,12 @@
+[build]
+builder = "RAILPACK"
+
+[deploy]
+startCommand = "npm run start"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# Volume pour la persistance de la base de données SQLite
+[[volumes]]
+name = "database"
+mountPath = "/app/data"

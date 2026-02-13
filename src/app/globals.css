@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+/* Theme variables */
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 400;
+  cursor: default;
+}
+
+/* Fade-in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+/* Film grain texture overlay */
+.film-grain::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+}
+
+/* View Transitions API animations */
+@keyframes slide-up-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-100%); }
+}
+
+@keyframes slide-up-in {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-down-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(100%); }
+}
+
+@keyframes slide-down-in {
+  from { opacity: 0; transform: translateY(-100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Default transition: slide up */
+::view-transition-old(root) {
+  animation: slide-up-out 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+::view-transition-new(root) {
+  animation: slide-up-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Transition direction: down */
+[data-transition="down"]::view-transition-old(root) {
+  animation: slide-down-out 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+[data-transition="down"]::view-transition-new(root) {
+  animation: slide-down-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Custom scrollbar for configuration modal (user lists only) */
+.config-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.config-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.config-scroll::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 3px;
+}
+
+.config-scroll::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Hide scrollbar for modal container (but keep scroll functionality) */
+.modal-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.modal-scroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+

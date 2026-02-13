@@ -1,0 +1,37 @@
+{
+  "id": "community.stremboxd",
+  "version": "1.0.0",
+  "name": "Stremboxd",
+  "description": "Sync your Letterboxd ratings, watchlist, and activity to Stremio. Configure at https://stremboxd.com",
+  "logo": "https://api.stremboxd.com/logo.svg",
+  "background": "https://api.stremboxd.com/logo.svg",
+  "resources": [
+    "catalog",
+    {
+      "name": "stream",
+      "types": ["movie"]
+    }
+  ],
+  "types": ["movie"],
+  "catalogs": [
+    {
+      "type": "movie",
+      "id": "letterboxd-watchlist",
+      "name": "Watchlist"
+    },
+    {
+      "type": "movie",
+      "id": "letterboxd-diary",
+      "name": "Recent Diary"
+    },
+    {
+      "type": "movie",
+      "id": "letterboxd-friends",
+      "name": "Friends' Activity"
+    }
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}
