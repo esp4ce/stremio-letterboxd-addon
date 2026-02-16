@@ -12,7 +12,7 @@ const CONSOLE_STYLES = {
 
 const CONSOLE_LINKS = [
   { label: "GitHub", url: "https://github.com/esp4ce" },
-  { label: "Discord", url: "https://discord.gg/JJjbPft7EA", desc: "(Support & Community)" },
+  { label: "Reddit", url: "https://www.reddit.com/r/StremioAddons/", desc: "(Support & Community)" },
   { label: "Support", url: "https://buymeacoffee.com/esp4ce", desc: "(Buy me a coffee)" },
 ];
 

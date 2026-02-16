@@ -1,7 +1,7 @@
 const LINKS = [
   { href: "https://github.com/esp4ce", label: "esp4ce" },
-  { href: "https://discord.gg/JJjbPft7EA", label: "discord" },
-  { href: "https://buymeacoffee.com/esp4ce", label: "support" },
+  { href: "https://www.reddit.com/r/StremioAddons/", label: "reddit" },
+  { href: "https://buymeacoffee.com/esp4ce", label: "support me" },
 ];
 
 export default function Footer({ absolute = true }: { absolute?: boolean }) {
