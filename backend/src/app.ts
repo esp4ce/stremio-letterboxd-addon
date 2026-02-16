@@ -8,7 +8,6 @@ import { setupRateLimit } from './middleware/rate-limit.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { letterboxdRoutes } from './modules/letterboxd/letterboxd.routes.js';
 import { stremioRoutes } from './modules/stremio/stremio.routes.js';
-import { metricsRoutes } from './modules/metrics/metrics.routes.js';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes.js';
 import { generateBaseManifest } from './modules/stremio/stremio.service.js';
 
@@ -67,7 +66,6 @@ export async function buildApp(httpsOptions?: ServerOptions) {
   await app.register(authRoutes);
   await app.register(letterboxdRoutes);
   await app.register(stremioRoutes);
-  await app.register(metricsRoutes);
   await app.register(dashboardRoutes);
 
   app.addHook('onRequest', async (request) => {
