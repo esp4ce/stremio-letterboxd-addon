@@ -52,6 +52,9 @@ const logger = createChildLogger('stremio-routes');
 
 const IMDB_REGEX = /^tt\d{1,10}$/;
 
+// Stremio expects pages of this size; it requests the next page when it receives exactly this many items
+const CATALOG_PAGE_SIZE = 100;
+
 // Top 250 Narrative Feature Films list by Dave (LID)
 const TOP_250_LIST_ID = '8HjM';
 
@@ -158,8 +161,8 @@ async function fetchWatchlistCatalog(
     cacheFilmMapping(film);
   }
 
-  // Apply skip for Stremio pagination
-  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+  // Paginate for Stremio
+  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
   logger.info(
     { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
@@ -195,8 +198,8 @@ async function fetchDiaryCatalog(
 
   const allMetas = transformLogEntriesToMetas(allEntries, showRatings);
 
-  // Apply skip for Stremio pagination
-  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+  // Paginate for Stremio
+  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
   logger.info(
     { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
@@ -233,8 +236,8 @@ async function fetchFriendsCatalog(
   // Transform to metas, filtering out own activity
   const allMetas = transformActivityToMetas(allItems, user.letterboxd_id, showRatings);
 
-  // Apply skip for Stremio pagination
-  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+  // Paginate for Stremio
+  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
   logger.info(
     { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
@@ -276,8 +279,8 @@ async function fetchListCatalog(
     cacheFilmMapping(entry.film);
   }
 
-  // Apply skip for Stremio pagination
-  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+  // Paginate for Stremio
+  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
   logger.info(
     { total: allMetas.length, skip, returned: metas.length, listId, username: user.letterboxd_username },
@@ -306,7 +309,7 @@ async function fetchPopularCatalog(
     cacheFilmMapping(film);
   }
 
-  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
   logger.info(
     { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
@@ -353,7 +356,7 @@ async function fetchLikedFilmsCatalog(
     cacheFilmMapping(film);
   }
 
-  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
   logger.info(
     { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
@@ -376,7 +379,7 @@ async function fetchLikedFilmsCatalogPublic(
   const cacheKey = `liked:${memberId}:${showRatings}:${effectiveSort}`;
   const cached = likedFilmsCache.get(cacheKey);
   if (cached) {
-    const metas = skip > 0 ? cached.metas.slice(skip) : cached.metas;
+    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
     return { metas };
   }
 
@@ -404,7 +407,7 @@ async function fetchLikedFilmsCatalogPublic(
   for (const film of allFilms) cacheFilmMapping(film);
 
   likedFilmsCache.set(cacheKey, { metas: allMetas });
-  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
   logger.info({ total: allMetas.length, skip, returned: metas.length, memberId }, 'Public liked films fetched');
   return { metas };
 }
@@ -527,7 +530,7 @@ async function fetchPopularCatalogPublic(skip: number, showRatings: boolean, sor
   const cacheKey = `popular:${showRatings}:${effectiveSort}`;
   const cached = popularCatalogCache.get(cacheKey);
   if (cached) {
-    const metas = skip > 0 ? cached.metas.slice(skip) : cached.metas;
+    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
     return { metas };
   }
 
@@ -539,7 +542,7 @@ async function fetchPopularCatalogPublic(skip: number, showRatings: boolean, sor
   for (const film of response.items) cacheFilmMapping(film);
 
   popularCatalogCache.set(cacheKey, { metas: allMetas });
-  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
   logger.info({ total: allMetas.length, skip, returned: metas.length }, 'Public popular fetched');
   return { metas };
 }
@@ -548,7 +551,7 @@ async function fetchTop250CatalogPublic(skip: number, showRatings: boolean, sort
   const cacheKey = `top250:${showRatings}:${sort || 'default'}`;
   const cached = top250CatalogCache.get(cacheKey);
   if (cached) {
-    const metas = skip > 0 ? cached.metas.slice(skip) : cached.metas;
+    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
     return { metas };
   }
 
@@ -569,7 +572,7 @@ async function fetchTop250CatalogPublic(skip: number, showRatings: boolean, sort
   for (const entry of allEntries) cacheFilmMapping(entry.film);
 
   top250CatalogCache.set(cacheKey, { metas: allMetas });
-  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
   logger.info({ total: allMetas.length, skip, returned: metas.length }, 'Public top250 fetched');
   return { metas };
 }
@@ -598,7 +601,7 @@ async function fetchWatchlistCatalogPublic(
   const cacheKey = `watchlist:${memberId}:${showRatings}:${sort || 'default'}`;
   const cached = publicWatchlistCache.get(cacheKey);
   if (cached) {
-    const metas = skip > 0 ? cached.metas.slice(skip) : cached.metas;
+    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
     return { metas };
   }
 
@@ -619,7 +622,7 @@ async function fetchWatchlistCatalogPublic(
   for (const film of allFilms) cacheFilmMapping(film);
 
   publicWatchlistCache.set(cacheKey, { metas: allMetas });
-  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
   logger.info({ total: allMetas.length, skip, returned: metas.length, memberId }, 'Public watchlist fetched');
   return { metas };
 }
@@ -646,7 +649,7 @@ async function fetchListCatalogPublic(
   const allMetas = transformListEntriesToMetas(allEntries, showRatings);
   for (const entry of allEntries) cacheFilmMapping(entry.film);
 
-  const metas = skip > 0 ? allMetas.slice(skip) : allMetas;
+  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
   logger.info({ total: allMetas.length, skip, returned: metas.length, listId }, 'Public list fetched');
   return { metas };
 }
