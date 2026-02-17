@@ -11,10 +11,67 @@ const FEATURES = [
   "Letterboxd links",
 ];
 
+const softwareApplicationSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Stremio Letterboxd Addon",
+  applicationCategory: "MultimediaApplication",
+  applicationSubCategory: "Movie Metadata Addon",
+  operatingSystem: "Stremio",
+  url: "https://stremboxd.com",
+  description:
+    "A Stremio movie metadata addon that syncs Letterboxd watchlist, ratings, diary, liked films, and custom lists.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "How do I sync Letterboxd to Stremio?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Open the Stremio Letterboxd addon configuration page, connect your Letterboxd account or username, choose catalogs and lists, then install the generated addon manifest in Stremio.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can I import my Letterboxd watchlist into Stremio?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. The addon can include your Letterboxd watchlist as a Stremio catalog so you can browse it directly in your Stremio library.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does the addon show Letterboxd ratings in Stremio?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. You can enable rating display so films in Stremio include your Letterboxd rating context.",
+      },
+    },
+  ],
+};
+
 export default function Home() {
   return (
-    <div className="fixed inset-0 flex h-[100dvh] w-screen cursor-default flex-col bg-[#0a0a0a] text-white sm:h-screen sm:items-center sm:justify-center">
-      <div className="flex min-h-0 flex-1 w-full max-w-7xl flex-col items-center justify-center overflow-y-auto px-4 sm:mx-auto sm:-mt-16 sm:flex-none sm:h-full sm:overflow-visible">
+    <main className="fixed inset-0 flex h-[100dvh] w-screen cursor-default flex-col bg-[#0a0a0a] text-white sm:h-screen sm:items-center sm:justify-center">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
+      <section className="flex min-h-0 flex-1 w-full max-w-7xl flex-col items-center justify-center overflow-y-auto px-4 sm:mx-auto sm:-mt-16 sm:flex-none sm:h-full sm:overflow-visible">
         <h1 className="mt-10 text-center text-2xl font-semibold tracking-tight text-white sm:mt-0 sm:text-5xl lg:text-6xl xl:text-7xl">
           Letterboxd → Stremio Addon
         </h1>
@@ -57,7 +114,30 @@ export default function Home() {
           </a>{" "}
           to prioritize this addon for the best experience.
         </p>
-      </div>
+      </section>
+
+      <section aria-label="Stremio Letterboxd addon information" className="sr-only">
+        <h2>Sync Letterboxd to Stremio</h2>
+        <p>
+          Install this Stremio movie metadata addon to sync your Letterboxd watchlist, ratings, liked films, diary, and
+          custom lists.
+        </p>
+        <h2>How to install</h2>
+        <ol>
+          <li>Open the addon configuration page.</li>
+          <li>Connect your Letterboxd account or validate your public username.</li>
+          <li>Choose the catalogs and lists you want in Stremio.</li>
+          <li>Install the generated manifest in Stremio.</li>
+        </ol>
+        <h2>Frequently asked questions</h2>
+        <h3>How do I sync Letterboxd to Stremio?</h3>
+        <p>Use the configuration flow, generate your personal manifest URL, and install it in Stremio.</p>
+        <h3>Can I use my Letterboxd watchlist in Stremio?</h3>
+        <p>Yes. Enable Watchlist during setup and it appears as a catalog.</p>
+        <h3>Can I see Letterboxd ratings in Stremio?</h3>
+        <p>Yes. Enable ratings in your addon display options.</p>
+        <a href="/configure">Configure the Stremio Letterboxd addon</a>
+      </section>
 
       <div className="shrink-0 flex justify-center py-6 sm:absolute sm:bottom-12">
         <TransitionLink
@@ -81,6 +161,6 @@ export default function Home() {
           </svg>
         </TransitionLink>
       </div>
-    </div>
+    </main>
   );
 }
