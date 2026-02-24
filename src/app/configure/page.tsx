@@ -17,6 +17,7 @@ interface UserPreferences {
     owner: string;
     filmCount: number;
   }>;
+  externalWatchlists?: Array<{ username: string; displayName: string }>;
   showActions?: boolean;
   showRatings?: boolean;
   catalogNames?: Record<string, string>;
@@ -57,6 +58,7 @@ interface PublicConfig {
   l: string[];
   r: boolean;
   n?: Record<string, string>;
+  w?: string[];
 }
 
 interface ToastItem {
@@ -112,6 +114,8 @@ export default function Configure() {
   const [publicOwnLists, setPublicOwnLists] = useState<string[]>([]);
   const [publicLikedFilms, setPublicLikedFilms] = useState(false);
   const [publicLists, setPublicLists] = useState<Array<{ id: string; name: string; owner: string; filmCount: number }>>([]);
+  const [publicExternalWatchlists, setPublicExternalWatchlists] = useState<Array<{ username: string; displayName: string }>>([]);
+  const [isResolvingWatchlist, setIsResolvingWatchlist] = useState(false);
   const [showRatings, setShowRatings] = useState(true);
   const [publicCatalogNames, setPublicCatalogNames] = useState<Record<string, string>>({});
   const [generatedManifestUrl, setGeneratedManifestUrl] = useState<string | null>(null);
@@ -399,6 +403,47 @@ export default function Configure() {
     }
   };
 
+  const handleAddPublicExternalWatchlist = async (username: string) => {
+    const trimmed = username.trim().toLowerCase();
+    if (!trimmed) return;
+
+    // Prevent adding own username
+    if (usernameValidated && trimmed === usernameValidated.username.toLowerCase()) {
+      showErrorToast("You can't add your own watchlist as external");
+      return;
+    }
+
+    // Prevent duplicates
+    if (publicExternalWatchlists.some((w) => w.username.toLowerCase() === trimmed)) {
+      showErrorToast("This watchlist has already been added");
+      return;
+    }
+
+    setIsResolvingWatchlist(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/validate-username`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: trimmed }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.valid) {
+        showErrorToast("Username not found on Letterboxd");
+        return;
+      }
+
+      setPublicExternalWatchlists((prev) => [
+        ...prev,
+        { username: data.username, displayName: data.displayName },
+      ]);
+    } catch {
+      showErrorToast("Failed to validate username");
+    } finally {
+      setIsResolvingWatchlist(false);
+    }
+  };
+
   const handleInstallPublic = () => {
     const cfg: PublicConfig = {
       c: {
@@ -408,6 +453,10 @@ export default function Configure() {
       l: publicLists.map((l) => l.id),
       r: showRatings,
     };
+
+    if (publicExternalWatchlists.length > 0) {
+      cfg.w = publicExternalWatchlists.map((w) => w.username);
+    }
 
     if (Object.keys(publicCatalogNames).length > 0) {
       cfg.n = publicCatalogNames;
@@ -452,6 +501,7 @@ export default function Configure() {
     setForceMainForm(false);
     resetSessionResults();
     setPublicLists([]);
+    setPublicExternalWatchlists([]);
     setShowRatings(true);
     setPublicCatalogs({ popular: true, top250: true });
     setPublicWatchlist(true);
@@ -504,6 +554,10 @@ export default function Configure() {
           onPublicOwnListsChange={setPublicOwnLists}
           publicLists={publicLists}
           onRemovePublicList={(id) => setPublicLists((prev) => prev.filter((l) => l.id !== id))}
+          publicExternalWatchlists={publicExternalWatchlists}
+          onAddPublicExternalWatchlist={handleAddPublicExternalWatchlist}
+          onRemovePublicExternalWatchlist={(username) => setPublicExternalWatchlists((prev) => prev.filter((w) => w.username !== username))}
+          isResolvingWatchlist={isResolvingWatchlist}
           showRatings={showRatings}
           onShowRatingsChange={setShowRatings}
           publicCatalogNames={publicCatalogNames}
