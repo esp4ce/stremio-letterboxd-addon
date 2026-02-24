@@ -52,6 +52,18 @@ import { serverConfig } from '../../config/index.js';
 
 const logger = createChildLogger('stremio-routes');
 
+/**
+ * Fisher-Yates shuffle (non-mutating)
+ */
+function shuffleArray<T>(arr: T[]): T[] {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j]!, result[i]!];
+  }
+  return result;
+}
+
 const IMDB_REGEX = /^tt\d{1,10}$/;
 
 // Stremio expects pages of this size; it requests the next page when it receives exactly this many items
@@ -472,50 +484,56 @@ async function handleCatalogRequest(
   const params = parseExtra(extra);
   const skip = params['skip'] ? parseInt(params['skip'], 10) : 0;
   const sortLabel = params['sort'];
-  const sort = sortLabel ? SORT_LABEL_TO_API[sortLabel] : undefined;
+  const isShuffle = sortLabel === 'Shuffle';
+  const sort = sortLabel && !isShuffle ? SORT_LABEL_TO_API[sortLabel] : undefined;
   const preferences = getUserPreferences(user);
   const showRatings = preferences?.showRatings !== false;
 
   try {
+    let result: { metas: StremioMeta[] };
+
     if (catalogId === 'letterboxd-watchlist') {
       trackEvent('catalog_watchlist', userId);
-      return await fetchWatchlistCatalog(user, skip, showRatings, sort);
-    }
-
-    if (catalogId === 'letterboxd-diary') {
+      result = await fetchWatchlistCatalog(user, skip, showRatings, sort);
+    } else if (catalogId === 'letterboxd-diary') {
       trackEvent('catalog_diary', userId);
-      return await fetchDiaryCatalog(user, skip, showRatings, sort);
-    }
-
-    if (catalogId === 'letterboxd-friends') {
+      result = await fetchDiaryCatalog(user, skip, showRatings, sort);
+    } else if (catalogId === 'letterboxd-friends') {
       trackEvent('catalog_friends', userId);
-      return await fetchFriendsCatalog(user, skip, showRatings);
-    }
-
-    if (catalogId === 'letterboxd-liked-films') {
+      result = await fetchFriendsCatalog(user, skip, showRatings);
+    } else if (catalogId === 'letterboxd-liked-films') {
       trackEvent('catalog_liked', userId);
-      return await fetchLikedFilmsCatalog(user, skip, showRatings, sort);
-    }
-
-    if (catalogId === 'letterboxd-popular') {
+      result = await fetchLikedFilmsCatalog(user, skip, showRatings, sort);
+    } else if (catalogId === 'letterboxd-popular') {
       trackEvent('catalog_popular', userId);
-      return await fetchPopularCatalog(user, skip, showRatings, sort);
-    }
-
-    if (catalogId === 'letterboxd-top250') {
+      result = await fetchPopularCatalog(user, skip, showRatings, sort);
+    } else if (catalogId === 'letterboxd-top250') {
       trackEvent('catalog_top250', userId);
-      return await fetchListCatalog(user, TOP_250_LIST_ID, skip, showRatings, sort);
-    }
-
-    // Handle custom lists (letterboxd-list-{listId})
-    if (catalogId.startsWith('letterboxd-list-')) {
+      result = await fetchListCatalog(user, TOP_250_LIST_ID, skip, showRatings, sort);
+    } else if (catalogId.startsWith('letterboxd-watchlist-')) {
+      // External watchlist: letterboxd-watchlist-{username}
+      const username = catalogId.replace('letterboxd-watchlist-', '');
+      trackEvent('catalog_watchlist', userId, { externalUsername: username });
+      const extMemberId = await resolveMemberId(username);
+      if (extMemberId) {
+        result = await fetchWatchlistCatalogPublic(extMemberId, skip, showRatings, sort);
+      } else {
+        result = { metas: [] };
+      }
+    } else if (catalogId.startsWith('letterboxd-list-')) {
       const listId = catalogId.replace('letterboxd-list-', '');
       trackEvent('catalog_list', userId, { listId });
-      return await fetchListCatalog(user, listId, skip, showRatings, sort);
+      result = await fetchListCatalog(user, listId, skip, showRatings, sort);
+    } else {
+      logger.warn({ catalogId }, 'Unknown catalog requested');
+      return { metas: [] };
     }
 
-    logger.warn({ catalogId }, 'Unknown catalog requested');
-    return { metas: [] };
+    if (isShuffle) {
+      result = { metas: shuffleArray(result.metas) };
+    }
+
+    return result;
 
   } catch (error) {
     logger.error({ error, userId, catalogId }, 'Failed to fetch catalog');
@@ -673,39 +691,50 @@ async function handlePublicCatalogRequest(
   const params = parseExtra(extra);
   const skip = params['skip'] ? parseInt(params['skip'], 10) : 0;
   const sortLabel = params['sort'];
-  const sort = sortLabel ? SORT_LABEL_TO_API[sortLabel] : undefined;
+  const isShuffle = sortLabel === 'Shuffle';
+  const sort = sortLabel && !isShuffle ? SORT_LABEL_TO_API[sortLabel] : undefined;
   const showRatings = cfg.r;
 
   try {
+    let result: { metas: StremioMeta[] } | null = null;
+
     if (catalogId === 'letterboxd-popular' && cfg.c.popular) {
       trackEvent('catalog_popular', undefined);
-      return await fetchPopularCatalogPublic(skip, showRatings, sort);
-    }
-
-    if (catalogId === 'letterboxd-top250' && cfg.c.top250) {
+      result = await fetchPopularCatalogPublic(skip, showRatings, sort);
+    } else if (catalogId === 'letterboxd-top250' && cfg.c.top250) {
       trackEvent('catalog_top250', undefined);
-      return await fetchTop250CatalogPublic(skip, showRatings, sort);
-    }
-
-    if (catalogId === 'letterboxd-watchlist' && cfg.u && cfg.c.watchlist && memberId) {
+      result = await fetchTop250CatalogPublic(skip, showRatings, sort);
+    } else if (catalogId === 'letterboxd-watchlist' && cfg.u && cfg.c.watchlist && memberId) {
       trackEvent('catalog_watchlist', undefined);
-      return await fetchWatchlistCatalogPublic(memberId, skip, showRatings, sort);
-    }
-
-    if (catalogId === 'letterboxd-liked-films' && cfg.u && cfg.c.likedFilms && memberId) {
+      result = await fetchWatchlistCatalogPublic(memberId, skip, showRatings, sort);
+    } else if (catalogId === 'letterboxd-liked-films' && cfg.u && cfg.c.likedFilms && memberId) {
       trackEvent('catalog_liked', undefined);
-      return await fetchLikedFilmsCatalogPublic(memberId, skip, showRatings, sort);
-    }
-
-    if (catalogId.startsWith('letterboxd-list-')) {
+      result = await fetchLikedFilmsCatalogPublic(memberId, skip, showRatings, sort);
+    } else if (catalogId.startsWith('letterboxd-watchlist-')) {
+      // External watchlist: letterboxd-watchlist-{username}
+      const username = catalogId.replace('letterboxd-watchlist-', '');
+      if (cfg.w?.includes(username)) {
+        trackEvent('catalog_watchlist', undefined, { externalUsername: username });
+        const extMemberId = await resolveMemberId(username);
+        if (extMemberId) {
+          result = await fetchWatchlistCatalogPublic(extMemberId, skip, showRatings, sort);
+        }
+      }
+    } else if (catalogId.startsWith('letterboxd-list-')) {
       const listId = catalogId.replace('letterboxd-list-', '');
       if (cfg.l.includes(listId)) {
         trackEvent('catalog_list', undefined, { listId });
-        return await fetchListCatalogPublic(listId, skip, showRatings, sort);
+        result = await fetchListCatalogPublic(listId, skip, showRatings, sort);
       }
     }
 
-    return { metas: [] };
+    if (!result) return { metas: [] };
+
+    if (isShuffle) {
+      result = { metas: shuffleArray(result.metas) };
+    }
+
+    return result;
   } catch (error) {
     logger.error({ error, catalogId }, 'Failed to fetch public catalog');
     return { metas: [] };
@@ -786,8 +815,11 @@ export async function stremioRoutes(app: FastifyInstance) {
       const params = parseExtra(request.params.extra);
       const skip = params['skip'] ? parseInt(params['skip'], 10) : 0;
       const sortLabel = params['sort'];
-      const sort = sortLabel ? SORT_LABEL_TO_API[sortLabel] : undefined;
-      return await fetchPopularCatalogPublic(skip, true, sort);
+      const isShuffle = sortLabel === 'Shuffle';
+      const sort = sortLabel && !isShuffle ? SORT_LABEL_TO_API[sortLabel] : undefined;
+      let result = await fetchPopularCatalogPublic(skip, true, sort);
+      if (isShuffle) result = { metas: shuffleArray(result.metas) };
+      return result;
     }
   );
 
@@ -813,8 +845,11 @@ export async function stremioRoutes(app: FastifyInstance) {
       const params = parseExtra(request.params.extra);
       const skip = params['skip'] ? parseInt(params['skip'], 10) : 0;
       const sortLabel = params['sort'];
-      const sort = sortLabel ? SORT_LABEL_TO_API[sortLabel] : undefined;
-      return await fetchTop250CatalogPublic(skip, true, sort);
+      const isShuffle = sortLabel === 'Shuffle';
+      const sort = sortLabel && !isShuffle ? SORT_LABEL_TO_API[sortLabel] : undefined;
+      let result = await fetchTop250CatalogPublic(skip, true, sort);
+      if (isShuffle) result = { metas: shuffleArray(result.metas) };
+      return result;
     }
   );
 
@@ -868,7 +903,21 @@ export async function stremioRoutes(app: FastifyInstance) {
 
       const listNames = cfg.l.length > 0 ? await resolveListNames(cfg.l) : undefined;
 
-      return generatePublicManifest(cfg, displayName, listNames);
+      // Resolve external watchlist display names
+      let watchlistNames: Map<string, string> | undefined;
+      if (cfg.w && cfg.w.length > 0) {
+        watchlistNames = new Map<string, string>();
+        await Promise.all(cfg.w.map(async (username) => {
+          try {
+            const member = await callWithAppToken((token) => rawGetMember(token, username));
+            watchlistNames!.set(username, member.displayName || member.username);
+          } catch {
+            watchlistNames!.set(username, username);
+          }
+        }));
+      }
+
+      return generatePublicManifest(cfg, displayName, listNames, watchlistNames);
     }
   );
 

@@ -57,7 +57,12 @@ export const SORT_EXTRA_OPTIONS = [
   "Average Rating (High)", "Average Rating (Low)",
   "Popularity", "Popularity (Week)", "Popularity (Month)",
   "Shortest", "Longest",
+  "Shuffle",
 ];
+
+export const PUBLIC_SORT_EXTRA_OPTIONS = SORT_EXTRA_OPTIONS.filter(
+  (o) => o !== "Your Rating (High)" && o !== "Your Rating (Low)"
+);
 
 export const SORT_LABEL_TO_API: Record<string, string> = {
   "Recently Added": "DateLatestFirst",
@@ -77,6 +82,7 @@ export const SORT_LABEL_TO_API: Record<string, string> = {
 };
 
 const SORT_EXTRA = { name: 'sort', options: SORT_EXTRA_OPTIONS, isRequired: false };
+const PUBLIC_SORT_EXTRA = { name: 'sort', options: PUBLIC_SORT_EXTRA_OPTIONS, isRequired: false };
 
 /**
  * Generate base catalogs for a user
@@ -111,13 +117,13 @@ function getBaseCatalogs(displayName: string): StremioCatalog[] {
       type: 'movie',
       id: 'letterboxd-popular',
       name: 'Popular This Week',
-      extra: [{ name: 'skip', isRequired: false }],
+      extra: [SORT_EXTRA, { name: 'skip', isRequired: false }],
     },
     {
       type: 'movie',
       id: 'letterboxd-top250',
       name: 'Top 250 Narrative Features',
-      extra: [{ name: 'skip', isRequired: false }],
+      extra: [SORT_EXTRA, { name: 'skip', isRequired: false }],
     },
   ];
 }
@@ -162,13 +168,13 @@ export function generateBaseManifest(): StremioManifest {
         type: 'movie',
         id: 'letterboxd-popular',
         name: 'Popular This Week',
-        extra: [{ name: 'skip', isRequired: false }],
+        extra: [PUBLIC_SORT_EXTRA, { name: 'skip', isRequired: false }],
       },
       {
         type: 'movie',
         id: 'letterboxd-top250',
         name: 'Top 250 Narrative Features',
-        extra: [{ name: 'skip', isRequired: false }],
+        extra: [PUBLIC_SORT_EXTRA, { name: 'skip', isRequired: false }],
       },
     ],
     behaviorHints: {
@@ -185,7 +191,8 @@ export function generateBaseManifest(): StremioManifest {
 export function generatePublicManifest(
   cfg: PublicConfig,
   displayName?: string,
-  listNames?: Map<string, string>
+  listNames?: Map<string, string>,
+  watchlistNames?: Map<string, string>
 ): StremioManifest {
   const catalogs: StremioCatalog[] = [];
 
@@ -194,7 +201,7 @@ export function generatePublicManifest(
       type: 'movie',
       id: 'letterboxd-popular',
       name: 'Popular This Week',
-      extra: [{ name: 'skip', isRequired: false }],
+      extra: [PUBLIC_SORT_EXTRA, { name: 'skip', isRequired: false }],
     });
   }
 
@@ -203,7 +210,7 @@ export function generatePublicManifest(
       type: 'movie',
       id: 'letterboxd-top250',
       name: 'Top 250 Narrative Features',
-      extra: [{ name: 'skip', isRequired: false }],
+      extra: [PUBLIC_SORT_EXTRA, { name: 'skip', isRequired: false }],
     });
   }
 
@@ -213,7 +220,7 @@ export function generatePublicManifest(
       type: 'movie',
       id: 'letterboxd-watchlist',
       name: watchlistName,
-      extra: [SORT_EXTRA, { name: 'skip', isRequired: false }],
+      extra: [PUBLIC_SORT_EXTRA, { name: 'skip', isRequired: false }],
     });
   }
 
@@ -223,7 +230,7 @@ export function generatePublicManifest(
       type: 'movie',
       id: 'letterboxd-liked-films',
       name: likedName,
-      extra: [SORT_EXTRA, { name: 'skip', isRequired: false }],
+      extra: [PUBLIC_SORT_EXTRA, { name: 'skip', isRequired: false }],
     });
   }
 
@@ -232,8 +239,21 @@ export function generatePublicManifest(
       type: 'movie',
       id: `letterboxd-list-${listId}`,
       name: listNames?.get(listId) || `List ${listId}`,
-      extra: [SORT_EXTRA, { name: 'skip', isRequired: false }],
+      extra: [PUBLIC_SORT_EXTRA, { name: 'skip', isRequired: false }],
     });
+  }
+
+  // External watchlists
+  if (cfg.w) {
+    for (const username of cfg.w) {
+      const extDisplayName = watchlistNames?.get(username) || username;
+      catalogs.push({
+        type: 'movie',
+        id: `letterboxd-watchlist-${username}`,
+        name: `${extDisplayName}'s Watchlist`,
+        extra: [PUBLIC_SORT_EXTRA, { name: 'skip', isRequired: false }],
+      });
+    }
   }
 
   // Apply custom catalog names from config
@@ -339,7 +359,16 @@ export function generateDynamicManifest(
         extra: [SORT_EXTRA, { name: 'skip', isRequired: false }],
       }));
 
-    catalogs = [...filteredBase, ...ownListCatalogs, ...externalListCatalogs];
+    // Add external watchlists from preferences
+    const externalWatchlistCatalogs: StremioCatalog[] =
+      (preferences.externalWatchlists || []).map((ext) => ({
+        type: 'movie',
+        id: `letterboxd-watchlist-${ext.username}`,
+        name: `${ext.displayName}'s Watchlist`,
+        extra: [SORT_EXTRA, { name: 'skip', isRequired: false }],
+      }));
+
+    catalogs = [...filteredBase, ...ownListCatalogs, ...externalListCatalogs, ...externalWatchlistCatalogs];
 
     // Apply custom catalog names
     if (preferences.catalogNames) {
