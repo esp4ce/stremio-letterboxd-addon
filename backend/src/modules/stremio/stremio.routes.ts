@@ -32,7 +32,7 @@ import {
   cacheFilmMapping,
   StremioMeta,
 } from './catalog.service.js';
-import { buildLetterboxdStreams } from './meta.service.js';
+import { buildLetterboxdStreams, findFilmByImdb, getFilmRatingData, getFullFilmInfoFromCinemeta } from './meta.service.js';
 import { generateRatedPoster } from './poster.service.js';
 import { createChildLogger } from '../../lib/logger.js';
 import {
@@ -41,12 +41,14 @@ import {
   top250CatalogCache,
   memberIdCache,
   publicWatchlistCache,
+  publicListCache,
   listNameCache,
   likedFilmsCache,
 } from '../../lib/cache.js';
 import { trackEvent } from '../../lib/metrics.js';
 import { callWithAppToken } from '../../lib/app-client.js';
 import { decodeConfig, type PublicConfig } from '../../lib/config-encoding.js';
+import { serverConfig } from '../../config/index.js';
 
 const logger = createChildLogger('stremio-routes');
 
@@ -633,6 +635,13 @@ async function fetchListCatalogPublic(
   showRatings: boolean,
   sort?: string
 ): Promise<{ metas: StremioMeta[] }> {
+  const cacheKey = `list:${listId}:${showRatings}:${sort || 'default'}`;
+  const cached = publicListCache.get(cacheKey);
+  if (cached) {
+    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
+    return { metas };
+  }
+
   const allEntries: ListEntry[] = [];
   let cursor: string | undefined;
   let page = 0;
@@ -649,6 +658,7 @@ async function fetchListCatalogPublic(
   const allMetas = transformListEntriesToMetas(allEntries, showRatings);
   for (const entry of allEntries) cacheFilmMapping(entry.film);
 
+  publicListCache.set(cacheKey, { metas: allMetas });
   const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
   logger.info({ total: allMetas.length, skip, returned: metas.length, listId }, 'Public list fetched');
   return { metas };
@@ -1055,6 +1065,107 @@ export async function stremioRoutes(app: FastifyInstance) {
       } catch (error) {
         logger.error({ error, userId, imdbId }, 'Failed to fetch streams');
         return { streams: [] };
+      }
+    }
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Meta Route: Enrich Cinemeta with Letterboxd rating badge (Tier 2 only)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  app.get(
+    '/stremio/:userId/meta/movie/:imdbId.json',
+    async (
+      request: FastifyRequest<{
+        Params: { userId: string; imdbId: string };
+      }>,
+      reply
+    ) => {
+      const { userId, imdbId } = request.params;
+
+      // Validate IMDb ID
+      if (!IMDB_REGEX.test(imdbId)) {
+        return reply.status(400).send({ error: 'Invalid IMDb ID' });
+      }
+
+      const user = findUserById(userId);
+      if (!user) {
+        return reply.status(404).send({ meta: null, error: 'User not found' });
+      }
+
+      logger.info({ imdbId, username: user.letterboxd_username }, 'Meta request with Letterboxd enrichment');
+
+      reply.header('Access-Control-Allow-Origin', '*');
+      reply.header('Content-Type', 'application/json');
+
+      try {
+        // 1. Fetch base data from Cinemeta (with caching)
+        const cinemetaData = await getFullFilmInfoFromCinemeta(imdbId);
+        if (!cinemetaData) {
+          return { meta: null };
+        }
+
+        // 2. Create authenticated client for user
+        const client = await createClientForUser(user);
+
+        // 3. Find Letterboxd film by IMDb
+        const letterboxdResult = await findFilmByImdb(client, imdbId);
+
+        // 4. If found, get rating and add badge to poster
+        let poster = cinemetaData.poster;
+        if (letterboxdResult) {
+          const ratingData = await getFilmRatingData(client, letterboxdResult.letterboxdFilmId, user.id);
+
+          if (ratingData.communityRating !== null && poster) {
+            // Replace poster with badge-enabled version
+            poster = `${serverConfig.publicUrl}/poster?url=${encodeURIComponent(poster)}&rating=${ratingData.communityRating.toFixed(1)}`;
+          }
+        }
+
+        // 5. Build and return enriched meta (only modified fields)
+        const meta = {
+          id: imdbId,
+          type: 'movie',
+          name: cinemetaData.name,
+          poster,
+          background: cinemetaData.background,
+          year: cinemetaData.year,
+          genres: cinemetaData.genres,
+          director: cinemetaData.director,
+          cast: cinemetaData.cast,
+          writer: cinemetaData.writer,
+          runtime: cinemetaData.runtime,
+          description: cinemetaData.description,
+          trailers: cinemetaData.trailers,
+        };
+
+        logger.info({ imdbId, hasRating: !!letterboxdResult }, 'Letterboxd meta enrichment completed');
+        return { meta };
+
+      } catch (error) {
+        logger.error({ error, userId, imdbId }, 'Failed to fetch enriched meta');
+        // Return basic Cinemeta data on error
+        const cinemetaData = await getFullFilmInfoFromCinemeta(imdbId);
+        if (!cinemetaData) {
+          return { meta: null };
+        }
+        return {
+          meta: {
+            id: imdbId,
+            type: 'movie',
+            name: cinemetaData.name,
+            poster: cinemetaData.poster,
+            background: cinemetaData.background,
+            year: cinemetaData.year,
+            genres: cinemetaData.genres,
+            director: cinemetaData.director,
+            cast: cinemetaData.cast,
+            writer: cinemetaData.writer,
+            runtime: cinemetaData.runtime,
+            description: cinemetaData.description,
+            trailers: cinemetaData.trailers,
+          }
+        };
       }
     }
   );

@@ -96,6 +96,11 @@ export const publicWatchlistCache = createCache<{ metas: StremioMeta[] }>({
   ttl: cacheConfig.watchlistTtl,
 });
 
+// Public list catalog cache (5 minutes)
+export const publicListCache = createCache<{ metas: StremioMeta[] }>({
+  ttl: 5 * 60 * 1000,
+});
+
 // List ID → name cache (24 hours - list names rarely change)
 export const listNameCache = createCache<string>({
   ttl: 24 * 60 * 60 * 1000,
@@ -129,6 +134,7 @@ export function getCacheStats(): CacheStats {
     top250Catalog: { size: top250CatalogCache.size, max: top250CatalogCache.max },
     memberId: { size: memberIdCache.size, max: memberIdCache.max },
     publicWatchlist: { size: publicWatchlistCache.size, max: publicWatchlistCache.max },
+    publicList: { size: publicListCache.size, max: publicListCache.max },
     listName: { size: listNameCache.size, max: listNameCache.max },
     likedFilms: { size: likedFilmsCache.size, max: likedFilmsCache.max },
     poster: { size: posterCache.size, max: posterCache.max },

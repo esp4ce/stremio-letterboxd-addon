@@ -24,7 +24,7 @@ const BOXD_SHORTLINK_REGEX = /https?:\/\/boxd\.it\/([A-Za-z0-9]+)/;
 const LIST_SHORTLINK_TAG_REGEX = /<link[^>]+rel="shortlink"[^>]+href="https?:\/\/boxd\.it\/([A-Za-z0-9]+)"/;
 const LIST_SHORTLINK_TAG_ALT_REGEX = /href="https?:\/\/boxd\.it\/([A-Za-z0-9]+)"[^>]*rel="shortlink"/;
 const LIST_LIKEABLE_IDENTIFIER_REGEX =
-  /data-likeable-identifier=(?:"|')\{"lid":"([A-Za-z0-9]+)","uid":"filmlist:[^"']+","type":"list","typeName":"list"\}(?:"|')/;
+  /data-likeable-identifier='([^']+)'/;
 
 const BROWSER_FETCH_OPTIONS: RequestInit = {
   headers: { 'User-Agent': config.LETTERBOXD_USER_AGENT },
@@ -32,9 +32,17 @@ const BROWSER_FETCH_OPTIONS: RequestInit = {
 };
 
 async function fetchPageHtml(url: string): Promise<string | null> {
-  const response = await fetch(url, BROWSER_FETCH_OPTIONS);
-  if (!response.ok) return null;
-  return response.text();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(url, { ...BROWSER_FETCH_OPTIONS, signal: controller.signal });
+    if (!response.ok) return null;
+    return response.text();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function extractBoxdShortlinkId(html: string): string | null {
@@ -45,8 +53,21 @@ function extractListIdFromListPage(html: string): string | null {
   const shortlinkId =
     html.match(LIST_SHORTLINK_TAG_REGEX)?.[1] ??
     html.match(LIST_SHORTLINK_TAG_ALT_REGEX)?.[1];
-  const likeableId = html.match(LIST_LIKEABLE_IDENTIFIER_REGEX)?.[1];
-  return shortlinkId ?? likeableId ?? null;
+  if (shortlinkId) return shortlinkId;
+
+  // Extract data-likeable-identifier and decode HTML entities (&#034; / &quot; → ")
+  const likeableMatch = html.match(LIST_LIKEABLE_IDENTIFIER_REGEX);
+  if (likeableMatch) {
+    const decoded = likeableMatch[1]!
+      .replace(/&#034;/g, '"')
+      .replace(/&quot;/g, '"');
+    try {
+      const parsed = JSON.parse(decoded) as { type?: string; lid?: string };
+      if (parsed.type === 'list' && parsed.lid) return parsed.lid;
+    } catch { /* ignore parse errors */ }
+  }
+
+  return null;
 }
 
 async function resolveMemberByUsername(username: string) {
@@ -59,12 +80,51 @@ async function resolveMemberByUsername(username: string) {
       try {
         return await callWithAppToken((token) => rawGetMember(token, memberLid));
       } catch {
-        // fallback to API search
+        // fallback to username search
       }
     }
   }
 
   return callWithAppToken((token) => rawSearchMemberByUsername(token, username));
+}
+
+/** Extract normalized words from text (strips diacritics + apostrophes) */
+function extractWords(text: string): string[] {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[''ʼ]/g, '')
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 0);
+}
+
+function wordsOverlap(nameWords: string[], slugWords: string[]): boolean {
+  const nameSet = new Set(nameWords);
+  const slugSet = new Set(slugWords);
+
+  const slugInName = slugWords.filter((w) => nameSet.has(w)).length;
+  const nameInSlug = nameWords.filter((w) => slugSet.has(w)).length;
+
+  return slugInName >= slugWords.length * 0.8
+      && nameInSlug >= nameWords.length * 0.6;
+}
+
+/** Match a list name against a URL slug using bidirectional word overlap */
+function matchesSlug(listName: string, urlSlug: string): boolean {
+  const nameWords = extractWords(listName);
+  const slugWords = urlSlug.split('-').filter((w) => w.length > 0);
+
+  // Try full slug first (handles "top-10", "apollo-13", etc.)
+  if (wordsOverlap(nameWords, slugWords)) return true;
+
+  // Retry without trailing number — Letterboxd dedup suffix ("monster-high-1")
+  const stripped = urlSlug.replace(/-\d+$/, '');
+  if (stripped !== urlSlug) {
+    return wordsOverlap(nameWords, stripped.split('-').filter((w) => w.length > 0));
+  }
+
+  return false;
 }
 
 export async function authRoutes(app: FastifyInstance) {
@@ -268,6 +328,7 @@ export async function authRoutes(app: FastifyInstance) {
           const listId = extractListIdFromListPage(pageHtml);
 
           if (listId) {
+            request.log.info({ listId, url: normalizedUrl }, 'Strategy 1: extracted list ID from HTML');
             try {
               const list = await callWithAppToken((token) =>
                 rawGetList(token, listId)
@@ -289,31 +350,32 @@ export async function authRoutes(app: FastifyInstance) {
                 filmCount: list.filmCount,
               };
             } catch (err) {
-              // API failed (404, private list, etc.) - fallback to strategy 2
+              // Lookup failed (404, private list, etc.) - fallback to strategy 2
               if (err instanceof LetterboxdApiError && err.status === 404) {
-                // Continue to fallback strategy
+                request.log.warn({ listId }, 'Strategy 1: API returned 404 for extracted ID, falling back');
               } else {
                 throw err; // Re-throw non-404 errors
               }
             }
+          } else {
+            request.log.warn({ url: normalizedUrl }, 'Strategy 1: no list ID found in HTML');
           }
+        } else {
+          request.log.warn({ url: normalizedUrl }, 'Strategy 1: failed to fetch HTML page');
         }
 
-        // Strategy 2 (fallback): Resolve member reliably, then match list slug
-        const [, username, listSlug] = urlMatch;
+        // Strategy 2 (fallback): Resolve member → get all lists → match by words
+        const [, username, rawListSlug] = urlMatch;
+        const listSlug = rawListSlug!.split(/[?#]/)[0]!.replace(/\/$/, '').toLowerCase();
+
+        request.log.info({ username, listSlug }, 'Strategy 2: resolving member and fetching lists');
 
         const member = await resolveMemberByUsername(username!);
-
         if (!member) {
           return reply.status(404).send({ error: 'List not found' });
         }
 
-        const normalizeSlug = (name: string) =>
-          name.toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-|-$/g, '');
-
-        // Paginate through member's lists to find the matching slug
+        // Paginate through member's lists and match by word overlap
         let cursor: string | undefined;
         let page = 0;
 
@@ -323,22 +385,19 @@ export async function authRoutes(app: FastifyInstance) {
             rawSearchLists(token, { member: member.id, memberRelationship: 'Owner', perPage: 100, cursor })
           );
 
-          const matchedList = listsResponse.items.find(
-            (l) => normalizeSlug(l.name) === listSlug!.toLowerCase()
-          );
+          const matched = listsResponse.items.find((l) => matchesSlug(l.name, listSlug));
 
-          if (matchedList) {
-            if (matchedList.id === TOP_250_LIST_ID) {
+          if (matched) {
+            if (matched.id === TOP_250_LIST_ID) {
               return reply.status(400).send({
                 error: 'This list is already available as a built-in catalog (Top 250 Narrative Features)',
               });
             }
-
             return {
-              id: matchedList.id,
-              name: matchedList.name,
-              owner: member.displayName || member.username,
-              filmCount: matchedList.filmCount,
+              id: matched.id,
+              name: matched.name,
+              owner: matched.owner?.displayName || matched.owner?.username || member.displayName || member.username,
+              filmCount: matched.filmCount,
             };
           }
 
@@ -346,8 +405,10 @@ export async function authRoutes(app: FastifyInstance) {
           if (!cursor) break;
         }
 
+        request.log.warn({ username, listSlug, memberId: member.id }, 'Strategy 2: no match found');
         return reply.status(404).send({ error: 'List not found' });
-      } catch {
+      } catch (err) {
+        request.log.error({ err, url: parsed.data.url }, 'resolve-list-public failed');
         return reply.status(500).send({ error: 'Failed to resolve list' });
       }
     }
