@@ -115,7 +115,6 @@ export default function Configure() {
   const [publicLikedFilms, setPublicLikedFilms] = useState(false);
   const [publicLists, setPublicLists] = useState<Array<{ id: string; name: string; owner: string; filmCount: number }>>([]);
   const [publicExternalWatchlists, setPublicExternalWatchlists] = useState<Array<{ username: string; displayName: string }>>([]);
-  const [isResolvingWatchlist, setIsResolvingWatchlist] = useState(false);
   const [showRatings, setShowRatings] = useState(true);
   const [publicCatalogNames, setPublicCatalogNames] = useState<Record<string, string>>({});
   const [generatedManifestUrl, setGeneratedManifestUrl] = useState<string | null>(null);
@@ -352,12 +351,58 @@ export default function Configure() {
     }
   };
 
+  const parseWatchlistUrl = (url: string): string | null => {
+    const match = url.match(/letterboxd\.com\/([^/?#]+)\/watchlist\/?$/i);
+    return match?.[1] ?? null;
+  };
+
+  const resolveWatchlistUsername = async (username: string): Promise<{ username: string; displayName: string } | null> => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/validate-username`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.valid) return null;
+      return { username: data.username, displayName: data.displayName };
+    } catch {
+      return null;
+    }
+  };
+
   const handleResolveExternalList = async () => {
     if (!result || !externalListUrl.trim()) return;
 
     setIsResolvingList(true);
 
     try {
+      // Detect watchlist URL
+      const watchlistUsername = parseWatchlistUrl(externalListUrl.trim());
+      if (watchlistUsername) {
+        if (result.user.username.toLowerCase() === watchlistUsername.toLowerCase()) {
+          showErrorToast("You can't add your own watchlist as external");
+          return;
+        }
+        if (preferences?.externalWatchlists?.some((w) => w.username.toLowerCase() === watchlistUsername.toLowerCase())) {
+          showErrorToast("This watchlist has already been added");
+          return;
+        }
+        const resolved = await resolveWatchlistUsername(watchlistUsername);
+        if (!resolved) {
+          showErrorToast("Username not found on Letterboxd");
+          return;
+        }
+        if (preferences) {
+          setPreferences({
+            ...preferences,
+            externalWatchlists: [...(preferences.externalWatchlists || []), resolved],
+          });
+        }
+        setExternalListUrl("");
+        return;
+      }
+
       const resolved = await resolveList("/letterboxd/resolve-list", {
         userToken: result.userToken,
         url: externalListUrl.trim(),
@@ -385,6 +430,27 @@ export default function Configure() {
     setIsResolvingList(true);
 
     try {
+      // Detect watchlist URL
+      const watchlistUsername = parseWatchlistUrl(externalListUrl.trim());
+      if (watchlistUsername) {
+        if (usernameValidated && usernameValidated.username.toLowerCase() === watchlistUsername.toLowerCase()) {
+          showErrorToast("You can't add your own watchlist as external");
+          return;
+        }
+        if (publicExternalWatchlists.some((w) => w.username.toLowerCase() === watchlistUsername.toLowerCase())) {
+          showErrorToast("This watchlist has already been added");
+          return;
+        }
+        const resolved = await resolveWatchlistUsername(watchlistUsername);
+        if (!resolved) {
+          showErrorToast("Username not found on Letterboxd");
+          return;
+        }
+        setPublicExternalWatchlists((prev) => [...prev, resolved]);
+        setExternalListUrl("");
+        return;
+      }
+
       const resolved = await resolveList("/auth/resolve-list-public", {
         url: externalListUrl.trim(),
       });
@@ -400,47 +466,6 @@ export default function Configure() {
       showListResolveErrorToast(err);
     } finally {
       setIsResolvingList(false);
-    }
-  };
-
-  const handleAddPublicExternalWatchlist = async (username: string) => {
-    const trimmed = username.trim().toLowerCase();
-    if (!trimmed) return;
-
-    // Prevent adding own username
-    if (usernameValidated && trimmed === usernameValidated.username.toLowerCase()) {
-      showErrorToast("You can't add your own watchlist as external");
-      return;
-    }
-
-    // Prevent duplicates
-    if (publicExternalWatchlists.some((w) => w.username.toLowerCase() === trimmed)) {
-      showErrorToast("This watchlist has already been added");
-      return;
-    }
-
-    setIsResolvingWatchlist(true);
-    try {
-      const response = await fetch(`${BACKEND_URL}/auth/validate-username`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: trimmed }),
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.valid) {
-        showErrorToast("Username not found on Letterboxd");
-        return;
-      }
-
-      setPublicExternalWatchlists((prev) => [
-        ...prev,
-        { username: data.username, displayName: data.displayName },
-      ]);
-    } catch {
-      showErrorToast("Failed to validate username");
-    } finally {
-      setIsResolvingWatchlist(false);
     }
   };
 
@@ -555,9 +580,7 @@ export default function Configure() {
           publicLists={publicLists}
           onRemovePublicList={(id) => setPublicLists((prev) => prev.filter((l) => l.id !== id))}
           publicExternalWatchlists={publicExternalWatchlists}
-          onAddPublicExternalWatchlist={handleAddPublicExternalWatchlist}
           onRemovePublicExternalWatchlist={(username) => setPublicExternalWatchlists((prev) => prev.filter((w) => w.username !== username))}
-          isResolvingWatchlist={isResolvingWatchlist}
           showRatings={showRatings}
           onShowRatingsChange={setShowRatings}
           publicCatalogNames={publicCatalogNames}

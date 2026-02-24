@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
+import { useState } from "react";
 
 interface UserPreferences {
   catalogs: { watchlist: boolean; diary: boolean; friends: boolean; popular: boolean; top250: boolean; likedFilms: boolean };
@@ -50,9 +48,7 @@ interface PublicModeProps extends BaseProps {
   publicLists: Array<{ id: string; name: string; owner: string; filmCount: number }>;
   onRemovePublicList: (id: string) => void;
   publicExternalWatchlists: Array<{ username: string; displayName: string }>;
-  onAddPublicExternalWatchlist: (username: string) => void;
   onRemovePublicExternalWatchlist: (username: string) => void;
-  isResolvingWatchlist: boolean;
   showRatings: boolean;
   onShowRatingsChange: (val: boolean) => void;
   publicCatalogNames: Record<string, string>;
@@ -146,57 +142,6 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
   // Catalog name editing state
   const [editingCatalogId, setEditingCatalogId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
-  const [externalWatchlistUsername, setExternalWatchlistUsername] = useState("");
-  const [isResolvingWatchlistLocal, setIsResolvingWatchlistLocal] = useState(false);
-  const [watchlistError, setWatchlistError] = useState<string | null>(null);
-
-  const handleAddExternalWatchlist = useCallback(async () => {
-    const trimmed = externalWatchlistUsername.trim();
-    if (!trimmed) return;
-
-    if (isPublic) {
-      (props as PublicModeProps).onAddPublicExternalWatchlist(trimmed);
-      setExternalWatchlistUsername("");
-      return;
-    }
-
-    // Full mode: resolve + add to preferences
-    const p = props as FullModeProps;
-    const existing = p.preferences.externalWatchlists || [];
-
-    if (user && trimmed.toLowerCase() === user.username.toLowerCase()) {
-      setWatchlistError("You can't add your own watchlist");
-      return;
-    }
-    if (existing.some((w) => w.username.toLowerCase() === trimmed.toLowerCase())) {
-      setWatchlistError("Already added");
-      return;
-    }
-
-    setIsResolvingWatchlistLocal(true);
-    setWatchlistError(null);
-    try {
-      const response = await fetch(`${BACKEND_URL}/auth/validate-username`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: trimmed }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.valid) {
-        setWatchlistError("Username not found");
-        return;
-      }
-      p.onPreferencesChange({
-        ...p.preferences,
-        externalWatchlists: [...existing, { username: data.username, displayName: data.displayName }],
-      });
-      setExternalWatchlistUsername("");
-    } catch {
-      setWatchlistError("Failed to validate username");
-    } finally {
-      setIsResolvingWatchlistLocal(false);
-    }
-  }, [externalWatchlistUsername, isPublic, props, user]);
 
   const getCatalogDisplayName = (catalogId: string, defaultName: string): string => {
     if (isPublic) {
@@ -326,6 +271,18 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     });
   };
 
+  const removeExternalWatchlist = (username: string) => {
+    if (isPublic) {
+      (props as PublicModeProps).onRemovePublicExternalWatchlist(username);
+    } else {
+      const p = props as FullModeProps;
+      p.onPreferencesChange({
+        ...p.preferences,
+        externalWatchlists: (p.preferences.externalWatchlists || []).filter((w) => w.username !== username),
+      });
+    }
+  };
+
   // Build catalog items based on mode
   const catalogKeyToId: Record<string, string> = {
     watchlist: "letterboxd-watchlist",
@@ -336,11 +293,11 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     top250: "letterboxd-top250",
   };
 
-  type CatalogItem = { key: string; catalogId: string; label: string; description: string; available: boolean; featured?: boolean };
+  type CatalogItem = { key: string; catalogId: string; label: string; description: string; available: boolean };
   const catalogItems: CatalogItem[] = [];
 
   if (!isPublic) {
-    catalogItems.push({ key: "watchlist", catalogId: catalogKeyToId["watchlist"]!, label: "Watchlist", description: "Films you want to watch", available: true, featured: true });
+    catalogItems.push({ key: "watchlist", catalogId: catalogKeyToId["watchlist"]!, label: "Watchlist", description: "Films you want to watch", available: true });
     catalogItems.push({ key: "diary", catalogId: catalogKeyToId["diary"]!, label: "Diary", description: "Your recently watched films", available: true });
     catalogItems.push({ key: "friends", catalogId: catalogKeyToId["friends"]!, label: "Friends Activity", description: "What your friends are watching", available: true });
     catalogItems.push({ key: "likedFilms", catalogId: catalogKeyToId["likedFilms"]!, label: "Liked Films", description: "Films you have liked", available: true });
@@ -350,7 +307,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
   catalogItems.push({ key: "top250", catalogId: catalogKeyToId["top250"]!, label: "Top 250 Narrative Features", description: "Official Top 250 by Dave", available: true });
 
   if (isPublic && hasUsername) {
-    catalogItems.push({ key: "watchlist", catalogId: catalogKeyToId["watchlist"]!, label: "Watchlist", description: "Films you want to watch", available: true, featured: true });
+    catalogItems.push({ key: "watchlist", catalogId: catalogKeyToId["watchlist"]!, label: "Watchlist", description: "Films you want to watch", available: true });
     catalogItems.push({ key: "likedFilms", catalogId: catalogKeyToId["likedFilms"]!, label: "Liked Films", description: "Films you have liked", available: true });
   }
 
@@ -359,9 +316,16 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     ? (props as PublicModeProps).publicLists
     : (props as FullModeProps).preferences.externalLists;
 
+  // External watchlists to display
+  const externalWatchlistsToShow = isPublic
+    ? (props as PublicModeProps).publicExternalWatchlists
+    : (props as FullModeProps).preferences.externalWatchlists || [];
+
   const ownListCount = isPublic
     ? (props as PublicModeProps).publicOwnLists.length
     : (props as FullModeProps).preferences.ownLists.length;
+
+  const hasExternalItems = externalListsToShow.length > 0 || externalWatchlistsToShow.length > 0;
 
   return (
     <div className="fixed inset-0 flex h-screen w-screen items-center justify-center bg-[#0a0a0a] px-4 py-5 text-white sm:px-6">
@@ -396,9 +360,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
               {catalogItems.map((item) => (
                 <div
                   key={item.key}
-                  className={`flex items-center justify-between rounded-lg bg-zinc-800/35 px-3.5 py-3 transition-colors hover:bg-zinc-800/55 ${
-                    item.featured ? "sm:col-span-2" : ""
-                  }`}
+                  className="flex items-center justify-between rounded-lg bg-zinc-800/35 px-3.5 py-3 transition-colors hover:bg-zinc-800/55"
                 >
                   <div className="min-w-0 flex-1 pr-3">
                     <EditableName
@@ -471,19 +433,19 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
             </div>
           )}
 
-          {/* External lists */}
+          {/* External lists & watchlists */}
           <div className="mt-7">
             <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">
-              {isPublic ? "Public Lists" : "External Lists"}
+              {isPublic ? "Public Lists & Watchlists" : "External Lists & Watchlists"}
             </h3>
-            <p className="mt-1 text-[11px] text-zinc-500">Paste a Letterboxd list URL</p>
+            <p className="mt-1 text-[11px] text-zinc-500">Paste a list or watchlist URL from Letterboxd</p>
 
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
                 value={externalListUrl}
                 onChange={(e) => onExternalListUrlChange(e.target.value)}
-                placeholder="letterboxd.com/user/list/name/"
+                placeholder="letterboxd.com/user/list/name/ or /user/watchlist/"
                 className="block w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-[13px] text-white placeholder-zinc-500 transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -502,14 +464,14 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
               </button>
             </div>
 
-            {externalListsToShow.length > 0 && (
+            {hasExternalItems && (
               <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {externalListsToShow.map((list) => {
                   const extCatId = `letterboxd-list-${list.id}`;
                   const extDefaultName = `${list.name} (${list.owner})`;
                   return (
                     <div
-                      key={list.id}
+                      key={`list-${list.id}`}
                       className="flex items-center gap-3 rounded-lg bg-zinc-800/35 px-3.5 py-2.5"
                     >
                       <div className="min-w-0 flex-1">
@@ -539,99 +501,41 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                     </div>
                   );
                 })}
+                {externalWatchlistsToShow.map((w) => {
+                  const wCatId = `letterboxd-watchlist-${w.username}`;
+                  const wDefaultName = `${w.displayName}'s Watchlist`;
+                  return (
+                    <div
+                      key={`watchlist-${w.username}`}
+                      className="flex items-center gap-3 rounded-lg bg-zinc-800/35 px-3.5 py-2.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <EditableName
+                          catalogId={wCatId}
+                          displayName={getCatalogDisplayName(wCatId, wDefaultName)}
+                          editingCatalogId={editingCatalogId}
+                          editingName={editingName}
+                          onEditingNameChange={setEditingName}
+                          onStartEditing={() => startEditingCatalogName(wCatId, getCatalogDisplayName(wCatId, wDefaultName))}
+                          onSave={() => saveCatalogName(wCatId, wDefaultName)}
+                          onCancel={() => setEditingCatalogId(null)}
+                        />
+                        <p className="text-[11px] text-zinc-500">@{w.username} &middot; watchlist</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeExternalWatchlist(w.username)}
+                        className="flex-shrink-0 text-zinc-500 transition-colors hover:text-zinc-300"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
-          </div>
-
-          {/* External Watchlists */}
-          <div className="mt-7">
-            <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">External Watchlists</h3>
-            <p className="mt-1 text-[11px] text-zinc-500">Add another user&apos;s public watchlist as a catalog</p>
-
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-              <input
-                type="text"
-                value={externalWatchlistUsername}
-                onChange={(e) => setExternalWatchlistUsername(e.target.value)}
-                placeholder="username"
-                className="block w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-[13px] text-white placeholder-zinc-500 transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddExternalWatchlist();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleAddExternalWatchlist}
-                disabled={!externalWatchlistUsername.trim() || (isPublic ? (props as PublicModeProps).isResolvingWatchlist : isResolvingWatchlistLocal)}
-                className="flex-shrink-0 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-[13px] text-zinc-300 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {(isPublic ? (props as PublicModeProps).isResolvingWatchlist : isResolvingWatchlistLocal) ? "..." : "Add"}
-              </button>
-            </div>
-
-            {watchlistError && (
-              <p className="mt-2 text-[11px] text-red-400">{watchlistError}</p>
-            )}
-
-            {(() => {
-              const watchlists = isPublic
-                ? (props as PublicModeProps).publicExternalWatchlists
-                : (props as FullModeProps).preferences.externalWatchlists || [];
-              const removeWatchlist = (username: string) => {
-                if (isPublic) {
-                  (props as PublicModeProps).onRemovePublicExternalWatchlist(username);
-                } else {
-                  const p = props as FullModeProps;
-                  p.onPreferencesChange({
-                    ...p.preferences,
-                    externalWatchlists: (p.preferences.externalWatchlists || []).filter((w) => w.username !== username),
-                  });
-                }
-              };
-
-              if (watchlists.length === 0) return null;
-
-              return (
-                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {watchlists.map((w) => {
-                    const wCatId = `letterboxd-watchlist-${w.username}`;
-                    const wDefaultName = `${w.displayName}'s Watchlist`;
-                    return (
-                      <div
-                        key={w.username}
-                        className="flex items-center gap-3 rounded-lg bg-zinc-800/35 px-3.5 py-2.5"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <EditableName
-                            catalogId={wCatId}
-                            displayName={getCatalogDisplayName(wCatId, wDefaultName)}
-                            editingCatalogId={editingCatalogId}
-                            editingName={editingName}
-                            onEditingNameChange={setEditingName}
-                            onStartEditing={() => startEditingCatalogName(wCatId, getCatalogDisplayName(wCatId, wDefaultName))}
-                            onSave={() => saveCatalogName(wCatId, wDefaultName)}
-                            onCancel={() => setEditingCatalogId(null)}
-                          />
-                          <p className="text-[11px] text-zinc-500">@{w.username}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeWatchlist(w.username)}
-                          className="flex-shrink-0 text-zinc-500 transition-colors hover:text-zinc-300"
-                        >
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
           </div>
 
           {/* User lists */}
