@@ -10,6 +10,7 @@ export interface UserPreferences {
     owner: string;
     filmCount: number;
   }>;
+  externalWatchlists?: Array<{ username: string; displayName: string }>;
   showActions?: boolean;
   showRatings?: boolean;
   catalogNames?: Record<string, string>;
