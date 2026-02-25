@@ -96,6 +96,11 @@ export const publicWatchlistCache = createCache<{ metas: StremioMeta[] }>({
   ttl: cacheConfig.watchlistTtl,
 });
 
+// Public list catalog cache (5 minutes)
+export const publicListCache = createCache<{ metas: StremioMeta[] }>({
+  ttl: 5 * 60 * 1000,
+});
+
 // List ID → name cache (24 hours - list names rarely change)
 export const listNameCache = createCache<string>({
   ttl: 24 * 60 * 60 * 1000,
@@ -111,6 +116,105 @@ export const posterCache = createCache<Buffer>({
   maxSize: 500,
   ttl: 60 * 60 * 1000,
 });
+
+// ── User client cache (Tier 2 token reuse) ─────────────────────────────────
+
+import type { AuthenticatedClient } from '../modules/letterboxd/letterboxd.client.js';
+
+export const userClientCache = createCache<{ client: AuthenticatedClient; expiresAt: number }>({
+  maxSize: 500,
+  ttl: 30 * 60 * 1000, // 30min max, expiresAt checked manually
+});
+
+// ── Per-user catalog cache (Tier 2) ────────────────────────────────────────
+
+export const userCatalogCache = createCache<{ metas: StremioMeta[] }>({
+  maxSize: 500,
+  ttl: 2 * 60 * 1000, // 2min — compromise between freshness and API savings
+});
+
+// Track cache keys per user for efficient invalidation (LRU doesn't support prefix scan)
+const userCatalogKeys = new Map<string, Set<string>>();
+
+/**
+ * Check user catalog cache, returning paginated metas on hit or undefined on miss.
+ */
+export function getUserCatalogCached(
+  cacheKey: string,
+  skip: number,
+  pageSize: number,
+): { metas: StremioMeta[] } | undefined {
+  const cached = userCatalogCache.get(cacheKey);
+  if (!cached) return undefined;
+  cacheMetrics.catalogHits++;
+  return { metas: cached.metas.slice(skip, skip + pageSize) };
+}
+
+/**
+ * Store full catalog in user cache and return the paginated slice.
+ */
+export function setUserCatalog(
+  userId: string,
+  cacheKey: string,
+  allMetas: StremioMeta[],
+  skip: number,
+  pageSize: number,
+): { metas: StremioMeta[] } {
+  cacheMetrics.catalogMisses++;
+  userCatalogCache.set(cacheKey, { metas: allMetas });
+  let keys = userCatalogKeys.get(userId);
+  if (!keys) {
+    keys = new Set();
+    userCatalogKeys.set(userId, keys);
+  }
+  keys.add(cacheKey);
+  return { metas: allMetas.slice(skip, skip + pageSize) };
+}
+
+export function invalidateUserCatalogs(userId: string) {
+  const keys = userCatalogKeys.get(userId);
+  if (!keys) return;
+  for (const key of keys) {
+    userCatalogCache.delete(key);
+  }
+  userCatalogKeys.delete(userId);
+}
+
+// Periodically prune stale entries from userCatalogKeys (keys whose cache entries expired)
+setInterval(() => {
+  for (const [userId, keys] of userCatalogKeys) {
+    for (const key of keys) {
+      if (!userCatalogCache.has(key)) keys.delete(key);
+    }
+    if (keys.size === 0) userCatalogKeys.delete(userId);
+  }
+}, 5 * 60 * 1000); // Every 5 minutes
+
+// ── Cache metrics (hit/miss counters) ────────────────────────────────────────
+
+export const cacheMetrics = {
+  catalogHits: 0,
+  catalogMisses: 0,
+  tokenHits: 0,
+  tokenMisses: 0,
+};
+
+export function getCacheMetrics() {
+  const catalogTotal = cacheMetrics.catalogHits + cacheMetrics.catalogMisses;
+  const tokenTotal = cacheMetrics.tokenHits + cacheMetrics.tokenMisses;
+  return {
+    catalog: {
+      hits: cacheMetrics.catalogHits,
+      misses: cacheMetrics.catalogMisses,
+      hitRate: catalogTotal > 0 ? parseFloat((cacheMetrics.catalogHits / catalogTotal * 100).toFixed(1)) : 0,
+    },
+    token: {
+      hits: cacheMetrics.tokenHits,
+      misses: cacheMetrics.tokenMisses,
+      hitRate: tokenTotal > 0 ? parseFloat((cacheMetrics.tokenHits / tokenTotal * 100).toFixed(1)) : 0,
+    },
+  };
+}
 
 // ── Cache stats export ───────────────────────────────────────────────────────
 
@@ -129,8 +233,11 @@ export function getCacheStats(): CacheStats {
     top250Catalog: { size: top250CatalogCache.size, max: top250CatalogCache.max },
     memberId: { size: memberIdCache.size, max: memberIdCache.max },
     publicWatchlist: { size: publicWatchlistCache.size, max: publicWatchlistCache.max },
+    publicList: { size: publicListCache.size, max: publicListCache.max },
     listName: { size: listNameCache.size, max: listNameCache.max },
     likedFilms: { size: likedFilmsCache.size, max: likedFilmsCache.max },
     poster: { size: posterCache.size, max: posterCache.max },
+    userClient: { size: userClientCache.size, max: userClientCache.max },
+    userCatalog: { size: userCatalogCache.size, max: userCatalogCache.max },
   };
 }
