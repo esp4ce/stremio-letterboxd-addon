@@ -333,41 +333,6 @@ async function fetchListCatalog(
   return { metas };
 }
 
-/**
- * Fetch popular films and return Stremio metas
- */
-async function fetchPopularCatalog(
-  user: User,
-  skip: number = 0,
-  showRatings: boolean = true,
-  sort?: string
-): Promise<{ metas: StremioMeta[] }> {
-  const client = await createClientForUser(user);
-
-  const allFilms: WatchlistFilm[] = [];
-  let cursor: string | undefined;
-  let page = 0;
-
-  do {
-    page++;
-    const response = await client.getFilms({ sort: sort || 'FilmPopularityThisWeek', perPage: 100, cursor });
-    allFilms.push(...response.items);
-    cursor = response.cursor;
-  } while (cursor && page < 10);
-
-  const allMetas = transformWatchlistToMetas(allFilms, showRatings);
-  for (const film of allFilms) cacheFilmMapping(film);
-
-  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
-
-  logger.info(
-    { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
-    'Popular films fetched'
-  );
-
-  return { metas };
-}
-
 
 /**
  * Fetch liked films and return Stremio metas with pagination
@@ -537,10 +502,10 @@ async function handleCatalogRequest(
       result = await fetchLikedFilmsCatalog(user, skip, showRatings, sort);
     } else if (catalogId === 'letterboxd-popular') {
       trackEvent('catalog_popular', userId);
-      result = await fetchPopularCatalog(user, skip, showRatings, sort);
+      result = await fetchPopularCatalogPublic(skip, showRatings, sort);
     } else if (catalogId === 'letterboxd-top250') {
       trackEvent('catalog_top250', userId);
-      result = await fetchListCatalog(user, TOP_250_LIST_ID, skip, showRatings, sort);
+      result = await fetchTop250CatalogPublic(skip, showRatings, sort);
     } else if (catalogId.startsWith('letterboxd-watchlist-')) {
       // External watchlist: letterboxd-watchlist-{username}
       const username = catalogId.replace('letterboxd-watchlist-', '');
