@@ -45,6 +45,8 @@ import {
   listNameCache,
   likedFilmsCache,
   userClientCache,
+  userCatalogCache,
+  setUserCatalog,
 } from '../../lib/cache.js';
 import { trackEvent } from '../../lib/metrics.js';
 import { callWithAppToken } from '../../lib/app-client.js';
@@ -182,9 +184,16 @@ async function fetchWatchlistCatalog(
   showRatings: boolean = true,
   sort?: string
 ): Promise<{ metas: StremioMeta[] }> {
+  const cacheKey = `user:${user.id}:watchlist:${showRatings}:${sort || 'default'}`;
+  const cached = userCatalogCache.get(cacheKey);
+  if (cached) {
+    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
+    logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
+    return { metas };
+  }
+
   const client = await createClientForUser(user);
 
-  // Fetch all pages of the watchlist
   const allFilms: WatchlistFilm[] = [];
   let cursor: string | undefined;
   let page = 0;
@@ -195,16 +204,12 @@ async function fetchWatchlistCatalog(
     logger.info({ page, itemsCount: watchlist.items.length, hasCursor: !!watchlist.cursor }, 'Watchlist page fetched');
     allFilms.push(...watchlist.items);
     cursor = watchlist.cursor;
-  } while (cursor && page < 10); // Safety limit
+  } while (cursor && page < 10);
 
   const allMetas = transformWatchlistToMetas(allFilms, showRatings);
+  for (const film of allFilms) cacheFilmMapping(film);
 
-  // Cache IMDb→Letterboxd mappings for meta endpoint
-  for (const film of allFilms) {
-    cacheFilmMapping(film);
-  }
-
-  // Paginate for Stremio
+  setUserCatalog(user.id, cacheKey, { metas: allMetas });
   const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
   logger.info(
@@ -224,9 +229,16 @@ async function fetchDiaryCatalog(
   showRatings: boolean = true,
   sort?: string
 ): Promise<{ metas: StremioMeta[] }> {
+  const cacheKey = `user:${user.id}:diary:${showRatings}:${sort || 'default'}`;
+  const cached = userCatalogCache.get(cacheKey);
+  if (cached) {
+    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
+    logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
+    return { metas };
+  }
+
   const client = await createClientForUser(user);
 
-  // Fetch log entries (diary)
   const allEntries: LogEntry[] = [];
   let cursor: string | undefined;
   let page = 0;
@@ -237,11 +249,11 @@ async function fetchDiaryCatalog(
     logger.info({ page, itemsCount: response.items.length, hasCursor: !!response.cursor }, 'Diary page fetched');
     allEntries.push(...response.items);
     cursor = response.cursor;
-  } while (cursor && page < 5); // Limit to 500 entries
+  } while (cursor && page < 5);
 
   const allMetas = transformLogEntriesToMetas(allEntries, showRatings);
 
-  // Paginate for Stremio
+  setUserCatalog(user.id, cacheKey, { metas: allMetas });
   const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
   logger.info(
@@ -260,9 +272,16 @@ async function fetchFriendsCatalog(
   skip: number = 0,
   showRatings: boolean = true
 ): Promise<{ metas: StremioMeta[] }> {
+  const cacheKey = `user:${user.id}:friends:${showRatings}`;
+  const cached = userCatalogCache.get(cacheKey);
+  if (cached) {
+    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
+    logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
+    return { metas };
+  }
+
   const client = await createClientForUser(user);
 
-  // Fetch activity feed (includes own + friends activity)
   const allItems: ActivityItem[] = [];
   let nextStart: string | undefined;
   let page = 0;
@@ -272,14 +291,12 @@ async function fetchFriendsCatalog(
     const response = await client.getFriendsActivity({ perPage: 100, start: nextStart });
     logger.info({ page, itemsCount: response.items.length, hasNext: !!response.next }, 'Friends activity page fetched');
     allItems.push(...response.items);
-    // next is like "start=10982004056"
     nextStart = response.next?.replace('start=', '');
-  } while (nextStart && page < 3); // Limit to 300 entries
+  } while (nextStart && page < 3);
 
-  // Transform to metas, filtering out own activity
   const allMetas = transformActivityToMetas(allItems, user.letterboxd_id, showRatings);
 
-  // Paginate for Stremio
+  setUserCatalog(user.id, cacheKey, { metas: allMetas });
   const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
   logger.info(
@@ -300,9 +317,16 @@ async function fetchListCatalog(
   showRatings: boolean = true,
   sort?: string
 ): Promise<{ metas: StremioMeta[] }> {
+  const cacheKey = `user:${user.id}:list:${listId}:${showRatings}:${sort || 'default'}`;
+  const cached = userCatalogCache.get(cacheKey);
+  if (cached) {
+    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
+    logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
+    return { metas };
+  }
+
   const client = await createClientForUser(user);
 
-  // Fetch list entries
   const allEntries: ListEntry[] = [];
   let cursor: string | undefined;
   let page = 0;
@@ -313,16 +337,12 @@ async function fetchListCatalog(
     logger.info({ page, listId, itemsCount: response.items.length, hasCursor: !!response.cursor }, 'List page fetched');
     allEntries.push(...response.items);
     cursor = response.cursor;
-  } while (cursor && page < 10); // Safety limit
+  } while (cursor && page < 10);
 
   const allMetas = transformListEntriesToMetas(allEntries, showRatings);
+  for (const entry of allEntries) cacheFilmMapping(entry.film);
 
-  // Cache IMDb→Letterboxd mappings
-  for (const entry of allEntries) {
-    cacheFilmMapping(entry.film);
-  }
-
-  // Paginate for Stremio
+  setUserCatalog(user.id, cacheKey, { metas: allMetas });
   const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
   logger.info(
@@ -343,6 +363,14 @@ async function fetchLikedFilmsCatalog(
   showRatings: boolean = true,
   sort?: string
 ): Promise<{ metas: StremioMeta[] }> {
+  const cacheKey = `user:${user.id}:liked:${showRatings}:${sort || 'default'}`;
+  const cached = userCatalogCache.get(cacheKey);
+  if (cached) {
+    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
+    logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
+    return { metas };
+  }
+
   const client = await createClientForUser(user);
 
   const allFilms: WatchlistFilm[] = [];
@@ -365,11 +393,9 @@ async function fetchLikedFilmsCatalog(
   } while (cursor && page < 10);
 
   const allMetas = transformWatchlistToMetas(allFilms, showRatings);
+  for (const film of allFilms) cacheFilmMapping(film);
 
-  for (const film of allFilms) {
-    cacheFilmMapping(film);
-  }
-
+  setUserCatalog(user.id, cacheKey, { metas: allMetas });
   const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
   logger.info(

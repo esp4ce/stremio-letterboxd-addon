@@ -126,6 +126,35 @@ export const userClientCache = createCache<{ client: AuthenticatedClient; expire
   ttl: 30 * 60 * 1000, // 30min max, expiresAt checked manually
 });
 
+// ── Per-user catalog cache (Tier 2) ────────────────────────────────────────
+
+export const userCatalogCache = createCache<{ metas: StremioMeta[] }>({
+  maxSize: 500,
+  ttl: 2 * 60 * 1000, // 2min — compromise between freshness and API savings
+});
+
+// Track cache keys per user for efficient invalidation (LRU doesn't support prefix scan)
+const userCatalogKeys = new Map<string, Set<string>>();
+
+export function setUserCatalog(userId: string, cacheKey: string, data: { metas: StremioMeta[] }) {
+  userCatalogCache.set(cacheKey, data);
+  let keys = userCatalogKeys.get(userId);
+  if (!keys) {
+    keys = new Set();
+    userCatalogKeys.set(userId, keys);
+  }
+  keys.add(cacheKey);
+}
+
+export function invalidateUserCatalogs(userId: string) {
+  const keys = userCatalogKeys.get(userId);
+  if (!keys) return;
+  for (const key of keys) {
+    userCatalogCache.delete(key);
+  }
+  userCatalogKeys.delete(userId);
+}
+
 // ── Cache stats export ───────────────────────────────────────────────────────
 
 export interface CacheStats {
@@ -148,5 +177,6 @@ export function getCacheStats(): CacheStats {
     likedFilms: { size: likedFilmsCache.size, max: likedFilmsCache.max },
     poster: { size: posterCache.size, max: posterCache.max },
     userClient: { size: userClientCache.size, max: userClientCache.max },
+    userCatalog: { size: userCatalogCache.size, max: userCatalogCache.max },
   };
 }
