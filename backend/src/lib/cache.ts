@@ -136,14 +136,39 @@ export const userCatalogCache = createCache<{ metas: StremioMeta[] }>({
 // Track cache keys per user for efficient invalidation (LRU doesn't support prefix scan)
 const userCatalogKeys = new Map<string, Set<string>>();
 
-export function setUserCatalog(userId: string, cacheKey: string, data: { metas: StremioMeta[] }) {
-  userCatalogCache.set(cacheKey, data);
+/**
+ * Check user catalog cache, returning paginated metas on hit or undefined on miss.
+ */
+export function getUserCatalogCached(
+  cacheKey: string,
+  skip: number,
+  pageSize: number,
+): { metas: StremioMeta[] } | undefined {
+  const cached = userCatalogCache.get(cacheKey);
+  if (!cached) return undefined;
+  cacheMetrics.catalogHits++;
+  return { metas: cached.metas.slice(skip, skip + pageSize) };
+}
+
+/**
+ * Store full catalog in user cache and return the paginated slice.
+ */
+export function setUserCatalog(
+  userId: string,
+  cacheKey: string,
+  allMetas: StremioMeta[],
+  skip: number,
+  pageSize: number,
+): { metas: StremioMeta[] } {
+  cacheMetrics.catalogMisses++;
+  userCatalogCache.set(cacheKey, { metas: allMetas });
   let keys = userCatalogKeys.get(userId);
   if (!keys) {
     keys = new Set();
     userCatalogKeys.set(userId, keys);
   }
   keys.add(cacheKey);
+  return { metas: allMetas.slice(skip, skip + pageSize) };
 }
 
 export function invalidateUserCatalogs(userId: string) {
@@ -154,6 +179,16 @@ export function invalidateUserCatalogs(userId: string) {
   }
   userCatalogKeys.delete(userId);
 }
+
+// Periodically prune stale entries from userCatalogKeys (keys whose cache entries expired)
+setInterval(() => {
+  for (const [userId, keys] of userCatalogKeys) {
+    for (const key of keys) {
+      if (!userCatalogCache.has(key)) keys.delete(key);
+    }
+    if (keys.size === 0) userCatalogKeys.delete(userId);
+  }
+}, 5 * 60 * 1000); // Every 5 minutes
 
 // ── Cache metrics (hit/miss counters) ────────────────────────────────────────
 

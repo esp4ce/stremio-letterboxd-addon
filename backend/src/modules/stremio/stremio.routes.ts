@@ -45,7 +45,7 @@ import {
   listNameCache,
   likedFilmsCache,
   userClientCache,
-  userCatalogCache,
+  getUserCatalogCached,
   setUserCatalog,
   invalidateUserCatalogs,
   cacheMetrics,
@@ -189,13 +189,8 @@ async function fetchWatchlistCatalog(
   sort?: string
 ): Promise<{ metas: StremioMeta[] }> {
   const cacheKey = `user:${user.id}:watchlist:${showRatings}:${sort || 'default'}`;
-  const cached = userCatalogCache.get(cacheKey);
-  if (cached) {
-    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
-    cacheMetrics.catalogHits++;
-    logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
-    return { metas };
-  }
+  const cached = getUserCatalogCached(cacheKey, skip, CATALOG_PAGE_SIZE);
+  if (cached) return cached;
 
   const client = await createClientForUser(user);
 
@@ -214,16 +209,9 @@ async function fetchWatchlistCatalog(
   const allMetas = transformWatchlistToMetas(allFilms, showRatings);
   for (const film of allFilms) cacheFilmMapping(film);
 
-  cacheMetrics.catalogMisses++;
-  setUserCatalog(user.id, cacheKey, { metas: allMetas });
-  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
-
-  logger.info(
-    { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
-    'Watchlist fetched'
-  );
-
-  return { metas };
+  const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
+  logger.info({ total: allMetas.length, skip, returned: result.metas.length, username: user.letterboxd_username }, 'Watchlist fetched');
+  return result;
 }
 
 /**
@@ -236,13 +224,8 @@ async function fetchDiaryCatalog(
   sort?: string
 ): Promise<{ metas: StremioMeta[] }> {
   const cacheKey = `user:${user.id}:diary:${showRatings}:${sort || 'default'}`;
-  const cached = userCatalogCache.get(cacheKey);
-  if (cached) {
-    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
-    cacheMetrics.catalogHits++;
-    logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
-    return { metas };
-  }
+  const cached = getUserCatalogCached(cacheKey, skip, CATALOG_PAGE_SIZE);
+  if (cached) return cached;
 
   const client = await createClientForUser(user);
 
@@ -260,16 +243,9 @@ async function fetchDiaryCatalog(
 
   const allMetas = transformLogEntriesToMetas(allEntries, showRatings);
 
-  cacheMetrics.catalogMisses++;
-  setUserCatalog(user.id, cacheKey, { metas: allMetas });
-  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
-
-  logger.info(
-    { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
-    'Diary fetched'
-  );
-
-  return { metas };
+  const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
+  logger.info({ total: allMetas.length, skip, returned: result.metas.length, username: user.letterboxd_username }, 'Diary fetched');
+  return result;
 }
 
 /**
@@ -281,13 +257,8 @@ async function fetchFriendsCatalog(
   showRatings: boolean = true
 ): Promise<{ metas: StremioMeta[] }> {
   const cacheKey = `user:${user.id}:friends:${showRatings}`;
-  const cached = userCatalogCache.get(cacheKey);
-  if (cached) {
-    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
-    cacheMetrics.catalogHits++;
-    logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
-    return { metas };
-  }
+  const cached = getUserCatalogCached(cacheKey, skip, CATALOG_PAGE_SIZE);
+  if (cached) return cached;
 
   const client = await createClientForUser(user);
 
@@ -305,16 +276,9 @@ async function fetchFriendsCatalog(
 
   const allMetas = transformActivityToMetas(allItems, user.letterboxd_id, showRatings);
 
-  cacheMetrics.catalogMisses++;
-  setUserCatalog(user.id, cacheKey, { metas: allMetas });
-  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
-
-  logger.info(
-    { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
-    'Friends activity fetched'
-  );
-
-  return { metas };
+  const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
+  logger.info({ total: allMetas.length, skip, returned: result.metas.length, username: user.letterboxd_username }, 'Friends activity fetched');
+  return result;
 }
 
 /**
@@ -328,13 +292,8 @@ async function fetchListCatalog(
   sort?: string
 ): Promise<{ metas: StremioMeta[] }> {
   const cacheKey = `user:${user.id}:list:${listId}:${showRatings}:${sort || 'default'}`;
-  const cached = userCatalogCache.get(cacheKey);
-  if (cached) {
-    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
-    cacheMetrics.catalogHits++;
-    logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
-    return { metas };
-  }
+  const cached = getUserCatalogCached(cacheKey, skip, CATALOG_PAGE_SIZE);
+  if (cached) return cached;
 
   const client = await createClientForUser(user);
 
@@ -353,16 +312,9 @@ async function fetchListCatalog(
   const allMetas = transformListEntriesToMetas(allEntries, showRatings);
   for (const entry of allEntries) cacheFilmMapping(entry.film);
 
-  cacheMetrics.catalogMisses++;
-  setUserCatalog(user.id, cacheKey, { metas: allMetas });
-  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
-
-  logger.info(
-    { total: allMetas.length, skip, returned: metas.length, listId, username: user.letterboxd_username },
-    'List fetched'
-  );
-
-  return { metas };
+  const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
+  logger.info({ total: allMetas.length, skip, returned: result.metas.length, listId, username: user.letterboxd_username }, 'List fetched');
+  return result;
 }
 
 
@@ -376,13 +328,8 @@ async function fetchLikedFilmsCatalog(
   sort?: string
 ): Promise<{ metas: StremioMeta[] }> {
   const cacheKey = `user:${user.id}:liked:${showRatings}:${sort || 'default'}`;
-  const cached = userCatalogCache.get(cacheKey);
-  if (cached) {
-    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
-    cacheMetrics.catalogHits++;
-    logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
-    return { metas };
-  }
+  const cached = getUserCatalogCached(cacheKey, skip, CATALOG_PAGE_SIZE);
+  if (cached) return cached;
 
   const client = await createClientForUser(user);
 
@@ -408,16 +355,9 @@ async function fetchLikedFilmsCatalog(
   const allMetas = transformWatchlistToMetas(allFilms, showRatings);
   for (const film of allFilms) cacheFilmMapping(film);
 
-  cacheMetrics.catalogMisses++;
-  setUserCatalog(user.id, cacheKey, { metas: allMetas });
-  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
-
-  logger.info(
-    { total: allMetas.length, skip, returned: metas.length, username: user.letterboxd_username },
-    'Liked films fetched'
-  );
-
-  return { metas };
+  const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
+  logger.info({ total: allMetas.length, skip, returned: result.metas.length, username: user.letterboxd_username }, 'Liked films fetched');
+  return result;
 }
 
 /**
