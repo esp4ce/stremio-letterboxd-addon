@@ -155,6 +155,32 @@ export function invalidateUserCatalogs(userId: string) {
   userCatalogKeys.delete(userId);
 }
 
+// ── Cache metrics (hit/miss counters) ────────────────────────────────────────
+
+export const cacheMetrics = {
+  catalogHits: 0,
+  catalogMisses: 0,
+  tokenHits: 0,
+  tokenMisses: 0,
+};
+
+export function getCacheMetrics() {
+  const catalogTotal = cacheMetrics.catalogHits + cacheMetrics.catalogMisses;
+  const tokenTotal = cacheMetrics.tokenHits + cacheMetrics.tokenMisses;
+  return {
+    catalog: {
+      hits: cacheMetrics.catalogHits,
+      misses: cacheMetrics.catalogMisses,
+      hitRate: catalogTotal > 0 ? parseFloat((cacheMetrics.catalogHits / catalogTotal * 100).toFixed(1)) : 0,
+    },
+    token: {
+      hits: cacheMetrics.tokenHits,
+      misses: cacheMetrics.tokenMisses,
+      hitRate: tokenTotal > 0 ? parseFloat((cacheMetrics.tokenHits / tokenTotal * 100).toFixed(1)) : 0,
+    },
+  };
+}
+
 // ── Cache stats export ───────────────────────────────────────────────────────
 
 export interface CacheStats {

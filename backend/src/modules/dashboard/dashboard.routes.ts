@@ -5,7 +5,7 @@ import { config } from '../../config/index.js';
 import { verifyDashboardAuth } from './dashboard.middleware.js';
 import { getSystemMetrics, getDatabaseMetrics, generateAlerts } from '../../lib/system-metrics.js';
 import { getTopUsers, getMetricsSummary } from '../../lib/metrics.js';
-import { getCacheStats } from '../../lib/cache.js';
+import { getCacheStats, getCacheMetrics } from '../../lib/cache.js';
 
 const loginSchema = z.object({
   password: z.string(),
@@ -45,6 +45,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
         system: systemMetrics,
         database: dbMetrics,
         caches: cacheStats,
+        cacheHitRates: getCacheMetrics(),
         alerts,
       };
     },

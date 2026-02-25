@@ -48,6 +48,7 @@ import {
   userCatalogCache,
   setUserCatalog,
   invalidateUserCatalogs,
+  cacheMetrics,
 } from '../../lib/cache.js';
 import { trackEvent } from '../../lib/metrics.js';
 import { callWithAppToken } from '../../lib/app-client.js';
@@ -136,9 +137,11 @@ async function createClientForUser(user: User): Promise<AuthenticatedClient> {
   // Check cached client — reuse if token still valid (60s margin)
   const cached = userClientCache.get(user.id);
   if (cached && cached.expiresAt > Date.now() + 60_000) {
+    cacheMetrics.tokenHits++;
     logger.debug({ userId: user.id }, 'Token cache hit');
     return cached.client;
   }
+  cacheMetrics.tokenMisses++;
 
   const refreshToken = getDecryptedRefreshToken(user);
   const tokens = await refreshAccessToken(refreshToken);
@@ -189,6 +192,7 @@ async function fetchWatchlistCatalog(
   const cached = userCatalogCache.get(cacheKey);
   if (cached) {
     const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
+    cacheMetrics.catalogHits++;
     logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
     return { metas };
   }
@@ -210,6 +214,7 @@ async function fetchWatchlistCatalog(
   const allMetas = transformWatchlistToMetas(allFilms, showRatings);
   for (const film of allFilms) cacheFilmMapping(film);
 
+  cacheMetrics.catalogMisses++;
   setUserCatalog(user.id, cacheKey, { metas: allMetas });
   const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
@@ -234,6 +239,7 @@ async function fetchDiaryCatalog(
   const cached = userCatalogCache.get(cacheKey);
   if (cached) {
     const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
+    cacheMetrics.catalogHits++;
     logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
     return { metas };
   }
@@ -254,6 +260,7 @@ async function fetchDiaryCatalog(
 
   const allMetas = transformLogEntriesToMetas(allEntries, showRatings);
 
+  cacheMetrics.catalogMisses++;
   setUserCatalog(user.id, cacheKey, { metas: allMetas });
   const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
@@ -277,6 +284,7 @@ async function fetchFriendsCatalog(
   const cached = userCatalogCache.get(cacheKey);
   if (cached) {
     const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
+    cacheMetrics.catalogHits++;
     logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
     return { metas };
   }
@@ -297,6 +305,7 @@ async function fetchFriendsCatalog(
 
   const allMetas = transformActivityToMetas(allItems, user.letterboxd_id, showRatings);
 
+  cacheMetrics.catalogMisses++;
   setUserCatalog(user.id, cacheKey, { metas: allMetas });
   const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
@@ -322,6 +331,7 @@ async function fetchListCatalog(
   const cached = userCatalogCache.get(cacheKey);
   if (cached) {
     const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
+    cacheMetrics.catalogHits++;
     logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
     return { metas };
   }
@@ -343,6 +353,7 @@ async function fetchListCatalog(
   const allMetas = transformListEntriesToMetas(allEntries, showRatings);
   for (const entry of allEntries) cacheFilmMapping(entry.film);
 
+  cacheMetrics.catalogMisses++;
   setUserCatalog(user.id, cacheKey, { metas: allMetas });
   const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
@@ -368,6 +379,7 @@ async function fetchLikedFilmsCatalog(
   const cached = userCatalogCache.get(cacheKey);
   if (cached) {
     const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
+    cacheMetrics.catalogHits++;
     logger.debug({ cacheKey, skip, returned: metas.length }, 'User catalog cache hit');
     return { metas };
   }
@@ -396,6 +408,7 @@ async function fetchLikedFilmsCatalog(
   const allMetas = transformWatchlistToMetas(allFilms, showRatings);
   for (const film of allFilms) cacheFilmMapping(film);
 
+  cacheMetrics.catalogMisses++;
   setUserCatalog(user.id, cacheKey, { metas: allMetas });
   const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
 
