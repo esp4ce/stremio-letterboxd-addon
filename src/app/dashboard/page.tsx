@@ -40,12 +40,10 @@ interface DetailedHealthData {
 interface TopUsersData {
   overview: {
     totalUsers: number;
-    activeUsers7d: number;
-    activeUsers30d: number;
+    activeUsers: number;
     totalEvents: number;
     avgEventsPerUser: number;
-    newUsersLast7d: number;
-    newUsersLast30d: number;
+    newUsers: number;
   };
   topUsers: Array<{
     userId: string;
@@ -279,7 +277,7 @@ export default function Dashboard() {
 
         {activeTab === 'overview' && (
           <>
-            {usersData && <OverviewStats data={usersData.overview} uniqueUsers={audienceData?.uniqueUsers} />}
+            {usersData && <OverviewStats data={usersData.overview} uniqueUsers={audienceData?.uniqueUsers} daysRange={daysRange} />}
 
             <div className="grid gap-6 md:grid-cols-2">
               {healthData && <SystemHealth data={healthData.system} />}
