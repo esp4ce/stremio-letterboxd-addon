@@ -2,6 +2,7 @@ import {
   type AuthenticatedClient,
   type LetterboxdFilm,
   type UserList,
+  getList as rawGetList,
 } from './letterboxd.client.js';
 import {
   filmCache,
@@ -10,6 +11,8 @@ import {
   type CachedRating,
 } from '../../lib/cache.js';
 import { createChildLogger } from '../../lib/logger.js';
+import { fetchPageHtml, extractListIdFromListPage } from '../../lib/html-scraper.js';
+import { callWithAppToken } from '../../lib/app-client.js';
 
 const logger = createChildLogger('letterboxd-service');
 
@@ -167,14 +170,35 @@ export async function resolveExternalList(
 ): Promise<ResolvedExternalList | null> {
   logger.info({ username, slug }, 'Resolving external list');
 
-  // Step 1: Find the member by username via search
+  // Strategy 1: Scrape the public HTML page to extract the list LID (most reliable)
+  const listUrl = `https://letterboxd.com/${username}/list/${slug}/`;
+  const pageHtml = await fetchPageHtml(listUrl);
+
+  if (pageHtml) {
+    const listId = extractListIdFromListPage(pageHtml);
+    if (listId) {
+      logger.info({ listId, username, slug }, 'Strategy 1: extracted list ID from HTML');
+      try {
+        const list = await callWithAppToken((token) => rawGetList(token, listId));
+        const ownerName = list.owner?.displayName || list.owner?.username || username;
+        return { id: list.id, name: list.name, owner: ownerName, filmCount: list.filmCount };
+      } catch (err) {
+        logger.warn({ listId, err }, 'Strategy 1: API call failed for extracted ID, falling back');
+      }
+    } else {
+      logger.warn({ username, slug }, 'Strategy 1: no list ID found in HTML');
+    }
+  } else {
+    logger.warn({ username, slug }, 'Strategy 1: failed to fetch HTML page');
+  }
+
+  // Strategy 2 (fallback): Search member → get lists → match by slug
   const member = await client.searchMemberByUsername(username);
   if (!member) {
     logger.warn({ username }, 'Member not found');
     return null;
   }
 
-  // Step 2: Fetch all their lists
   const allLists: UserList[] = [];
   let cursor: string | undefined;
   let page = 0;
@@ -191,7 +215,6 @@ export async function resolveExternalList(
     cursor = listsResponse.cursor;
   } while (cursor && page < 5);
 
-  // Step 3: Match list by slug
   const normalizeSlug = (name: string) =>
     name
       .toLowerCase()
