@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import type { UserPreferences } from "../../types/preferences";
 import {
   DndContext,
   closestCenter,
@@ -18,22 +19,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-
-interface UserPreferences {
-  catalogs: { watchlist: boolean; diary: boolean; friends: boolean; popular: boolean; top250: boolean; likedFilms: boolean };
-  ownLists: string[];
-  externalLists: Array<{
-    id: string;
-    name: string;
-    owner: string;
-    filmCount: number;
-  }>;
-  externalWatchlists?: Array<{ username: string; displayName: string }>;
-  showActions?: boolean;
-  showRatings?: boolean;
-  catalogNames?: Record<string, string>;
-  catalogOrder?: string[];
-}
 
 interface BaseProps {
   user?: { username: string; displayName: string | null };

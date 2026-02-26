@@ -4,25 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import TransitionLink from "../components/TransitionLink";
 import Footer from "../components/Footer";
 import ConfigurationModal from "./ConfigurationModal";
+import type { UserPreferences } from "../../types/preferences";
 
 const TOAST_DURATION = 3000;
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
-
-interface UserPreferences {
-  catalogs: { watchlist: boolean; diary: boolean; friends: boolean; popular: boolean; top250: boolean; likedFilms: boolean };
-  ownLists: string[];
-  externalLists: Array<{
-    id: string;
-    name: string;
-    owner: string;
-    filmCount: number;
-  }>;
-  externalWatchlists?: Array<{ username: string; displayName: string }>;
-  showActions?: boolean;
-  showRatings?: boolean;
-  catalogNames?: Record<string, string>;
-  catalogOrder?: string[];
-}
 
 interface LoginResponse {
   userToken: string;
@@ -374,20 +359,26 @@ export default function Configure() {
     }
   };
 
-  const handleResolveExternalList = async () => {
-    if (!result || !externalListUrl.trim()) return;
-
+  const resolveExternalUrl = async (options: {
+    currentUsername?: string;
+    isWatchlistDuplicate: (username: string) => boolean;
+    isListDuplicate: (id: string) => boolean;
+    fetchList: (url: string) => Promise<ResolvedList>;
+    onAddWatchlist: (resolved: { username: string; displayName: string }) => void;
+    onAddList: (resolved: ResolvedList) => void;
+  }) => {
+    if (!externalListUrl.trim()) return;
     setIsResolvingList(true);
-
     try {
-      // Detect watchlist URL
-      const watchlistUsername = parseWatchlistUrl(externalListUrl.trim());
+      const url = externalListUrl.trim();
+      const watchlistUsername = parseWatchlistUrl(url);
+
       if (watchlistUsername) {
-        if (result.user.username.toLowerCase() === watchlistUsername.toLowerCase()) {
+        if (options.currentUsername?.toLowerCase() === watchlistUsername.toLowerCase()) {
           showErrorToast("You can't add your own watchlist as external");
           return;
         }
-        if (preferences?.externalWatchlists?.some((w) => w.username.toLowerCase() === watchlistUsername.toLowerCase())) {
+        if (options.isWatchlistDuplicate(watchlistUsername)) {
           showErrorToast("This watchlist has already been added");
           return;
         }
@@ -396,29 +387,17 @@ export default function Configure() {
           showErrorToast("Username not found on Letterboxd");
           return;
         }
-        if (preferences) {
-          setPreferences({
-            ...preferences,
-            externalWatchlists: [...(preferences.externalWatchlists || []), resolved],
-          });
-        }
+        options.onAddWatchlist(resolved);
         setExternalListUrl("");
         return;
       }
 
-      const resolved = await resolveList("/letterboxd/resolve-list", {
-        userToken: result.userToken,
-        url: externalListUrl.trim(),
-      });
-
-      if (preferences?.externalLists.some((l) => l.id === resolved.id)) {
+      const resolved = await options.fetchList(url);
+      if (options.isListDuplicate(resolved.id)) {
         showErrorToast("This list has already been added");
         return;
       }
-
-      if (preferences) {
-        setPreferences({ ...preferences, externalLists: [...preferences.externalLists, resolved] });
-      }
+      options.onAddList(resolved);
       setExternalListUrl("");
     } catch (err) {
       showListResolveErrorToast(err);
@@ -427,49 +406,33 @@ export default function Configure() {
     }
   };
 
-  const handleResolvePublicList = async () => {
-    if (!externalListUrl.trim()) return;
+  const handleResolveExternalList = () => {
+    if (!result) return;
+    resolveExternalUrl({
+      currentUsername: result.user.username,
+      isWatchlistDuplicate: (u) =>
+        preferences?.externalWatchlists?.some((w) => w.username.toLowerCase() === u.toLowerCase()) ?? false,
+      isListDuplicate: (id) => preferences?.externalLists.some((l) => l.id === id) ?? false,
+      fetchList: (url) => resolveList("/letterboxd/resolve-list", { userToken: result.userToken, url }),
+      onAddWatchlist: (resolved) => {
+        if (preferences) setPreferences({ ...preferences, externalWatchlists: [...(preferences.externalWatchlists ?? []), resolved] });
+      },
+      onAddList: (resolved) => {
+        if (preferences) setPreferences({ ...preferences, externalLists: [...preferences.externalLists, resolved] });
+      },
+    });
+  };
 
-    setIsResolvingList(true);
-
-    try {
-      // Detect watchlist URL
-      const watchlistUsername = parseWatchlistUrl(externalListUrl.trim());
-      if (watchlistUsername) {
-        if (usernameValidated && usernameValidated.username.toLowerCase() === watchlistUsername.toLowerCase()) {
-          showErrorToast("You can't add your own watchlist as external");
-          return;
-        }
-        if (publicExternalWatchlists.some((w) => w.username.toLowerCase() === watchlistUsername.toLowerCase())) {
-          showErrorToast("This watchlist has already been added");
-          return;
-        }
-        const resolved = await resolveWatchlistUsername(watchlistUsername);
-        if (!resolved) {
-          showErrorToast("Username not found on Letterboxd");
-          return;
-        }
-        setPublicExternalWatchlists((prev) => [...prev, resolved]);
-        setExternalListUrl("");
-        return;
-      }
-
-      const resolved = await resolveList("/auth/resolve-list-public", {
-        url: externalListUrl.trim(),
-      });
-
-      if (publicLists.some((l) => l.id === resolved.id)) {
-        showErrorToast("This list has already been added");
-        return;
-      }
-
-      setPublicLists((prev) => [...prev, resolved]);
-      setExternalListUrl("");
-    } catch (err) {
-      showListResolveErrorToast(err);
-    } finally {
-      setIsResolvingList(false);
-    }
+  const handleResolvePublicList = () => {
+    resolveExternalUrl({
+      currentUsername: usernameValidated?.username,
+      isWatchlistDuplicate: (u) =>
+        publicExternalWatchlists.some((w) => w.username.toLowerCase() === u.toLowerCase()),
+      isListDuplicate: (id) => publicLists.some((l) => l.id === id),
+      fetchList: (url) => resolveList("/auth/resolve-list-public", { url }),
+      onAddWatchlist: (resolved) => setPublicExternalWatchlists((prev) => [...prev, resolved]),
+      onAddList: (resolved) => setPublicLists((prev) => [...prev, resolved]),
+    });
   };
 
   const handleInstallPublic = () => {
