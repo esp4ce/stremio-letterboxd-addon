@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   DndContext,
   closestCenter,
@@ -119,7 +119,7 @@ function GripIcon() {
   );
 }
 
-function SortableCatalogRow({ id, children }: { id: string; children: React.ReactNode }) {
+function SortableCatalogRow({ id, children }: { id: string; children: ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
     <div
