@@ -1,30 +1,34 @@
 interface OverviewStatsProps {
   data: {
     totalUsers: number;
-    activeUsers7d: number;
-    activeUsers30d: number;
+    activeUsers: number;
     totalEvents: number;
     avgEventsPerUser: number;
-    newUsersLast7d: number;
-    newUsersLast30d: number;
+    newUsers: number;
   };
   uniqueUsers?: { tier1: number; tier2: number; total: number } | null;
+  daysRange: number;
 }
 
-export function OverviewStats({ data, uniqueUsers }: OverviewStatsProps) {
+function formatRange(days: number): string {
+  if (days === 1) return '24h';
+  return `${days}d`;
+}
+
+export function OverviewStats({ data, uniqueUsers, daysRange }: OverviewStatsProps) {
   const uniqueTotal = uniqueUsers ? uniqueUsers.total : data.totalUsers;
   const uniqueLabel = uniqueUsers ? `${uniqueUsers.tier2} tier 2 + ${uniqueUsers.tier1} tier 1` : '';
+  const range = formatRange(daysRange);
 
   const stats = [
     { label: 'Unique Users', value: uniqueTotal, sublabel: uniqueLabel, icon: '👥' },
-    { label: 'Active (7d)', value: data.activeUsers7d, icon: '🟢' },
-    { label: 'Active (30d)', value: data.activeUsers30d, icon: '🔵' },
-    { label: 'Total Events', value: data.totalEvents.toLocaleString(), icon: '📊' },
-    { label: 'New Users (7d)', value: data.newUsersLast7d, icon: '✨' },
+    { label: `Active (${range})`, value: data.activeUsers, icon: '🟢' },
+    { label: `Total Events (${range})`, value: data.totalEvents.toLocaleString(), icon: '📊' },
+    { label: `New Users (${range})`, value: data.newUsers, icon: '✨' },
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
       {stats.map((stat) => (
         <div
           key={stat.label}

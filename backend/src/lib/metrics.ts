@@ -159,12 +159,10 @@ export interface UserMetrics {
 export interface TopUsersMetrics {
   overview: {
     totalUsers: number;
-    activeUsers7d: number;
-    activeUsers30d: number;
+    activeUsers: number;
     totalEvents: number;
     avgEventsPerUser: number;
-    newUsersLast7d: number;
-    newUsersLast30d: number;
+    newUsers: number;
   };
   topUsers: UserMetrics[];
 }
@@ -172,15 +170,12 @@ export interface TopUsersMetrics {
 export function getTopUsers(days: number = 30, limit: number = 50): TopUsersMetrics {
   const db = getDb();
   const since = sinceDate(days);
-  const since7d = sinceDate(7);
 
   const totalUsers = countQuery(db, 'SELECT COUNT(*) as count FROM users');
-  const activeUsers7d = countQuery(db, 'SELECT COUNT(DISTINCT user_id) as count FROM events WHERE user_id IS NOT NULL AND created_at >= ?', since7d);
-  const activeUsers30d = countQuery(db, 'SELECT COUNT(DISTINCT user_id) as count FROM events WHERE user_id IS NOT NULL AND created_at >= ?', since);
-  const totalEvents = countQuery(db, 'SELECT COUNT(*) as count FROM events');
+  const activeUsers = countQuery(db, 'SELECT COUNT(DISTINCT user_id) as count FROM events WHERE user_id IS NOT NULL AND created_at >= ?', since);
+  const totalEvents = countQuery(db, 'SELECT COUNT(*) as count FROM events WHERE created_at >= ?', since);
   const avgEventsPerUser = totalUsers > 0 ? totalEvents / totalUsers : 0;
-  const newUsersLast7d = countQuery(db, 'SELECT COUNT(*) as count FROM users WHERE created_at >= ?', since7d);
-  const newUsersLast30d = countQuery(db, 'SELECT COUNT(*) as count FROM users WHERE created_at >= ?', since);
+  const newUsers = countQuery(db, 'SELECT COUNT(*) as count FROM users WHERE created_at >= ?', since);
 
   // Top users
   const topUsersRaw = db.prepare(`
@@ -236,12 +231,10 @@ export function getTopUsers(days: number = 30, limit: number = 50): TopUsersMetr
   return {
     overview: {
       totalUsers,
-      activeUsers7d,
-      activeUsers30d,
+      activeUsers,
       totalEvents,
       avgEventsPerUser: parseFloat(avgEventsPerUser.toFixed(2)),
-      newUsersLast7d,
-      newUsersLast30d,
+      newUsers,
     },
     topUsers,
   };
