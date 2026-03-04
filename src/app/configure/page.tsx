@@ -64,7 +64,7 @@ function getDefaultPreferences(
   lists: LoginResponse["lists"]
 ): UserPreferences {
   return {
-    catalogs: { watchlist: true, diary: true, friends: true, popular: false, top250: true, likedFilms: false },
+    catalogs: { watchlist: true, diary: true, friends: true, popular: false, top250: true, likedFilms: false, recommended: true },
     ownLists: lists.map((l) => l.id),
     externalLists: [],
   };
