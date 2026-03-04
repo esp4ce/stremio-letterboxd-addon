@@ -173,7 +173,7 @@ function listsToStremioCatalogs(lists: UserList[]): StremioCatalog[] {
 export function generateBaseManifest(): StremioManifest {
   return {
     id: 'community.stremboxd',
-    version: '1.0.2',
+    version: '1.0.3',
     name: 'Stremboxd',
     description: 'Letterboxd catalogs for Stremio: popular films, top 250, watchlists, and custom lists. Configure at https://stremboxd.com',
     logo: `${config.PUBLIC_URL}/logo.svg`,
@@ -296,7 +296,7 @@ export function generatePublicManifest(
 
   return {
     id: 'community.stremboxd',
-    version: '1.0.2',
+    version: '1.0.3',
     name: `Stremboxd${namePart}`,
     description: 'Letterboxd catalogs for Stremio. Configure at https://stremboxd.com',
     logo: `${config.PUBLIC_URL}/logo.svg`,
@@ -322,7 +322,7 @@ export function generateManifest(user: {
 
   return {
     id: 'community.stremboxd',
-    version: '1.0.2',
+    version: '1.0.3',
     name: `Letterboxd for ${displayName}`,
     description: `Your personal Letterboxd ratings and watchlist synced to Stremio. Connected as ${user.username}.`,
     logo: `${config.PUBLIC_URL}/logo.svg`,
@@ -426,7 +426,7 @@ export function generateDynamicManifest(
 
   return {
     id: 'community.stremboxd',
-    version: '1.0.2',
+    version: '1.0.3',
     name: `Letterboxd for ${displayName}`,
     description: `Your personal Letterboxd ratings and watchlist synced to Stremio. Connected as ${user.username}.`,
     logo: `${config.PUBLIC_URL}/logo.svg`,
