@@ -425,18 +425,18 @@ async function fetchRecommendationsCatalog(
     }),
   ]);
 
-  // Priority 1: highly rated films
+  // Priority 1: rated films (≥3★)
   if (ratedResult.status === 'fulfilled') {
-    const highRated = ratedResult.value.items.filter((f) => f.rating != null && f.rating >= 4);
+    const highRated = ratedResult.value.items.filter((f) => f.rating != null && f.rating >= 3);
     seeds.push(...highRated.slice(0, 50));
   } else {
     logger.warn({ err: ratedResult.reason, userId: user.id }, 'Failed to fetch rated films for recommendations');
   }
 
-  // Priority 2: liked films (if not enough seeds)
-  if (seeds.length < 10 && likedResult.status === 'fulfilled') {
+  // Priority 2: liked films (always included, weight=1.0)
+  if (likedResult.status === 'fulfilled') {
     for (const film of likedResult.value.items) {
-      if (seeds.length >= 30) break;
+      if (seeds.length >= 80) break;
       if (!seeds.some((s) => s.id === film.id)) seeds.push(film);
     }
   } else if (likedResult.status === 'rejected') {
@@ -470,7 +470,7 @@ async function fetchRecommendationsCatalog(
   }
 
   // 2. Extract TMDB IDs from seeds, keep rating weight per seed
-  // Weight: 5★=2.0, 4.5★=1.5, 4★=1.0, liked/watchlist=0.5
+  // Weight: 5★=2.0, 4.5★=1.5, 4★=1.0, 3★=0.5, likes=1.0, watchlist=0.5
   const seedEntries: { tmdbId: number; weight: number }[] = [];
   const seedImdbIds = new Set<string>();
   for (const film of seeds) {
@@ -479,8 +479,8 @@ async function fetchRecommendationsCatalog(
     if (imdb) seedImdbIds.add(imdb);
     cacheFilmMapping(film);
     if (!tmdbId) continue;
-    const rating = film.rating ?? 0;
-    const weight = rating >= 5 ? 2.0 : rating >= 4.5 ? 1.5 : rating >= 4 ? 1.0 : 0.5;
+    const rating = film.rating;
+    const weight = rating == null ? 1.0 : rating >= 5 ? 2.0 : rating >= 4.5 ? 1.5 : rating >= 4 ? 1.0 : 0.5;
     seedEntries.push({ tmdbId, weight });
   }
 
