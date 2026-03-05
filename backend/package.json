@@ -11,7 +11,7 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@esp4ce/letterboxd-client": "^1.2.0",
+    "@esp4ce/letterboxd-client": "^1.2.2",
     "@fastify/cors": "^10.0.0",
     "@fastify/rate-limit": "^10.0.0",
     "better-sqlite3": "^11.0.0",
