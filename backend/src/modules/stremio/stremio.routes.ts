@@ -62,6 +62,7 @@ import {
 import { trackEvent, type EventType } from '../../lib/metrics.js';
 import { generateAnonId } from '../../lib/anonymous-id.js';
 import { callWithAppToken } from '../../lib/app-client.js';
+import { throttled } from '../../lib/retry.js';
 import { decodeConfig, type PublicConfig } from '../../lib/config-encoding.js';
 import { serverConfig, tmdbConfig } from '../../config/index.js';
 import { getTmdbRecommendations, getTmdbExternalIds } from '../../lib/tmdb-client.js';
@@ -204,7 +205,13 @@ async function createClientForUser(user: User): Promise<AuthenticatedClient> {
   userClientCache.set(user.id, { client, expiresAt });
   logger.debug({ userId: user.id }, 'Token cache miss — refreshed');
 
-  return client;
+  return new Proxy(client, {
+    get(target, prop) {
+      const val = target[prop as keyof AuthenticatedClient];
+      if (typeof val !== 'function') return val;
+      return (...args: unknown[]) => throttled(() => (val as (...a: unknown[]) => Promise<unknown>).apply(target, args));
+    },
+  });
 }
 
 /**
@@ -1135,6 +1142,7 @@ export async function stremioRoutes(app: FastifyInstance) {
 
   app.get(
     '/poster',
+    { config: { rateLimit: false } },
     async (
       request: FastifyRequest<{
         Querystring: { url?: string; rating?: string };
