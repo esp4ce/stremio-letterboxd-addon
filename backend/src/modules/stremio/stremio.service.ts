@@ -244,7 +244,7 @@ export function generateBaseManifest(): StremioManifest {
     id: 'community.stremboxd',
     version: '1.1.2',
     name: 'Stremboxd',
-    description: 'Letterboxd catalogs for Stremio: popular films, top 250, watchlists, and custom lists. Configure at https://stremboxd.com',
+    description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com',
     logo: `${config.PUBLIC_URL}/logo.svg`,
     background: `${config.PUBLIC_URL}/logo.svg`,
     resources: [
@@ -383,7 +383,7 @@ export function generatePublicManifest(
     id: 'community.stremboxd',
     version: '1.1.2',
     name: `Stremboxd${namePart}`,
-    description: 'Letterboxd catalogs for Stremio. Configure at https://stremboxd.com',
+    description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com',
     logo: `${config.PUBLIC_URL}/logo.svg`,
     background: `${config.PUBLIC_URL}/logo.svg`,
     resources: [
