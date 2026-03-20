@@ -261,14 +261,23 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     else (props as FullModeProps).onSortVariantsChange(v);
   };
 
-  /** Remove a catalog from order, keeping variant children as orphans (backend supports them). */
+  /**
+   * Remove a catalog from order + sortVariants.
+   * @param keepVariants – when true, variant children are kept as orphans
+   *   (only safe for own lists whose templates remain available to the backend).
+   */
   const stripCatalogAndVariants = (
     catId: string,
     order: string[],
     variants: Record<string, string[]>,
+    keepVariants = false,
   ): { newOrder: string[]; newVariants: Record<string, string[]> } => {
-    const newOrder = order.filter((id) => id !== catId);
+    const prefix = `${catId}--`;
+    const newOrder = keepVariants
+      ? order.filter((id) => id !== catId)
+      : order.filter((id) => id !== catId && !id.startsWith(prefix));
     const newVariants = { ...variants };
+    if (!keepVariants) delete newVariants[catId];
     return { newOrder, newVariants };
   };
 
@@ -443,7 +452,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
       const p = props as FullModeProps;
       p.onPreferencesChange({ ...p.preferences, ownLists: [...p.preferences.ownLists, listId], catalogOrder: newOrder });
     } else {
-      const { newOrder, newVariants } = stripCatalogAndVariants(catId, currentOrder, getSortVariants());
+      const { newOrder, newVariants } = stripCatalogAndVariants(catId, currentOrder, getSortVariants(), true);
       if (isPublic) {
         const p = props as PublicModeProps;
         p.onPublicOwnListsChange(p.publicOwnLists.filter((id) => id !== listId));
