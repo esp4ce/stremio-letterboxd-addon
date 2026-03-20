@@ -261,16 +261,14 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     else (props as FullModeProps).onSortVariantsChange(v);
   };
 
-  /** Remove a catalog and all its variant children from order + sortVariants. */
+  /** Remove a catalog from order, keeping variant children as orphans (backend supports them). */
   const stripCatalogAndVariants = (
     catId: string,
     order: string[],
     variants: Record<string, string[]>,
   ): { newOrder: string[]; newVariants: Record<string, string[]> } => {
-    const prefix = `${catId}--`;
-    const newOrder = order.filter((id) => id !== catId && !id.startsWith(prefix));
+    const newOrder = order.filter((id) => id !== catId);
     const newVariants = { ...variants };
-    delete newVariants[catId];
     return { newOrder, newVariants };
   };
 
@@ -480,13 +478,11 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
 
   const deselectAllOwnLists = () => {
     const ownListCatIds = new Set(lists.map((l) => `letterboxd-list-${l.id}`));
-    // Also strip variant children (e.g. "letterboxd-list-ABC--shuffle")
+    // Remove only base catalogs, keep variant children as orphans (backend supports them)
     const newOrder = getCatalogOrder().filter(
-      (id) => !ownListCatIds.has(id) && !Array.from(ownListCatIds).some((catId) => id.startsWith(`${catId}--`)),
+      (id) => !ownListCatIds.has(id),
     );
-    const newVariants = Object.fromEntries(
-      Object.entries(getSortVariants()).filter(([catId]) => !ownListCatIds.has(catId)),
-    );
+    const newVariants = { ...getSortVariants() };
     if (isPublic) {
       const p = props as PublicModeProps;
       p.onPublicOwnListsChange([]);
