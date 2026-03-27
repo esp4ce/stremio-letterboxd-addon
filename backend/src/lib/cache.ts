@@ -96,12 +96,14 @@ export interface CinemetaFilmData {
 
 // Cinemeta cache (long TTL since this data rarely changes)
 export const cinemetaCache = createCache<CinemetaFilmData>({
+  maxSize: 2000,
   ttl: 60 * 60 * 1000, // 1 hour
 });
 
 
 // Raw Cinemeta meta cache — stores the full unfiltered meta object for pass-through
 export const cinemetaRawCache = createCache<Record<string, unknown>>({
+  maxSize: 500,
   ttl: 60 * 60 * 1000, // 1 hour
 });
 
@@ -111,11 +113,13 @@ import type { StremioMeta } from '../modules/stremio/catalog.service.js';
 
 // Popular This Week cache (24 hours - changes weekly)
 export const popularCatalogCache = createCache<{ metas: StremioMeta[] }>({
+  maxSize: 10,
   ttl: 24 * 60 * 60 * 1000,
 });
 
 // Top 250 cache (24 hours - changes very rarely)
 export const top250CatalogCache = createCache<{ metas: StremioMeta[] }>({
+  maxSize: 10,
   ttl: 24 * 60 * 60 * 1000,
 });
 
@@ -162,13 +166,13 @@ export const userClientCache = createCache<{ client: AuthenticatedClient; expire
 // ── Per-user catalog cache (Tier 2) ────────────────────────────────────────
 
 export const userCatalogCache = createCache<{ metas: StremioMeta[] }>({
-  maxSize: 500,
+  maxSize: 100,
   ttl: 5 * 60 * 1000, // 5min — invalidateUserCatalogs() covers manual changes
 });
 
 // Watched IMDb IDs per user (for "Not Watched" filter)
 export const watchedImdbCache = createCache<{ ids: Set<string> }>({
-  maxSize: 200,
+  maxSize: 100,
   ttl: 5 * 60 * 1000, // 5 minutes
 });
 
@@ -180,7 +184,7 @@ export const filmReviewsCache = createCache<string>({
 
 // Recommendations cache (expensive to compute, stable results)
 export const recommendationCache = createCache<{ metas: StremioMeta[] }>({
-  maxSize: 200,
+  maxSize: 50,
   ttl: 6 * 60 * 60 * 1000, // 6h
 });
 

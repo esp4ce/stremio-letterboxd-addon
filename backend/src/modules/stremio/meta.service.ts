@@ -113,7 +113,7 @@ export async function getFullFilmInfoFromCinemeta(imdbId: string): Promise<Cinem
     imdbRating: meta.imdbRating,
   };
 
-  logger.info({ imdbId, name: meta.name, year, hasTrailers: !!meta.trailers?.length }, 'Got film info from Cinemeta');
+  logger.debug({ imdbId, name: meta.name, year }, 'Got film info from Cinemeta');
   cinemetaCache.set(imdbId, cinemetaData);
 
   return cinemetaData;
