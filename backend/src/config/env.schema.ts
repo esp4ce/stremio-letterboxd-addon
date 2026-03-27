@@ -31,6 +31,9 @@ export const envSchema = z.object({
 
   TMDB_API_KEY: z.string().min(1).optional(),
 
+  POSTHOG_API_KEY: z.string().min(1).optional(),
+  POSTHOG_HOST: z.string().url().default('https://us.i.posthog.com'),
+
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
   LOG_LEVEL: z
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])

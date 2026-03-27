@@ -6,6 +6,7 @@ import { initDb, closeDb } from './db/index.js';
 import { config, catalogConfig } from './config/index.js';
 import { logger, createChildLogger } from './lib/logger.js';
 import { cleanupOldEvents } from './lib/metrics.js';
+import { shutdownPosthog } from './lib/posthog.js';
 
 async function main() {
   logger.info('Starting Stremio Addon Backend...');
@@ -50,6 +51,7 @@ async function main() {
   const shutdown = async (signal: string) => {
     logger.info({ signal }, 'Received shutdown signal');
     await app.close();
+    await shutdownPosthog();
     closeDb();
     process.exit(0);
   };
