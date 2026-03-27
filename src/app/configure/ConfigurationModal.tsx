@@ -311,13 +311,29 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
         })()
       : currentOrder.filter((id) => id !== variantCatId);
 
+    // When removing the last variant of an orphan catalog, clean up the external list/watchlist metadata
+    const isOrphan = updated.length === 0 && !newOrder.includes(catalogId);
+
     // Update both in a single state change to avoid stale overwrites
     if (isPublic) {
+      if (isOrphan && catalogId.startsWith('letterboxd-list-'))
+        (props as PublicModeProps).onRemovePublicList(catalogId.replace('letterboxd-list-', ''));
+      if (isOrphan && catalogId.startsWith('letterboxd-watchlist-'))
+        (props as PublicModeProps).onRemovePublicExternalWatchlist(catalogId.replace('letterboxd-watchlist-', ''));
       (props as PublicModeProps).onPublicSortVariantsChange(nextVariants);
       (props as PublicModeProps).onPublicCatalogOrderChange(newOrder);
     } else {
       const p = props as FullModeProps;
-      p.onPreferencesChange({ ...p.preferences, sortVariants: nextVariants, catalogOrder: newOrder });
+      const patch: Partial<typeof p.preferences> = { sortVariants: nextVariants, catalogOrder: newOrder };
+      if (isOrphan && catalogId.startsWith('letterboxd-list-')) {
+        const listId = catalogId.replace('letterboxd-list-', '');
+        patch.externalLists = p.preferences.externalLists.filter((l) => l.id !== listId);
+      }
+      if (isOrphan && catalogId.startsWith('letterboxd-watchlist-')) {
+        const username = catalogId.replace('letterboxd-watchlist-', '');
+        patch.externalWatchlists = (p.preferences.externalWatchlists || []).filter((w) => w.username !== username);
+      }
+      p.onPreferencesChange({ ...p.preferences, ...patch });
     }
   };
 
@@ -508,12 +524,18 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     return (props as FullModeProps).preferences.ownLists.includes(listId);
   };
 
+  const catalogHasVariants = (catalogId: string): boolean => {
+    const variants = getSortVariants()[catalogId];
+    return !!variants && variants.length > 0;
+  };
+
   const removeExternalList = (listId: string) => {
     const catId = `letterboxd-list-${listId}`;
-    const { newOrder, newVariants } = stripCatalogAndVariants(catId, getCatalogOrder(), getSortVariants());
+    const hasVariants = catalogHasVariants(catId);
+    const { newOrder, newVariants } = stripCatalogAndVariants(catId, getCatalogOrder(), getSortVariants(), hasVariants);
     if (isPublic) {
       const p = props as PublicModeProps;
-      p.onRemovePublicList(listId);
+      if (!hasVariants) p.onRemovePublicList(listId);
       p.onPublicSortVariantsChange(newVariants);
       p.onPublicCatalogOrderChange(newOrder);
       return;
@@ -521,7 +543,9 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     const p = props as FullModeProps;
     p.onPreferencesChange({
       ...p.preferences,
-      externalLists: p.preferences.externalLists.filter((l) => l.id !== listId),
+      externalLists: hasVariants
+        ? p.preferences.externalLists
+        : p.preferences.externalLists.filter((l) => l.id !== listId),
       sortVariants: newVariants,
       catalogOrder: newOrder,
     });
@@ -529,10 +553,11 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
 
   const removeExternalWatchlist = (username: string) => {
     const catId = `letterboxd-watchlist-${username}`;
-    const { newOrder, newVariants } = stripCatalogAndVariants(catId, getCatalogOrder(), getSortVariants());
+    const hasVariants = catalogHasVariants(catId);
+    const { newOrder, newVariants } = stripCatalogAndVariants(catId, getCatalogOrder(), getSortVariants(), hasVariants);
     if (isPublic) {
       const p = props as PublicModeProps;
-      p.onRemovePublicExternalWatchlist(username);
+      if (!hasVariants) p.onRemovePublicExternalWatchlist(username);
       p.onPublicSortVariantsChange(newVariants);
       p.onPublicCatalogOrderChange(newOrder);
       return;
@@ -540,7 +565,9 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     const p = props as FullModeProps;
     p.onPreferencesChange({
       ...p.preferences,
-      externalWatchlists: (p.preferences.externalWatchlists || []).filter((w) => w.username !== username),
+      externalWatchlists: hasVariants
+        ? (p.preferences.externalWatchlists || [])
+        : (p.preferences.externalWatchlists || []).filter((w) => w.username !== username),
       sortVariants: newVariants,
       catalogOrder: newOrder,
     });
