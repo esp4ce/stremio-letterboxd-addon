@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import { getDb } from '../db/index.js';
+import { capture } from './posthog.js';
 
 function sinceDate(days: number): string {
   if (days === 0) return '1970-01-01T00:00:00.000Z';
@@ -72,6 +73,7 @@ export function trackEvent(event: EventType, userId?: string, metadata?: Record<
     db.prepare(
       'INSERT INTO events (event, user_id, metadata, anonymous_id) VALUES (?, ?, ?, ?)'
     ).run(event, userId ?? null, metadata ? JSON.stringify(metadata) : null, anonymousId ?? null);
+    capture(event, userId ?? anonymousId, metadata);
   } catch {
     // Silently fail — metrics should never break the app
   }
