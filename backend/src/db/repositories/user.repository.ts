@@ -17,6 +17,7 @@ export interface UserPreferences {
   catalogNames?: Record<string, string>;
   catalogOrder?: string[];
   sortVariants?: Record<string, string[]>;
+  hideUnreleased?: boolean;
 }
 
 export interface User {

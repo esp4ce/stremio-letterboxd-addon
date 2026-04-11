@@ -47,6 +47,7 @@ interface PublicConfig {
   w?: string[];
   o?: string[];
   s?: Record<string, string[]>;
+  h?: boolean;
 }
 
 interface ToastItem {
@@ -104,6 +105,7 @@ export default function Configure() {
   const [publicLists, setPublicLists] = useState<Array<{ id: string; name: string; owner: string; filmCount: number }>>([]);
   const [publicExternalWatchlists, setPublicExternalWatchlists] = useState<Array<{ username: string; displayName: string }>>([]);
   const [showRatings, setShowRatings] = useState(true);
+  const [hideUnreleased, setHideUnreleased] = useState(false);
   const [publicCatalogNames, setPublicCatalogNames] = useState<Record<string, string>>({});
   const [publicCatalogOrder, setPublicCatalogOrder] = useState<string[]>([]);
   const [publicSortVariants, setPublicSortVariants] = useState<Record<string, string[]>>({});
@@ -508,6 +510,10 @@ export default function Configure() {
       cfg.s = publicSortVariants;
     }
 
+    if (hideUnreleased) {
+      cfg.h = true;
+    }
+
     if (usernameValidated) {
       cfg.u = usernameValidated.username;
       cfg.c.watchlist = publicWatchlist;
@@ -608,6 +614,8 @@ export default function Configure() {
           onRemovePublicExternalWatchlist={(username) => setPublicExternalWatchlists((prev) => prev.filter((w) => w.username !== username))}
           showRatings={showRatings}
           onShowRatingsChange={setShowRatings}
+          hideUnreleased={hideUnreleased}
+          onHideUnreleasedChange={setHideUnreleased}
           publicCatalogNames={publicCatalogNames}
           onPublicCatalogNamesChange={setPublicCatalogNames}
           publicCatalogOrder={publicCatalogOrder}

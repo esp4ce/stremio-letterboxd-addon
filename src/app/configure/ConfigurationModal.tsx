@@ -56,6 +56,8 @@ interface PublicModeProps extends BaseProps {
   onRemovePublicExternalWatchlist: (username: string) => void;
   showRatings: boolean;
   onShowRatingsChange: (val: boolean) => void;
+  hideUnreleased: boolean;
+  onHideUnreleasedChange: (val: boolean) => void;
   publicCatalogNames: Record<string, string>;
   onPublicCatalogNamesChange: (names: Record<string, string>) => void;
   publicCatalogOrder: string[];
@@ -869,15 +871,27 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
           {isPublic ? (
             <div className="mt-7">
               <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">Display Options</h3>
-              <div className="mt-3 flex items-center justify-between rounded-lg bg-zinc-800/35 px-3.5 py-3">
-                <div>
-                  <p className="text-[13px] font-medium text-white">Poster Ratings</p>
-                  <p className="mt-0.5 text-[11px] text-zinc-500">Show Letterboxd ratings on poster images</p>
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between rounded-lg bg-zinc-800/35 px-3.5 py-3">
+                  <div>
+                    <p className="text-[13px] font-medium text-white">Poster Ratings</p>
+                    <p className="mt-0.5 text-[11px] text-zinc-500">Show Letterboxd ratings on poster images</p>
+                  </div>
+                  <Toggle
+                    enabled={(props as PublicModeProps).showRatings}
+                    onToggle={() => (props as PublicModeProps).onShowRatingsChange(!(props as PublicModeProps).showRatings)}
+                  />
                 </div>
-                <Toggle
-                  enabled={(props as PublicModeProps).showRatings}
-                  onToggle={() => (props as PublicModeProps).onShowRatingsChange(!(props as PublicModeProps).showRatings)}
-                />
+                <div className="flex items-center justify-between rounded-lg bg-zinc-800/35 px-3.5 py-3">
+                  <div>
+                    <p className="text-[13px] font-medium text-white">Hide Unreleased Films</p>
+                    <p className="mt-0.5 text-[11px] text-zinc-500">Hide films that haven&apos;t been released yet</p>
+                  </div>
+                  <Toggle
+                    enabled={(props as PublicModeProps).hideUnreleased}
+                    onToggle={() => (props as PublicModeProps).onHideUnreleasedChange(!(props as PublicModeProps).hideUnreleased)}
+                  />
+                </div>
               </div>
             </div>
           ) : (
@@ -885,20 +899,22 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
               <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">Display Options</h3>
               <div className="mt-3 space-y-2">
                 {([
-                  { key: "showRatings" as const, label: "Poster Ratings", description: "Show Letterboxd ratings on poster images" },
-                  { key: "showActions" as const, label: "Letterboxd Actions", description: "Show rate, watched, liked and watchlist buttons in Stremio" },
-                  { key: "showReviews" as const, label: "Popular Reviews", description: "Show popular Letterboxd reviews on film pages" },
-                ] as const).map(({ key, label, description }) => (
+                  { key: "showRatings" as const, label: "Poster Ratings", description: "Show Letterboxd ratings on poster images", defaultOn: true },
+                  { key: "showActions" as const, label: "Letterboxd Actions", description: "Show rate, watched, liked and watchlist buttons in Stremio", defaultOn: true },
+                  { key: "showReviews" as const, label: "Popular Reviews", description: "Show popular Letterboxd reviews on film pages", defaultOn: true },
+                  { key: "hideUnreleased" as const, label: "Hide Unreleased Films", description: "Hide films that haven't been released yet", defaultOn: false },
+                ] as const).map(({ key, label, description, defaultOn }) => (
                   <div key={key} className="flex items-center justify-between rounded-lg bg-zinc-800/35 px-3.5 py-3">
                     <div>
                       <p className="text-[13px] font-medium text-white">{label}</p>
                       <p className="mt-0.5 text-[11px] text-zinc-500">{description}</p>
                     </div>
                     <Toggle
-                      enabled={(props as FullModeProps).preferences[key] !== false}
+                      enabled={defaultOn ? (props as FullModeProps).preferences[key] !== false : (props as FullModeProps).preferences[key] === true}
                       onToggle={() => {
                         const p = props as FullModeProps;
-                        p.onPreferencesChange({ ...p.preferences, [key]: p.preferences[key] === false });
+                        const current = defaultOn ? p.preferences[key] !== false : p.preferences[key] === true;
+                        p.onPreferencesChange({ ...p.preferences, [key]: !current });
                       }}
                     />
                   </div>
