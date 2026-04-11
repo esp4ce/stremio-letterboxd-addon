@@ -10,7 +10,7 @@ import { letterboxdRoutes } from './modules/letterboxd/letterboxd.routes.js';
 import { stremioRoutes } from './modules/stremio/stremio.routes.js';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes.js';
 import { generateBaseManifest } from './modules/stremio/stremio.service.js';
-import { emergencyPurge } from './lib/cache.js';
+import { startMemoryGuard } from './lib/memory-guard.js';
 
 export async function buildApp(httpsOptions?: ServerOptions) {
   const app = Fastify({
@@ -78,13 +78,6 @@ export async function buildApp(httpsOptions?: ServerOptions) {
       'Incoming request'
     );
 
-    // Memory usage warning (Railway Hobby limit: 512MB)
-    const memUsage = process.memoryUsage().heapUsed / 1024 / 1024;
-    if (memUsage > 400) {
-      logger.warn({ memoryMB: memUsage.toFixed(2) }, 'High memory usage — purging heavy caches');
-      emergencyPurge();
-      global.gc?.();
-    }
   });
 
   app.addHook('onResponse', async (request, reply) => {
@@ -98,6 +91,8 @@ export async function buildApp(httpsOptions?: ServerOptions) {
       'Request completed'
     );
   });
+
+  startMemoryGuard();
 
   return app;
 }
