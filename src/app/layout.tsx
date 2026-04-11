@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import ConsoleMessage from "./components/ConsoleMessage";
+import PostHogProvider from "./components/PostHogProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -100,8 +101,10 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <Analytics />
-        <ConsoleMessage />
-        {children}
+        <PostHogProvider>
+          <ConsoleMessage />
+          {children}
+        </PostHogProvider>
       </body>
     </html>
   );
