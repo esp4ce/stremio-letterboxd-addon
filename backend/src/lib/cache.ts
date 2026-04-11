@@ -48,10 +48,12 @@ export interface CachedRating {
 }
 
 export const filmCache = createCache<CachedFilm>({
+  maxSize: 300,
   ttl: cacheConfig.filmTtl,
 });
 
 export const userRatingCache = createCache<CachedRating>({
+  maxSize: 200,
   ttl: 5 * 60 * 1000, // 5 minutes for user-specific data
 });
 
@@ -61,12 +63,13 @@ export interface FilmLookupCacheEntry {
   film: unknown; // LetterboxdFilm — stored as unknown to avoid circular import
 }
 export const filmLookupCache = createCache<FilmLookupCacheEntry>({
-  maxSize: 200,
+  maxSize: 100,
   ttl: 60 * 60 * 1000, // 1 hour
 });
 
 // IMDb ID → Letterboxd ID mapping cache (populated from catalog fetches)
 export const imdbToLetterboxdCache = createCache<string>({
+  maxSize: 500,
   ttl: 60 * 60 * 1000, // 1 hour TTL
 });
 
@@ -74,6 +77,7 @@ export const imdbToLetterboxdCache = createCache<string>({
 export const userListsCache = createCache<{
   lists: Array<{ id: string; name: string; filmCount: number }>;
 }>({
+  maxSize: 200,
   ttl: 5 * 60 * 1000, // 5 minutes
 });
 
@@ -96,14 +100,14 @@ export interface CinemetaFilmData {
 
 // Cinemeta cache (long TTL since this data rarely changes)
 export const cinemetaCache = createCache<CinemetaFilmData>({
-  maxSize: 500,
+  maxSize: 200,
   ttl: 60 * 60 * 1000, // 1 hour
 });
 
 
 // Raw Cinemeta meta cache — stores the full unfiltered meta object for pass-through
 export const cinemetaRawCache = createCache<Record<string, unknown>>({
-  maxSize: 100,
+  maxSize: 50,
   ttl: 60 * 60 * 1000, // 1 hour
 });
 
@@ -125,32 +129,37 @@ export const top250CatalogCache = createCache<{ metas: StremioMeta[] }>({
 
 // Username → memberId mapping (24 hours - never changes)
 export const memberIdCache = createCache<string>({
+  maxSize: 300,
   ttl: 24 * 60 * 60 * 1000,
 });
 
 // Public watchlist cache (configurable TTL, default 5 min)
 export const publicWatchlistCache = createCache<{ metas: StremioMeta[] }>({
+  maxSize: 100,
   ttl: cacheConfig.watchlistTtl,
 });
 
 // Public list catalog cache (5 minutes)
 export const publicListCache = createCache<{ metas: StremioMeta[] }>({
+  maxSize: 100,
   ttl: 5 * 60 * 1000,
 });
 
 // List ID → name cache (24 hours - list names rarely change)
 export const listNameCache = createCache<string>({
+  maxSize: 300,
   ttl: 24 * 60 * 60 * 1000,
 });
 
 // Liked films cache (5 minutes - user may update frequently)
 export const likedFilmsCache = createCache<{ metas: StremioMeta[] }>({
+  maxSize: 50,
   ttl: 5 * 60 * 1000,
 });
 
 // Poster cache (from poster.service.ts - imported dynamically to avoid circular deps)
 export const posterCache = createCache<Buffer>({
-  maxSize: 50,
+  maxSize: 20,
   ttl: 60 * 60 * 1000,
 });
 
@@ -159,38 +168,38 @@ export const posterCache = createCache<Buffer>({
 import type { AuthenticatedClient } from '../modules/letterboxd/letterboxd.client.js';
 
 export const userClientCache = createCache<{ client: AuthenticatedClient; expiresAt: number }>({
-  maxSize: 100,
+  maxSize: 50,
   ttl: 30 * 60 * 1000, // 30min max, expiresAt checked manually
 });
 
 // ── Per-user catalog cache (Tier 2) ────────────────────────────────────────
 
 export const userCatalogCache = createCache<{ metas: StremioMeta[] }>({
-  maxSize: 100,
+  maxSize: 50,
   ttl: 5 * 60 * 1000, // 5min — invalidateUserCatalogs() covers manual changes
 });
 
 // Watched IMDb IDs per user (for "Not Watched" filter)
 export const watchedImdbCache = createCache<{ ids: Set<string> }>({
-  maxSize: 100,
+  maxSize: 50,
   ttl: 5 * 60 * 1000, // 5 minutes
 });
 
 // Film reviews formatted text cache
 export const filmReviewsCache = createCache<string>({
-  maxSize: 100,
+  maxSize: 50,
   ttl: 60 * 60 * 1000, // 1 hour
 });
 
 // Recommendations cache (expensive to compute, stable results)
 export const recommendationCache = createCache<{ metas: StremioMeta[] }>({
-  maxSize: 20,
+  maxSize: 10,
   ttl: 6 * 60 * 60 * 1000, // 6h
 });
 
 // TMDB ID → IMDb ID mapping (never changes)
 export const tmdbToImdbCache = createCache<string>({
-  maxSize: 2000,
+  maxSize: 1000,
   ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
 });
 
@@ -277,20 +286,35 @@ export function getCacheMetrics() {
   };
 }
 
-// ── Emergency purge (called when memory is critically high) ─────────────────
+// ── Cache registry for memory guard ─────────────────────────────────────────
 
-export function emergencyPurge(): void {
-  const heavyCaches = [posterCache, cinemetaCache, cinemetaRawCache, filmLookupCache, recommendationCache, filmReviewsCache];
-  let cleared = 0;
-  for (const cache of heavyCaches) {
-    cleared += cache.size;
-    cache.clear();
-  }
-  if (cleared > 0) {
-    // eslint-disable-next-line no-console
-    console.warn(`[OOM-GUARD] Emergency purge: cleared ${cleared} entries from heavy caches`);
-  }
-}
+export const heavyCaches = [
+  { name: 'poster', cache: posterCache },
+  { name: 'cinemetaRaw', cache: cinemetaRawCache },
+  { name: 'publicList', cache: publicListCache },
+  { name: 'publicWatchlist', cache: publicWatchlistCache },
+  { name: 'userCatalog', cache: userCatalogCache },
+  { name: 'recommendation', cache: recommendationCache },
+  { name: 'likedFilms', cache: likedFilmsCache },
+  { name: 'watchedImdb', cache: watchedImdbCache },
+  { name: 'cinemeta', cache: cinemetaCache },
+  { name: 'filmLookup', cache: filmLookupCache },
+] as const;
+
+export const allCaches = [
+  ...heavyCaches,
+  { name: 'film', cache: filmCache },
+  { name: 'userRating', cache: userRatingCache },
+  { name: 'imdbToLetterboxd', cache: imdbToLetterboxdCache },
+  { name: 'userLists', cache: userListsCache },
+  { name: 'memberId', cache: memberIdCache },
+  { name: 'listName', cache: listNameCache },
+  { name: 'filmReviews', cache: filmReviewsCache },
+  { name: 'tmdbToImdb', cache: tmdbToImdbCache },
+  { name: 'userClient', cache: userClientCache },
+  { name: 'popularCatalog', cache: popularCatalogCache },
+  { name: 'top250Catalog', cache: top250CatalogCache },
+] as const;
 
 // ── Cache stats export ───────────────────────────────────────────────────────
 
