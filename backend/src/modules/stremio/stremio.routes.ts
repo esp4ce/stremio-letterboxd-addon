@@ -151,27 +151,29 @@ function parseCombinedFilter(extra?: string): {
   sort?: string;
   isShuffle: boolean;
   isNotWatched: boolean;
+  isReleasedOnly: boolean;
 } {
   const params = parseExtra(extra);
   const skip = params['skip'] ? parseInt(params['skip'], 10) : 0;
   const label = params['genre'];
 
-  if (!label) return { skip, isShuffle: false, isNotWatched: false };
+  if (!label) return { skip, isShuffle: false, isNotWatched: false, isReleasedOnly: false };
 
   // Sort detection
-  if (label === 'Shuffle') return { skip, isShuffle: true, isNotWatched: false };
-  if (label === 'Not Watched') return { skip, isShuffle: false, isNotWatched: true };
-  if (SORT_LABEL_TO_API[label]) return { skip, sort: SORT_LABEL_TO_API[label], isShuffle: false, isNotWatched: false };
+  if (label === 'Shuffle') return { skip, isShuffle: true, isNotWatched: false, isReleasedOnly: false };
+  if (label === 'Not Watched') return { skip, isShuffle: false, isNotWatched: true, isReleasedOnly: false };
+  if (label === 'Released Only') return { skip, isShuffle: false, isNotWatched: false, isReleasedOnly: true };
+  if (SORT_LABEL_TO_API[label]) return { skip, sort: SORT_LABEL_TO_API[label], isShuffle: false, isNotWatched: false, isReleasedOnly: false };
 
   // Decade detection: "1990s" → 1990
   const decadeMatch = label.match(/^(\d{4})s$/);
-  if (decadeMatch) return { skip, decade: parseInt(decadeMatch[1]!, 10), isShuffle: false, isNotWatched: false };
+  if (decadeMatch) return { skip, decade: parseInt(decadeMatch[1]!, 10), isShuffle: false, isNotWatched: false, isReleasedOnly: false };
 
   // Genre detection: "Comedy" → ['7I']
   const code = genreNameToCode(label);
-  if (code) return { skip, includeGenre: [code], isShuffle: false, isNotWatched: false };
+  if (code) return { skip, includeGenre: [code], isShuffle: false, isNotWatched: false, isReleasedOnly: false };
 
-  return { skip, isShuffle: false, isNotWatched: false };
+  return { skip, isShuffle: false, isNotWatched: false, isReleasedOnly: false };
 }
 
 /**
@@ -185,6 +187,12 @@ function shuffleArray<T>(arr: T[]): T[] {
     [a[i], a[j]] = [a[j]!, a[i]!];
   }
   return a;
+}
+
+function filterUnreleasedFilms(metas: StremioMeta[], hideUnreleased: boolean): StremioMeta[] {
+  if (!hideUnreleased) return metas;
+  const currentYear = new Date().getFullYear();
+  return metas.filter(m => m.year !== undefined && m.year <= currentYear);
 }
 
 /**
@@ -959,6 +967,8 @@ async function handleCatalogRequest(
   const isShuffle = parsed.isShuffle || isVariantShuffle;
   const sort = isShuffle ? 'Shuffle' : (parsed.sort || variantSort);
   const isNotWatched = parsed.isNotWatched || isVariantNotWatched;
+  const isReleasedOnly = parsed.isReleasedOnly;
+  const hideUnreleased = isReleasedOnly || (preferences?.hideUnreleased === true);
   const includeGenre = parsed.includeGenre;
   const decade = parsed.decade;
 
@@ -1028,6 +1038,9 @@ async function handleCatalogRequest(
         result = { metas: filtered.slice(skip, skip + CATALOG_PAGE_SIZE) };
       }
     }
+
+    // Filter unreleased films
+    result = { metas: filterUnreleasedFilms(result.metas, hideUnreleased) };
 
     // Enrich with Cinemeta (description, background, imdbRating, releaseInfo)
     result = { metas: await enrichMetasWithCinemeta(result.metas) };
@@ -1220,6 +1233,7 @@ async function handlePublicCatalogRequest(
   const { skip, includeGenre, decade } = parsed;
   const isShuffle = parsed.isShuffle || (variantConfig?.special === 'shuffle');
   const sort = isShuffle ? 'Shuffle' : (parsed.sort || variantConfig?.sort);
+  const hideUnreleased = parsed.isReleasedOnly || (cfg.h === true);
 
   try {
     let result: { metas: StremioMeta[] } | null = null;
@@ -1266,6 +1280,9 @@ async function handlePublicCatalogRequest(
     }
 
     if (!result) return { metas: [] };
+
+    // Filter unreleased films
+    result = { metas: filterUnreleasedFilms(result.metas, hideUnreleased) };
 
     // Enrich with Cinemeta (description, background, imdbRating, releaseInfo)
     result = { metas: await enrichMetasWithCinemeta(result.metas) };

@@ -14,6 +14,7 @@ export const publicConfigSchema = z.object({
   w: z.array(z.string()).optional(),
   o: z.array(z.string()).optional(),
   s: z.record(z.string(), z.array(z.string())).optional(),
+  h: z.boolean().optional(),
 });
 
 export type PublicConfig = z.infer<typeof publicConfigSchema>;

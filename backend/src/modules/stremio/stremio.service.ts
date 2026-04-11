@@ -79,6 +79,7 @@ const SORT_OPTIONS = [
   "Shortest", "Longest",
   "Shuffle",
   "Not Watched",
+  "Released Only",
 ];
 const PUBLIC_SORT_OPTIONS = SORT_OPTIONS.filter(
   (o) => o !== "Your Rating (High)" && o !== "Your Rating (Low)" && o !== "Not Watched"
