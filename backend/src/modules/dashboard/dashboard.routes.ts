@@ -14,8 +14,33 @@ import { callWithAppToken } from '../../lib/app-client.js';
 import { getList as rawGetList, getFilmByLid as rawGetFilmByLid } from '../letterboxd/letterboxd.client.js';
 import { createChildLogger } from '../../lib/logger.js';
 import { mapConcurrent } from '../../lib/concurrency.js';
+import { LRUCache } from 'lru-cache';
 
 const logger = createChildLogger('dashboard');
+
+// Dashboard endpoints are polled every ~5s by the frontend — cache results for
+// 30s so repeated hits don't re-run expensive SQL aggregations and Cinemeta/API
+// enrichment on every request.
+const dashboardCache = new LRUCache<string, object>({
+  max: 50,
+  ttl: 30 * 1000,
+});
+
+function cached<T>(key: string, fn: () => T): T {
+  const hit = dashboardCache.get(key) as T | undefined;
+  if (hit !== undefined) return hit;
+  const value = fn();
+  dashboardCache.set(key, value as unknown as NonNullable<unknown>);
+  return value;
+}
+
+async function cachedAsync<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const hit = dashboardCache.get(key) as T | undefined;
+  if (hit !== undefined) return hit;
+  const value = await fn();
+  dashboardCache.set(key, value as unknown as NonNullable<unknown>);
+  return value;
+}
 
 const loginSchema = z.object({
   password: z.string(),
@@ -45,8 +70,8 @@ export async function dashboardRoutes(app: FastifyInstance) {
   // Protected endpoint: detailed system health
   app.get('/health/detailed', {
     preHandler: verifyDashboardAuth,
-    handler: async () => {
-      const systemMetrics = await getSystemMetrics();
+    handler: async () => cached('health:detailed', () => {
+      const systemMetrics = getSystemMetrics();
       const dbMetrics = getDatabaseMetrics();
       const cacheStats = getCacheStats();
       const alerts = generateAlerts(systemMetrics, dbMetrics);
@@ -58,7 +83,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
         cacheHitRates: getCacheMetrics(),
         alerts,
       };
-    },
+    }),
   });
 
   // Protected endpoint: top users with real usernames
@@ -76,7 +101,9 @@ export async function dashboardRoutes(app: FastifyInstance) {
       const clampedDays = days === 0 ? 0 : Math.min(Math.max(days, 1), 365);
       const clampedLimit = Math.min(Math.max(limit, 1), 100);
 
-      return getTopUsers(clampedDays, clampedLimit);
+      return cached(`metrics:users:${clampedDays}:${clampedLimit}`, () =>
+        getTopUsers(clampedDays, clampedLimit)
+      );
     }
   );
 
@@ -92,7 +119,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
       const days = request.query.days ? parseInt(request.query.days, 10) : 30;
       const clampedDays = days === 0 ? 0 : Math.min(Math.max(days, 1), 365);
 
-      return getMetricsSummary(clampedDays, true);
+      return cached(`metrics:summary:${clampedDays}`, () => getMetricsSummary(clampedDays, true));
     }
   );
 
@@ -108,6 +135,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
       const days = request.query.days ? parseInt(request.query.days, 10) : 30;
       const clampedDays = days === 0 ? 0 : Math.min(Math.max(days, 1), 365);
 
+      return cachedAsync(`metrics:anonymous:${clampedDays}`, async () => {
       const topFilms = getTopStreamedFilms(clampedDays, 15);
       const topLists = getTopAccessedLists(clampedDays, 15);
       const topActionedFilms = getTopActionedFilms(clampedDays, 15);
@@ -180,6 +208,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
         topActionedFilms: topActionedFilms.map(enrichFilm),
         catalogBreakdown: getCatalogBreakdown(clampedDays),
       };
+      });
     }
   );
 }

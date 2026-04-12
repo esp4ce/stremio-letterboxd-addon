@@ -1048,7 +1048,7 @@ async function handleCatalogRequest(
     return result;
 
   } catch (error) {
-    logger.error({ error, userId, catalogId }, 'Failed to fetch catalog');
+    logger.error({ err: error, userId, catalogId }, 'Failed to fetch catalog');
     return { metas: [] };
   }
 }
@@ -1289,7 +1289,7 @@ async function handlePublicCatalogRequest(
 
     return result;
   } catch (error) {
-    logger.error({ error, catalogId }, 'Failed to fetch public catalog');
+    logger.error({ err: error, catalogId }, 'Failed to fetch public catalog');
     return { metas: [] };
   }
 }
@@ -1337,7 +1337,7 @@ export async function stremioRoutes(app: FastifyInstance) {
           .header('Cache-Control', 'public, max-age=3600')
           .send(imageBuffer);
       } catch (error) {
-        logger.error({ error, url, rating }, 'Failed to generate rated poster');
+        logger.error({ err: error, url, rating }, 'Failed to generate rated poster');
         return reply.status(500).send({ error: 'Failed to generate poster' });
       }
     }
@@ -1616,7 +1616,7 @@ export async function stremioRoutes(app: FastifyInstance) {
 
       } catch (error) {
         // Fallback to static manifest if lists fetch fails
-        logger.error({ error, userId }, 'Failed to fetch user lists, using static manifest');
+        logger.error({ err: error, userId }, 'Failed to fetch user lists, using static manifest');
 
         const manifest = generateManifest({
           username: user.letterboxd_username,
@@ -1713,7 +1713,7 @@ export async function stremioRoutes(app: FastifyInstance) {
         return { streams };
 
       } catch (error) {
-        logger.error({ error, userId, imdbId }, 'Failed to fetch streams');
+        logger.error({ err: error, userId, imdbId }, 'Failed to fetch streams');
         return { streams: [] };
       }
     }
@@ -1934,7 +1934,7 @@ export async function stremioRoutes(app: FastifyInstance) {
         `);
 
       } catch (error) {
-        logger.error({ error, userId, action, filmId }, 'Failed to perform action');
+        logger.error({ err: error, userId, action, filmId }, 'Failed to perform action');
         return sendHtml(reply, `
           <html>
             <head><title>Error</title></head>
@@ -2210,7 +2210,7 @@ export async function stremioRoutes(app: FastifyInstance) {
         `);
 
       } catch (error) {
-        logger.error({ error, userId, filmId, rating }, 'Failed to submit rating');
+        logger.error({ err: error, userId, filmId, rating }, 'Failed to submit rating');
         return sendHtml(reply, `
           <html>
             <head><title>Error</title></head>

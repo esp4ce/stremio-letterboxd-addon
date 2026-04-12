@@ -55,7 +55,7 @@ async function fetchCinemetaRaw(imdbId: string): Promise<Record<string, unknown>
       cinemetaRawCache.set(imdbId, data.meta);
       return data.meta;
     } catch (error) {
-      logger.error({ error, imdbId }, 'Error fetching from Cinemeta');
+      logger.error({ err: error, imdbId }, 'Error fetching from Cinemeta');
       return null;
     }
   });
@@ -175,7 +175,7 @@ async function findFilmBySearch(
     logger.info({ filmId: firstResult.id, filmName: firstResult.name }, 'Using first search result');
     return firstResult;
   } catch (error) {
-    logger.error({ error, name, year }, 'Error searching for film');
+    logger.error({ err: error, name, year }, 'Error searching for film');
     return null;
   }
 }
@@ -212,7 +212,7 @@ export async function findFilmByImdb(
         filmLookupCache.set(imdbId, { letterboxdFilmId: cachedId, film });
         return result;
       } catch (error) {
-        logger.warn({ error, imdbId, letterboxdFilmId: cachedId }, 'Cached Letterboxd ID invalid, trying external lookup');
+        logger.warn({ err: error, imdbId, letterboxdFilmId: cachedId }, 'Cached Letterboxd ID invalid, trying external lookup');
       }
     }
 
