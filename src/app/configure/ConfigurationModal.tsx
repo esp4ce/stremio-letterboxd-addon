@@ -265,8 +265,8 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
 
   /**
    * Remove a catalog from order + sortVariants.
-   * @param keepVariants – when true, variant children are kept as orphans
-   *   (only safe for own lists whose templates remain available to the backend).
+   * @param keepVariants – when true, variant children are kept as orphans.
+   *   The backend resolves orphan variants from its template map for all catalog types.
    */
   const stripCatalogAndVariants = (
     catId: string,
@@ -434,7 +434,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
       const p = props as FullModeProps;
       p.onPreferencesChange({ ...p.preferences, catalogs: { ...p.preferences.catalogs, [key]: true }, catalogOrder: newOrder });
     } else {
-      const { newOrder, newVariants } = stripCatalogAndVariants(catalogId, currentOrder, getSortVariants());
+      const { newOrder, newVariants } = stripCatalogAndVariants(catalogId, currentOrder, getSortVariants(), catalogHasVariants(catalogId));
       if (isPublic) {
         const p = props as PublicModeProps;
         if (key === "popular" || key === "top250") p.onPublicCatalogsChange({ ...p.publicCatalogs, [key]: false });
