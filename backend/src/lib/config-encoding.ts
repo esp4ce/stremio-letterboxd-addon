@@ -9,6 +9,14 @@ export const publicConfigSchema = z.object({
     likedFilms: z.boolean().optional(),
   }),
   l: z.array(z.string()),
+  f: z
+    .array(
+      z.object({
+        t: z.enum(['d', 'a', 's']),
+        id: z.string().min(1).max(32).regex(/^[A-Za-z0-9]+$/),
+      })
+    )
+    .optional(),
   r: z.boolean(),
   n: z.record(z.string(), z.string()).optional(),
   w: z.array(z.string()).optional(),

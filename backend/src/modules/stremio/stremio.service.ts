@@ -287,7 +287,8 @@ export function generatePublicManifest(
   cfg: PublicConfig,
   displayName?: string,
   listNames?: Map<string, string>,
-  watchlistNames?: Map<string, string>
+  watchlistNames?: Map<string, string>,
+  contributorNames?: Map<string, string>
 ): StremioManifest {
   let catalogs: StremioCatalog[] = [];
 
@@ -336,6 +337,18 @@ export function generatePublicManifest(
       name: listNames?.get(listId) || `List ${listId}`,
       extra: [PUBLIC_COMBINED_EXTRA, { name: 'skip', isRequired: false }],
     });
+  }
+
+  if (cfg.f?.length) {
+    for (const entry of cfg.f) {
+      const key = `${entry.t}:${entry.id}`;
+      catalogs.push({
+        type: 'movie',
+        id: `letterboxd-contributor-${entry.t}-${entry.id}`,
+        name: contributorNames?.get(key) || `Contributor ${entry.id}`,
+        extra: [PUBLIC_COMBINED_EXTRA, { name: 'skip', isRequired: false }],
+      });
+    }
   }
 
   // External watchlists

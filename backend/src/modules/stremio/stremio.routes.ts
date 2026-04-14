@@ -24,6 +24,7 @@ import {
   searchFilms as rawSearchFilms,
   searchMemberByUsername as rawSearchMemberByUsername,
   getMember as rawGetMember,
+  getContributorContributions as rawGetContributorContributions,
 } from '../letterboxd/letterboxd.client.js';
 import { generateManifest, generateDynamicManifest, generatePublicManifest, SORT_LABEL_TO_API, SORT_VARIANT_KEYS } from './stremio.service.js';
 import { genreNameToCode } from '../letterboxd/letterboxd.client.js';
@@ -52,6 +53,8 @@ import {
   publicWatchlistCache,
   publicListCache,
   listNameCache,
+  publicContributorCache,
+  contributorNameCache,
   likedFilmsCache,
   userClientCache,
   getUserCatalogCached,
@@ -1209,6 +1212,57 @@ async function fetchListCatalogPublic(
   return { metas };
 }
 
+const CONTRIBUTOR_KIND_TO_API: Record<'d' | 'a' | 's', 'Director' | 'Actor' | 'Studio'> = {
+  d: 'Director',
+  a: 'Actor',
+  s: 'Studio',
+};
+
+async function fetchContributorCatalogPublic(
+  contribId: string,
+  kind: 'd' | 'a' | 's',
+  skip: number,
+  showRatings: boolean,
+  sort?: string
+): Promise<{ metas: StremioMeta[] }> {
+  const apiType = CONTRIBUTOR_KIND_TO_API[kind];
+  const cacheKey = `contrib:${kind}:${contribId}:${showRatings}:${sort || 'default'}`;
+  const cached = publicContributorCache.get(cacheKey);
+  if (cached) {
+    const metas = cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE);
+    return { metas };
+  }
+
+  const allFilms: WatchlistFilm[] = [];
+  let cursor: string | undefined;
+  let page = 0;
+
+  do {
+    page++;
+    const response = await callWithAppToken((token) =>
+      rawGetContributorContributions(token, contribId, {
+        type: apiType,
+        perPage: 100,
+        cursor,
+        sort: sort || 'FilmPopularity',
+      })
+    );
+    allFilms.push(...response.items.map((i) => i.film));
+    cursor = response.cursor;
+  } while (cursor && page < 10);
+
+  const allMetas = transformWatchlistToMetas(allFilms, showRatings);
+  for (const film of allFilms) cacheFilmMapping(film);
+
+  publicContributorCache.set(cacheKey, { metas: allMetas });
+  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
+  logger.info(
+    { total: allMetas.length, skip, returned: metas.length, contribId, kind },
+    'Public contributor fetched'
+  );
+  return { metas };
+}
+
 async function handlePublicCatalogRequest(
   cfg: PublicConfig,
   catalogId: string,
@@ -1265,6 +1319,17 @@ async function handlePublicCatalogRequest(
         const listName = listNameCache.get(listId);
         trackEvent('catalog_list', undefined, { listId, ...(listName && { listName }) });
         result = await fetchListCatalogPublic(listId, skip, showRatings, sort, includeGenre, decade);
+      }
+    } else {
+      const contribMatch = baseCatalogId.match(/^letterboxd-contributor-([das])-([A-Za-z0-9]+)$/);
+      if (contribMatch) {
+        const kind = contribMatch[1] as 'd' | 'a' | 's';
+        const contribId = contribMatch[2]!;
+        const isConfigured = cfg.f?.some((f) => f.t === kind && f.id === contribId);
+        if (isConfigured) {
+          trackEvent('catalog_list', undefined, { contribKind: kind, contribId });
+          result = await fetchContributorCatalogPublic(contribId, kind, skip, showRatings, sort);
+        }
       }
     }
 
@@ -1420,6 +1485,18 @@ export async function stremioRoutes(app: FastifyInstance) {
     return names;
   }
 
+  function resolveContributorNames(
+    entries: Array<{ t: 'd' | 'a' | 's'; id: string }>
+  ): Map<string, string> {
+    const names = new Map<string, string>();
+    for (const entry of entries) {
+      const key = `${entry.t}:${entry.id}`;
+      const cached = contributorNameCache.get(key);
+      names.set(key, cached ?? `Contributor ${entry.id}`);
+    }
+    return names;
+  }
+
   app.get(
     '/:config/manifest.json',
     async (
@@ -1448,6 +1525,7 @@ export async function stremioRoutes(app: FastifyInstance) {
       }
 
       const listNames = cfg.l.length > 0 ? await resolveListNames(cfg.l) : undefined;
+      const contributorNames = cfg.f?.length ? resolveContributorNames(cfg.f) : undefined;
 
       // Resolve external watchlist display names
       let watchlistNames: Map<string, string> | undefined;
@@ -1463,7 +1541,7 @@ export async function stremioRoutes(app: FastifyInstance) {
         }));
       }
 
-      return generatePublicManifest(cfg, displayName, listNames, watchlistNames);
+      return generatePublicManifest(cfg, displayName, listNames, watchlistNames, contributorNames);
     }
   );
 

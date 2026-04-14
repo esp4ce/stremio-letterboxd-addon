@@ -11,13 +11,24 @@ import {
 import { loginRateLimit } from '../../middleware/rate-limit.js';
 import { trackEvent } from '../../lib/metrics.js';
 import { callWithAppToken } from '../../lib/app-client.js';
-import { fetchPageHtml, extractBoxdShortlinkId, extractListIdFromListPage } from '../../lib/html-scraper.js';
+import {
+  fetchPageHtml,
+  extractBoxdShortlinkId,
+  extractListIdFromListPage,
+  extractContributorIdFromPage,
+  extractContributorNameFromPage,
+  extractFirstFilmSlugFromPage,
+  fetchFilmLidBySlug,
+  normalizeContributorSlugKey,
+} from '../../lib/html-scraper.js';
+import { contributorNameCache } from '../../lib/cache.js';
 import {
   searchMemberByUsername as rawSearchMemberByUsername,
   getMember as rawGetMember,
   getUserLists as rawGetUserLists,
   searchLists as rawSearchLists,
   getList as rawGetList,
+  getFilmByLid as rawGetFilmByLid,
   LetterboxdApiError,
 } from '../letterboxd/letterboxd.client.js';
 
@@ -367,6 +378,119 @@ export async function authRoutes(app: FastifyInstance) {
       } catch (err) {
         request.log.error({ err, url: parsed.data.url }, 'resolve-list-public failed');
         return reply.status(500).send({ error: 'Failed to resolve list' });
+      }
+    }
+  );
+
+  const resolveContributorSchema = z.object({
+    url: z.string().min(1).max(500),
+  });
+
+  const CONTRIBUTOR_URL_REGEX =
+    /(?:https?:\/\/)?(?:www\.)?letterboxd\.com\/(director|actor|studio)\/([^/?#]+)/i;
+
+  const CONTRIBUTOR_KIND_TO_TYPE: Record<'director' | 'actor' | 'studio', 'Director' | 'Actor' | 'Studio'> = {
+    director: 'Director',
+    actor: 'Actor',
+    studio: 'Studio',
+  };
+
+  app.post(
+    '/auth/resolve-contributor-public',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          properties: { url: { type: 'string' } },
+          required: ['url'],
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{ Body: { url: string } }>,
+      reply
+    ) => {
+      const parsed = resolveContributorSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid URL' });
+      }
+
+      const match = parsed.data.url.match(CONTRIBUTOR_URL_REGEX);
+      if (!match) {
+        return reply.status(400).send({
+          error: 'URL must be a Letterboxd director, actor, or studio page',
+        });
+      }
+
+      const kind = match[1]!.toLowerCase() as 'director' | 'actor' | 'studio';
+      const slug = match[2]!.toLowerCase();
+      const normalizedUrl = `https://letterboxd.com/${kind}/${slug}/`;
+
+      try {
+        const pageHtml = await fetchPageHtml(normalizedUrl);
+        if (!pageHtml) {
+          return reply.status(404).send({ error: 'Page not found' });
+        }
+
+        const kindKey = kind[0]!;
+        const contributorType = CONTRIBUTOR_KIND_TO_TYPE[kind];
+
+        if (kind === 'studio') {
+          // Studio pages don't embed a boxd.it shortlink, so we walk one film's
+          // contributions to read the canonical studio ID straight from the
+          // catalog backend.
+          const filmSlug = extractFirstFilmSlugFromPage(pageHtml);
+          if (!filmSlug) {
+            request.log.warn({ url: normalizedUrl }, 'resolve-contributor: studio page has no films');
+            return reply.status(404).send({ error: 'Could not resolve contributor ID' });
+          }
+
+          const filmLid = await fetchFilmLidBySlug(filmSlug);
+          if (!filmLid) {
+            request.log.warn({ filmSlug }, 'resolve-contributor: film lid lookup failed');
+            return reply.status(404).send({ error: 'Could not resolve contributor ID' });
+          }
+
+          const film = await callWithAppToken((token) => rawGetFilmByLid(token, filmLid));
+          const studioGroup = film.contributions?.find((c) => c.type === 'Studio');
+          const studios = studioGroup?.contributors ?? [];
+          if (studios.length === 0) {
+            request.log.warn({ filmSlug, filmLid }, 'resolve-contributor: no studios in film contributions');
+            return reply.status(404).send({ error: 'Could not resolve contributor ID' });
+          }
+
+          const slugKey = normalizeContributorSlugKey(slug);
+          const matched =
+            studios.find((s) => normalizeContributorSlugKey(s.name) === slugKey) ?? studios[0]!;
+
+          contributorNameCache.set(`${kindKey}:${matched.id}`, matched.name);
+
+          return {
+            id: matched.id,
+            name: matched.name,
+            kind,
+            type: contributorType,
+          };
+        }
+
+        const contributorId = extractContributorIdFromPage(pageHtml);
+        if (!contributorId) {
+          request.log.warn({ url: normalizedUrl }, 'resolve-contributor: no shortlink on page');
+          return reply.status(404).send({ error: 'Could not resolve contributor ID' });
+        }
+
+        const displayName = extractContributorNameFromPage(pageHtml) ?? slug;
+        contributorNameCache.set(`${kindKey}:${contributorId}`, displayName);
+
+        return {
+          id: contributorId,
+          name: displayName,
+          kind,
+          type: contributorType,
+        };
+      } catch (err) {
+        request.log.error({ err, url: parsed.data.url }, 'resolve-contributor-public failed');
+        return reply.status(500).send({ error: 'Failed to resolve contributor' });
       }
     }
   );
