@@ -40,7 +40,7 @@ import { verifyAction } from '../../lib/action-sign.js';
 
 import { handleCatalogRequest, fetchUserLists } from './catalog/catalog-fetcher.service.js';
 import { handlePublicCatalogRequest, resolveMemberId, fetchPopularCatalogPublic, fetchTop250CatalogPublic } from './catalog/public-catalog-fetcher.service.js';
-import { parseCombinedFilter } from './catalog/catalog-filter.js';
+import { parseCombinedFilter, filterUnreleasedFilms } from './catalog/catalog-filter.js';
 import { sendHtml, buildErrorPage, buildActionSuccessPage, buildRatingPage } from './action/action-html.js';
 import { createClientForUser } from './user-client.service.js';
 
@@ -184,9 +184,10 @@ export async function stremioRoutes(app: FastifyInstance) {
     async (request: FastifyRequest<{ Params: { extra: string } }>, reply) => {
       reply.header('Access-Control-Allow-Origin', '*');
       reply.header('Content-Type', 'application/json');
-      const { skip, sort, isShuffle, includeGenre, decade } = parseCombinedFilter(request.params.extra);
+      const { skip, sort, isShuffle, isReleasedOnly, includeGenre, decade } = parseCombinedFilter(request.params.extra);
       const effectiveSort = isShuffle ? 'Shuffle' : sort;
-      return await fetchPopularCatalogPublic(skip, true, effectiveSort, includeGenre, decade);
+      const { metas } = await fetchPopularCatalogPublic(skip, true, effectiveSort, includeGenre, decade);
+      return { metas: filterUnreleasedFilms(metas, isReleasedOnly) };
     },
   );
 
@@ -201,9 +202,10 @@ export async function stremioRoutes(app: FastifyInstance) {
     async (request: FastifyRequest<{ Params: { extra: string } }>, reply) => {
       reply.header('Access-Control-Allow-Origin', '*');
       reply.header('Content-Type', 'application/json');
-      const { skip, sort, isShuffle, includeGenre, decade } = parseCombinedFilter(request.params.extra);
+      const { skip, sort, isShuffle, isReleasedOnly, includeGenre, decade } = parseCombinedFilter(request.params.extra);
       const effectiveSort = isShuffle ? 'Shuffle' : sort;
-      return await fetchTop250CatalogPublic(skip, true, effectiveSort, includeGenre, decade);
+      const { metas } = await fetchTop250CatalogPublic(skip, true, effectiveSort, includeGenre, decade);
+      return { metas: filterUnreleasedFilms(metas, isReleasedOnly) };
     },
   );
 
