@@ -163,6 +163,14 @@ export const contributorNameCache = createCache<string>({
   ttl: 24 * 60 * 60 * 1000,
 });
 
+export type ContributorKindShort = 'd' | 'a' | 's';
+export const CONTRIBUTOR_KIND_SHORT: Record<'director' | 'actor' | 'studio', ContributorKindShort> = {
+  director: 'd',
+  actor: 'a',
+  studio: 's',
+};
+export const contributorCacheKey = (kind: ContributorKindShort, id: string) => `${kind}:${id}`;
+
 // Liked films cache (5 minutes - user may update frequently)
 export const likedFilmsCache = createCache<{ metas: StremioMeta[] }>({
   maxSize: 50,

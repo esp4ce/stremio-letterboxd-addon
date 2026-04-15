@@ -1,32 +1,46 @@
-import { config } from '../config/index.js';
+import { spawn } from 'node:child_process';
+
+const BROWSER_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
+// Letterboxd/Cloudflare blocks Node's fetch (undici) on several paths via TLS
+// fingerprinting, so we shell out to curl which uses a different TLS stack.
+async function curlFetch(url: string, accept = 'text/html,*/*;q=0.8'): Promise<string | null> {
+  return new Promise((resolve) => {
+    const proc = spawn(
+      'curl',
+      [
+        '-sL',
+        '--max-time', '8',
+        '-H', `User-Agent: ${BROWSER_USER_AGENT}`,
+        '-H', `Accept: ${accept}`,
+        '-H', 'Accept-Language: en-US,en;q=0.9',
+        '-w', '\n%{http_code}',
+        url,
+      ],
+      { stdio: ['ignore', 'pipe', 'ignore'] }
+    );
+    let data = '';
+    proc.stdout.on('data', (c) => { data += c.toString(); });
+    proc.on('close', () => {
+      const idx = data.lastIndexOf('\n');
+      if (idx === -1) return resolve(null);
+      const code = data.slice(idx + 1).trim();
+      if (code !== '200') return resolve(null);
+      resolve(data.slice(0, idx));
+    });
+    proc.on('error', () => resolve(null));
+  });
+}
 
 const BOXD_SHORTLINK_REGEX = /https?:\/\/boxd\.it\/([A-Za-z0-9]+)/;
 const LIST_SHORTLINK_TAG_REGEX = /<link[^>]+rel="shortlink"[^>]+href="https?:\/\/boxd\.it\/([A-Za-z0-9]+)"/;
 const LIST_SHORTLINK_TAG_ALT_REGEX = /href="https?:\/\/boxd\.it\/([A-Za-z0-9]+)"[^>]*rel="shortlink"/;
 const LIST_LIKEABLE_IDENTIFIER_REGEX =
   /data-likeable-identifier='([^']+)'/;
-const CONTRIBUTOR_SHORTLINK_REGEX =
-  /id="url-field-contributor-\d+"[^>]*value="https?:\/\/boxd\.it\/([A-Za-z0-9]+)"/;
-const OG_TITLE_REGEX = /<meta\s+property="og:title"\s+content="([^"]+)"/i;
-const FIRST_FILM_ITEM_LINK_REGEX = /data-item-link="\/film\/([^"/]+)\//;
-
-const BROWSER_FETCH_OPTIONS: RequestInit = {
-  headers: { 'User-Agent': config.CATALOG_USER_AGENT },
-  redirect: 'follow',
-};
 
 export async function fetchPageHtml(url: string): Promise<string | null> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-    const response = await fetch(url, { ...BROWSER_FETCH_OPTIONS, signal: controller.signal });
-    if (!response.ok) return null;
-    return response.text();
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return curlFetch(url);
 }
 
 export function extractBoxdShortlinkId(html: string): string | null {
@@ -39,7 +53,6 @@ export function extractListIdFromListPage(html: string): string | null {
     html.match(LIST_SHORTLINK_TAG_ALT_REGEX)?.[1];
   if (shortlinkId) return shortlinkId;
 
-  // Extract data-likeable-identifier and decode HTML entities (&#034; / &quot; → ")
   const likeableMatch = html.match(LIST_LIKEABLE_IDENTIFIER_REGEX);
   if (likeableMatch) {
     const decoded = likeableMatch[1]!
@@ -52,54 +65,4 @@ export function extractListIdFromListPage(html: string): string | null {
   }
 
   return null;
-}
-
-export function extractContributorIdFromPage(html: string): string | null {
-  return html.match(CONTRIBUTOR_SHORTLINK_REGEX)?.[1] ?? null;
-}
-
-export function extractContributorNameFromPage(html: string): string | null {
-  const m = html.match(OG_TITLE_REGEX);
-  if (!m?.[1]) return null;
-  const raw = m[1]
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .trim();
-  // og:title for contributor pages is "Films directed by X", "Films starring X", "Films from X"
-  return raw.replace(/^Films (?:directed by|starring|from)\s+/i, '') || raw;
-}
-
-export function extractFirstFilmSlugFromPage(html: string): string | null {
-  return html.match(FIRST_FILM_ITEM_LINK_REGEX)?.[1] ?? null;
-}
-
-export async function fetchFilmLidBySlug(slug: string): Promise<string | null> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-    const response = await fetch(`https://letterboxd.com/film/${encodeURIComponent(slug)}/json/`, {
-      ...BROWSER_FETCH_OPTIONS,
-      headers: { ...BROWSER_FETCH_OPTIONS.headers, Accept: 'application/json' },
-      signal: controller.signal,
-    });
-    if (!response.ok) return null;
-    const data = (await response.json()) as { lid?: unknown };
-    return typeof data.lid === 'string' && data.lid.length > 0 ? data.lid : null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-/** Lowercase + strip diacritics + keep only [a-z0-9] — for comparing slugs to display names */
-export function normalizeContributorSlugKey(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
 }

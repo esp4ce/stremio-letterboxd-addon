@@ -15,20 +15,15 @@ import {
   fetchPageHtml,
   extractBoxdShortlinkId,
   extractListIdFromListPage,
-  extractContributorIdFromPage,
-  extractContributorNameFromPage,
-  extractFirstFilmSlugFromPage,
-  fetchFilmLidBySlug,
-  normalizeContributorSlugKey,
 } from '../../lib/html-scraper.js';
-import { contributorNameCache } from '../../lib/cache.js';
+import { contributorNameCache, contributorCacheKey, CONTRIBUTOR_KIND_SHORT } from '../../lib/cache.js';
 import {
   searchMemberByUsername as rawSearchMemberByUsername,
   getMember as rawGetMember,
   getUserLists as rawGetUserLists,
   searchLists as rawSearchLists,
   getList as rawGetList,
-  getFilmByLid as rawGetFilmByLid,
+  searchContributors as rawSearchContributors,
   LetterboxdApiError,
 } from '../letterboxd/letterboxd.client.js';
 
@@ -424,69 +419,29 @@ export async function authRoutes(app: FastifyInstance) {
 
       const kind = match[1]!.toLowerCase() as 'director' | 'actor' | 'studio';
       const slug = match[2]!.toLowerCase();
-      const normalizedUrl = `https://letterboxd.com/${kind}/${slug}/`;
+      const targetPath = `/${kind}/${slug}/`;
 
       try {
-        const pageHtml = await fetchPageHtml(normalizedUrl);
-        if (!pageHtml) {
-          return reply.status(404).send({ error: 'Page not found' });
-        }
+        const results = await callWithAppToken((token) =>
+          rawSearchContributors(token, slug.replace(/-/g, ' '), { perPage: 20 })
+        );
 
-        const kindKey = kind[0]!;
-        const contributorType = CONTRIBUTOR_KIND_TO_TYPE[kind];
+        const matched = results.items.find((c) =>
+          c.links?.some((l) => l.type === 'letterboxd' && l.url.includes(targetPath))
+        );
 
-        if (kind === 'studio') {
-          // Studio pages don't embed a boxd.it shortlink, so we walk one film's
-          // contributions to read the canonical studio ID straight from the
-          // catalog backend.
-          const filmSlug = extractFirstFilmSlugFromPage(pageHtml);
-          if (!filmSlug) {
-            request.log.warn({ url: normalizedUrl }, 'resolve-contributor: studio page has no films');
-            return reply.status(404).send({ error: 'Could not resolve contributor ID' });
-          }
-
-          const filmLid = await fetchFilmLidBySlug(filmSlug);
-          if (!filmLid) {
-            request.log.warn({ filmSlug }, 'resolve-contributor: film lid lookup failed');
-            return reply.status(404).send({ error: 'Could not resolve contributor ID' });
-          }
-
-          const film = await callWithAppToken((token) => rawGetFilmByLid(token, filmLid));
-          const studioGroup = film.contributions?.find((c) => c.type === 'Studio');
-          const studios = studioGroup?.contributors ?? [];
-          if (studios.length === 0) {
-            request.log.warn({ filmSlug, filmLid }, 'resolve-contributor: no studios in film contributions');
-            return reply.status(404).send({ error: 'Could not resolve contributor ID' });
-          }
-
-          const slugKey = normalizeContributorSlugKey(slug);
-          const matched =
-            studios.find((s) => normalizeContributorSlugKey(s.name) === slugKey) ?? studios[0]!;
-
-          contributorNameCache.set(`${kindKey}:${matched.id}`, matched.name);
-
-          return {
-            id: matched.id,
-            name: matched.name,
-            kind,
-            type: contributorType,
-          };
-        }
-
-        const contributorId = extractContributorIdFromPage(pageHtml);
-        if (!contributorId) {
-          request.log.warn({ url: normalizedUrl }, 'resolve-contributor: no shortlink on page');
+        if (!matched) {
+          request.log.warn({ kind, slug }, 'resolve-contributor: no search result matched slug');
           return reply.status(404).send({ error: 'Could not resolve contributor ID' });
         }
 
-        const displayName = extractContributorNameFromPage(pageHtml) ?? slug;
-        contributorNameCache.set(`${kindKey}:${contributorId}`, displayName);
+        contributorNameCache.set(contributorCacheKey(CONTRIBUTOR_KIND_SHORT[kind], matched.id), matched.name);
 
         return {
-          id: contributorId,
-          name: displayName,
+          id: matched.id,
+          name: matched.name,
           kind,
-          type: contributorType,
+          type: CONTRIBUTOR_KIND_TO_TYPE[kind],
         };
       } catch (err) {
         request.log.error({ err, url: parsed.data.url }, 'resolve-contributor-public failed');
