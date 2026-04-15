@@ -33,8 +33,17 @@ export const userPreferencesSchema = z.object({
       displayName: z.string(),
     })
   ).optional(),
+  contributors: z.array(
+    z.object({
+      t: z.enum(['d', 'a', 's']),
+      id: z.string(),
+      name: z.string(),
+    })
+  ).optional(),
   showActions: z.boolean().default(true),
   showRatings: z.boolean().default(true),
+  showReviews: z.boolean().optional(),
+  hideUnreleased: z.boolean().optional(),
   catalogNames: z.record(z.string()).optional(),
   catalogOrder: z.array(z.string()).optional(),
   sortVariants: z.record(z.string(), z.array(z.string())).optional(),

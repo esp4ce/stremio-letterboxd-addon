@@ -27,6 +27,7 @@ import {
   imdbToLetterboxdCache,
   listNameCache,
   contributorNameCache,
+  contributorCacheKey,
   invalidateUserCatalogs,
 } from '../../lib/cache.js';
 import { trackEvent, type EventType } from '../../lib/metrics.js';
@@ -115,7 +116,7 @@ function resolveContributorNames(
 ): Map<string, string> {
   const names = new Map<string, string>();
   for (const entry of entries) {
-    const key = `${entry.t}:${entry.id}`;
+    const key = contributorCacheKey(entry.t, entry.id);
     names.set(key, contributorNameCache.get(key) ?? `Contributor ${entry.id}`);
   }
   return names;

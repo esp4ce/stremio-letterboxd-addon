@@ -52,7 +52,7 @@ import {
   parseExtra,
 } from './catalog-filter.js';
 import { createClientForUser, getWatchedImdbIds } from '../user-client.service.js';
-import { fetchPopularCatalogPublic, fetchTop250CatalogPublic, fetchWatchlistCatalogPublic, resolveMemberId, fetchListCatalogPublic } from './public-catalog-fetcher.service.js';
+import { fetchPopularCatalogPublic, fetchTop250CatalogPublic, fetchWatchlistCatalogPublic, resolveMemberId, fetchContributorCatalogPublic } from './public-catalog-fetcher.service.js';
 
 const logger = createChildLogger('catalog-fetcher');
 
@@ -624,6 +624,16 @@ export async function handleCatalogRequest(
       const listName = listNameCache.get(listId);
       trackEvent('catalog_list', userId, { listId, ...(listName && { listName }) });
       result = await fetchListCatalog(user, listId, fetchSkip, showRatings, sort, includeGenre, decade);
+    } else if (baseCatalogId.startsWith('letterboxd-contributor-')) {
+      const m = baseCatalogId.match(/^letterboxd-contributor-([das])-([A-Za-z0-9]+)$/);
+      if (m && preferences?.contributors?.some((c) => c.t === m[1] && c.id === m[2])) {
+        const kind = m[1] as 'd' | 'a' | 's';
+        const contribId = m[2]!;
+        trackEvent('catalog_list', userId, { contribKind: kind, contribId });
+        result = await fetchContributorCatalogPublic(contribId, kind, fetchSkip, showRatings, sort);
+      } else {
+        return { metas: [] };
+      }
     } else if (baseCatalogId === 'letterboxd-search') {
       const params = parseExtra(extra);
       const query = params['search'];
