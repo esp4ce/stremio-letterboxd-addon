@@ -206,6 +206,17 @@ export default function Configure() {
     setShowPublicConfig(false);
     setShow2FA(false);
     setTotpCode("");
+    setPublicLists([]);
+    setPublicContributors([]);
+    setPublicExternalWatchlists([]);
+    setPublicCatalogs({ popular: true, top250: true });
+    setPublicWatchlist(true);
+    setPublicOwnLists([]);
+    setPublicLikedFilms(false);
+    setShowRatings(true);
+    setPublicCatalogNames({});
+    setPublicCatalogOrder([]);
+    setPublicSortVariants({});
   };
 
   const returnToMainForm = () => {
@@ -468,6 +479,32 @@ export default function Configure() {
 
   const handleResolveExternalList = () => {
     if (!result) return;
+
+    const url = externalListUrl.trim();
+    if (CONTRIBUTOR_URL_RE.test(url)) {
+      setIsResolvingList(true);
+      fetch(`${BACKEND_URL}/auth/resolve-contributor-public`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      })
+        .then(async (r) => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(typeof data?.error === "string" ? data.error : "Failed to resolve contributor");
+          const resolved = data as ResolvedContributor;
+          const t = resolved.kind[0] as 'd' | 'a' | 's';
+          if (preferences?.contributors?.some((c) => c.t === t && c.id === resolved.id)) {
+            showErrorToast("This contributor has already been added");
+            return;
+          }
+          setPreferences((prev) => prev ? { ...prev, contributors: [...(prev.contributors ?? []), { t, id: resolved.id, name: resolved.name }] } : prev);
+          setExternalListUrl("");
+        })
+        .catch((err) => showListResolveErrorToast(err))
+        .finally(() => setIsResolvingList(false));
+      return;
+    }
+
     resolveExternalUrl({
       currentUsername: result.user.username,
       isWatchlistDuplicate: (u) =>
@@ -593,17 +630,6 @@ export default function Configure() {
     setToasts([]);
     setForceMainForm(false);
     resetSessionResults();
-    setPublicLists([]);
-    setPublicExternalWatchlists([]);
-    setShowRatings(true);
-    setPublicCatalogs({ popular: true, top250: true });
-    setPublicWatchlist(true);
-    setPublicOwnLists([]);
-    setPublicLikedFilms(false);
-    setPublicContributors([]);
-    setPublicCatalogNames({});
-    setPublicCatalogOrder([]);
-    setPublicSortVariants({});
     setPasswordPreview("");
     if (passwordRef.current) passwordRef.current.value = "";
   };

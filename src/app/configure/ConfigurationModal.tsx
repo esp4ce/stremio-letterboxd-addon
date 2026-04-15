@@ -261,11 +261,6 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     return (props as FullModeProps).sortVariants;
   };
 
-  const setSortVariants = (v: Record<string, string[]>) => {
-    if (isPublic) (props as PublicModeProps).onPublicSortVariantsChange(v);
-    else (props as FullModeProps).onSortVariantsChange(v);
-  };
-
   /**
    * Remove a catalog from order + sortVariants.
    * @param keepVariants – when true, variant children are kept as orphans.
@@ -329,7 +324,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
         const m = catalogId.match(/^letterboxd-contributor-([das])-(.+)$/);
         if (m) {
           const kindMap = { d: 'director', a: 'actor', s: 'studio' } as const;
-          (props as PublicModeProps).onRemovePublicContributor(m[2], kindMap[m[1] as 'd' | 'a' | 's']);
+          (props as PublicModeProps).onRemovePublicContributor(m[2]!, kindMap[m[1] as 'd' | 'a' | 's']);
         }
       }
       (props as PublicModeProps).onPublicSortVariantsChange(nextVariants);
@@ -344,6 +339,13 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
       if (isOrphan && catalogId.startsWith('letterboxd-watchlist-')) {
         const username = catalogId.replace('letterboxd-watchlist-', '');
         patch.externalWatchlists = (p.preferences.externalWatchlists || []).filter((w) => w.username !== username);
+      }
+      if (isOrphan && catalogId.startsWith('letterboxd-contributor-')) {
+        const m = catalogId.match(/^letterboxd-contributor-([das])-(.+)$/);
+        if (m) {
+          const t = m[1] as 'd' | 'a' | 's';
+          patch.contributors = (p.preferences.contributors || []).filter((c) => !(c.t === t && c.id === m[2]));
+        }
       }
       p.onPreferencesChange({ ...p.preferences, ...patch });
     }
@@ -589,10 +591,21 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
   const removeContributor = (id: string, kind: 'director' | 'actor' | 'studio') => {
     const catId = `letterboxd-contributor-${kind[0]}-${id}`;
     const { newOrder, newVariants } = stripCatalogAndVariants(catId, getCatalogOrder(), getSortVariants(), false);
-    const p = props as PublicModeProps;
-    p.onRemovePublicContributor(id, kind);
-    p.onPublicSortVariantsChange(newVariants);
-    p.onPublicCatalogOrderChange(newOrder);
+    if (isPublic) {
+      const p = props as PublicModeProps;
+      p.onRemovePublicContributor(id, kind);
+      p.onPublicSortVariantsChange(newVariants);
+      p.onPublicCatalogOrderChange(newOrder);
+    } else {
+      const p = props as FullModeProps;
+      const t = kind[0] as 'd' | 'a' | 's';
+      p.onPreferencesChange({
+        ...p.preferences,
+        contributors: (p.preferences.contributors || []).filter((c) => !(c.t === t && c.id === id)),
+        sortVariants: newVariants,
+        catalogOrder: newOrder,
+      });
+    }
   };
 
   // ── Active items computation ──────────────────────────────────────────────
@@ -639,11 +652,15 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     const catId = `letterboxd-watchlist-${w.username}`;
     allActiveItemsMap.set(catId, { id: catId, type: "externalWatchlist", watchlist: w });
   }
-  if (isPublic) {
-    for (const c of (props as PublicModeProps).publicContributors) {
-      const catId = `letterboxd-contributor-${c.kind[0]}-${c.id}`;
-      allActiveItemsMap.set(catId, { id: catId, type: "contributor", contributor: c });
-    }
+  const contributorsToShow = isPublic
+    ? (props as PublicModeProps).publicContributors.map((c) => ({ t: c.kind[0] as 'd' | 'a' | 's', id: c.id, name: c.name, kind: c.kind }))
+    : (props as FullModeProps).preferences.contributors?.map((c) => {
+        const kind = c.t === 'd' ? 'director' : c.t === 'a' ? 'actor' : 'studio';
+        return { t: c.t, id: c.id, name: c.name, kind: kind as 'director' | 'actor' | 'studio' };
+      }) ?? [];
+  for (const c of contributorsToShow) {
+    const catId = `letterboxd-contributor-${c.t}-${c.id}`;
+    allActiveItemsMap.set(catId, { id: catId, type: "contributor", contributor: { id: c.id, name: c.name, kind: c.kind } });
   }
 
   // Add variant items from sortVariants map
@@ -958,12 +975,10 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
           {/* Add External Lists */}
           <div className="mt-7">
             <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">
-              {isPublic ? "External Catalogs" : "External Lists & Watchlists"}
+              External Catalogs
             </h3>
             <p className="mt-1 text-[11px] text-zinc-500">
-              {isPublic
-                ? "Lists, watchlists, or filmographies — letterboxd.com/user/list/... · /watchlist/ · /director/name/ · /actor/name/ · /studio/name/"
-                : "Paste a list or watchlist URL from Letterboxd"}
+              Lists, watchlists, or filmographies — letterboxd.com/user/list/... · /watchlist/ · /director/name/ · /actor/name/ · /studio/name/
             </p>
 
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
