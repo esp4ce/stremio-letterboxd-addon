@@ -1,4 +1,37 @@
-import { config } from '../config/index.js';
+import { spawn } from 'node:child_process';
+
+const BROWSER_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
+// Letterboxd/Cloudflare blocks Node's fetch (undici) on several paths via TLS
+// fingerprinting, so we shell out to curl which uses a different TLS stack.
+async function curlFetch(url: string, accept = 'text/html,*/*;q=0.8'): Promise<string | null> {
+  return new Promise((resolve) => {
+    const proc = spawn(
+      'curl',
+      [
+        '-sL',
+        '--max-time', '8',
+        '-H', `User-Agent: ${BROWSER_USER_AGENT}`,
+        '-H', `Accept: ${accept}`,
+        '-H', 'Accept-Language: en-US,en;q=0.9',
+        '-w', '\n%{http_code}',
+        url,
+      ],
+      { stdio: ['ignore', 'pipe', 'ignore'] }
+    );
+    let data = '';
+    proc.stdout.on('data', (c) => { data += c.toString(); });
+    proc.on('close', () => {
+      const idx = data.lastIndexOf('\n');
+      if (idx === -1) return resolve(null);
+      const code = data.slice(idx + 1).trim();
+      if (code !== '200') return resolve(null);
+      resolve(data.slice(0, idx));
+    });
+    proc.on('error', () => resolve(null));
+  });
+}
 
 const BOXD_SHORTLINK_REGEX = /https?:\/\/boxd\.it\/([A-Za-z0-9]+)/;
 const LIST_SHORTLINK_TAG_REGEX = /<link[^>]+rel="shortlink"[^>]+href="https?:\/\/boxd\.it\/([A-Za-z0-9]+)"/;
@@ -6,23 +39,8 @@ const LIST_SHORTLINK_TAG_ALT_REGEX = /href="https?:\/\/boxd\.it\/([A-Za-z0-9]+)"
 const LIST_LIKEABLE_IDENTIFIER_REGEX =
   /data-likeable-identifier='([^']+)'/;
 
-const BROWSER_FETCH_OPTIONS: RequestInit = {
-  headers: { 'User-Agent': config.CATALOG_USER_AGENT },
-  redirect: 'follow',
-};
-
 export async function fetchPageHtml(url: string): Promise<string | null> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-    const response = await fetch(url, { ...BROWSER_FETCH_OPTIONS, signal: controller.signal });
-    if (!response.ok) return null;
-    return response.text();
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return curlFetch(url);
 }
 
 export function extractBoxdShortlinkId(html: string): string | null {
@@ -35,7 +53,6 @@ export function extractListIdFromListPage(html: string): string | null {
     html.match(LIST_SHORTLINK_TAG_ALT_REGEX)?.[1];
   if (shortlinkId) return shortlinkId;
 
-  // Extract data-likeable-identifier and decode HTML entities (&#034; / &quot; → ")
   const likeableMatch = html.match(LIST_LIKEABLE_IDENTIFIER_REGEX);
   if (likeableMatch) {
     const decoded = likeableMatch[1]!

@@ -11,6 +11,7 @@ export interface UserPreferences {
     filmCount: number;
   }>;
   externalWatchlists?: Array<{ username: string; displayName: string }>;
+  contributors?: Array<{ t: 'd' | 'a' | 's'; id: string; name: string }>;
   showActions?: boolean;
   showRatings?: boolean;
   showReviews?: boolean;

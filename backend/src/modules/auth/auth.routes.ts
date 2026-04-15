@@ -11,13 +11,19 @@ import {
 import { loginRateLimit } from '../../middleware/rate-limit.js';
 import { trackEvent } from '../../lib/metrics.js';
 import { callWithAppToken } from '../../lib/app-client.js';
-import { fetchPageHtml, extractBoxdShortlinkId, extractListIdFromListPage } from '../../lib/html-scraper.js';
+import {
+  fetchPageHtml,
+  extractBoxdShortlinkId,
+  extractListIdFromListPage,
+} from '../../lib/html-scraper.js';
+import { contributorNameCache, contributorCacheKey, CONTRIBUTOR_KIND_SHORT } from '../../lib/cache.js';
 import {
   searchMemberByUsername as rawSearchMemberByUsername,
   getMember as rawGetMember,
   getUserLists as rawGetUserLists,
   searchLists as rawSearchLists,
   getList as rawGetList,
+  searchContributors as rawSearchContributors,
   LetterboxdApiError,
 } from '../letterboxd/letterboxd.client.js';
 
@@ -367,6 +373,79 @@ export async function authRoutes(app: FastifyInstance) {
       } catch (err) {
         request.log.error({ err, url: parsed.data.url }, 'resolve-list-public failed');
         return reply.status(500).send({ error: 'Failed to resolve list' });
+      }
+    }
+  );
+
+  const resolveContributorSchema = z.object({
+    url: z.string().min(1).max(500),
+  });
+
+  const CONTRIBUTOR_URL_REGEX =
+    /(?:https?:\/\/)?(?:www\.)?letterboxd\.com\/(director|actor|studio)\/([^/?#]+)/i;
+
+  const CONTRIBUTOR_KIND_TO_TYPE: Record<'director' | 'actor' | 'studio', 'Director' | 'Actor' | 'Studio'> = {
+    director: 'Director',
+    actor: 'Actor',
+    studio: 'Studio',
+  };
+
+  app.post(
+    '/auth/resolve-contributor-public',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          properties: { url: { type: 'string' } },
+          required: ['url'],
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{ Body: { url: string } }>,
+      reply
+    ) => {
+      const parsed = resolveContributorSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid URL' });
+      }
+
+      const match = parsed.data.url.match(CONTRIBUTOR_URL_REGEX);
+      if (!match) {
+        return reply.status(400).send({
+          error: 'URL must be a Letterboxd director, actor, or studio page',
+        });
+      }
+
+      const kind = match[1]!.toLowerCase() as 'director' | 'actor' | 'studio';
+      const slug = match[2]!.toLowerCase();
+      const targetPath = `/${kind}/${slug}/`;
+
+      try {
+        const results = await callWithAppToken((token) =>
+          rawSearchContributors(token, slug.replace(/-/g, ' '), { perPage: 20 })
+        );
+
+        const matched = results.items.find((c) =>
+          c.links?.some((l) => l.type === 'letterboxd' && l.url.includes(targetPath))
+        );
+
+        if (!matched) {
+          request.log.warn({ kind, slug }, 'resolve-contributor: no search result matched slug');
+          return reply.status(404).send({ error: 'Could not resolve contributor ID' });
+        }
+
+        contributorNameCache.set(contributorCacheKey(CONTRIBUTOR_KIND_SHORT[kind], matched.id), matched.name);
+
+        return {
+          id: matched.id,
+          name: matched.name,
+          kind,
+          type: CONTRIBUTOR_KIND_TO_TYPE[kind],
+        };
+      } catch (err) {
+        request.log.error({ err, url: parsed.data.url }, 'resolve-contributor-public failed');
+        return reply.status(500).send({ error: 'Failed to resolve contributor' });
       }
     }
   );

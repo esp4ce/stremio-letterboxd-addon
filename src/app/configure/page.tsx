@@ -47,6 +47,7 @@ interface PublicConfig {
   w?: string[];
   o?: string[];
   s?: Record<string, string[]>;
+  f?: Array<{ t: 'd' | 'a' | 's'; id: string }>;
   h?: boolean;
 }
 
@@ -61,6 +62,15 @@ interface ResolvedList {
   owner: string;
   filmCount: number;
 }
+
+interface ResolvedContributor {
+  id: string;
+  name: string;
+  kind: 'director' | 'actor' | 'studio';
+  type: string;
+}
+
+const CONTRIBUTOR_URL_RE = /letterboxd\.com\/(director|actor|studio)\//i;
 
 function getDefaultPreferences(
   lists: LoginResponse["lists"]
@@ -103,6 +113,7 @@ export default function Configure() {
   const [publicOwnLists, setPublicOwnLists] = useState<string[]>([]);
   const [publicLikedFilms, setPublicLikedFilms] = useState(false);
   const [publicLists, setPublicLists] = useState<Array<{ id: string; name: string; owner: string; filmCount: number }>>([]);
+  const [publicContributors, setPublicContributors] = useState<ResolvedContributor[]>([]);
   const [publicExternalWatchlists, setPublicExternalWatchlists] = useState<Array<{ username: string; displayName: string }>>([]);
   const [showRatings, setShowRatings] = useState(true);
   const [hideUnreleased, setHideUnreleased] = useState(false);
@@ -195,6 +206,17 @@ export default function Configure() {
     setShowPublicConfig(false);
     setShow2FA(false);
     setTotpCode("");
+    setPublicLists([]);
+    setPublicContributors([]);
+    setPublicExternalWatchlists([]);
+    setPublicCatalogs({ popular: true, top250: true });
+    setPublicWatchlist(true);
+    setPublicOwnLists([]);
+    setPublicLikedFilms(false);
+    setShowRatings(true);
+    setPublicCatalogNames({});
+    setPublicCatalogOrder([]);
+    setPublicSortVariants({});
   };
 
   const returnToMainForm = () => {
@@ -457,6 +479,32 @@ export default function Configure() {
 
   const handleResolveExternalList = () => {
     if (!result) return;
+
+    const url = externalListUrl.trim();
+    if (CONTRIBUTOR_URL_RE.test(url)) {
+      setIsResolvingList(true);
+      fetch(`${BACKEND_URL}/auth/resolve-contributor-public`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      })
+        .then(async (r) => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(typeof data?.error === "string" ? data.error : "Failed to resolve contributor");
+          const resolved = data as ResolvedContributor;
+          const t = resolved.kind[0] as 'd' | 'a' | 's';
+          if (preferences?.contributors?.some((c) => c.t === t && c.id === resolved.id)) {
+            showErrorToast("This contributor has already been added");
+            return;
+          }
+          setPreferences((prev) => prev ? { ...prev, contributors: [...(prev.contributors ?? []), { t, id: resolved.id, name: resolved.name }] } : prev);
+          setExternalListUrl("");
+        })
+        .catch((err) => showListResolveErrorToast(err))
+        .finally(() => setIsResolvingList(false));
+      return;
+    }
+
     resolveExternalUrl({
       currentUsername: result.user.username,
       isWatchlistDuplicate: (u) =>
@@ -473,6 +521,32 @@ export default function Configure() {
   };
 
   const handleResolvePublicList = () => {
+    const url = externalListUrl.trim();
+    if (!url) return;
+
+    if (CONTRIBUTOR_URL_RE.test(url)) {
+      setIsResolvingList(true);
+      fetch(`${BACKEND_URL}/auth/resolve-contributor-public`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      })
+        .then(async (r) => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(typeof data?.error === "string" ? data.error : "Failed to resolve contributor");
+          const resolved = data as ResolvedContributor;
+          if (publicContributors.some((c) => c.id === resolved.id && c.kind === resolved.kind)) {
+            showErrorToast("This contributor has already been added");
+            return;
+          }
+          setPublicContributors((prev) => [...prev, resolved]);
+          setExternalListUrl("");
+        })
+        .catch((err) => showListResolveErrorToast(err))
+        .finally(() => setIsResolvingList(false));
+      return;
+    }
+
     resolveExternalUrl({
       currentUsername: usernameValidated?.username,
       isWatchlistDuplicate: (u) =>
@@ -514,6 +588,10 @@ export default function Configure() {
       cfg.h = true;
     }
 
+    if (publicContributors.length > 0) {
+      cfg.f = publicContributors.map((c) => ({ t: c.kind[0] as 'd' | 'a' | 's', id: c.id }));
+    }
+
     if (usernameValidated) {
       cfg.u = usernameValidated.username;
       cfg.c.watchlist = publicWatchlist;
@@ -552,16 +630,6 @@ export default function Configure() {
     setToasts([]);
     setForceMainForm(false);
     resetSessionResults();
-    setPublicLists([]);
-    setPublicExternalWatchlists([]);
-    setShowRatings(true);
-    setPublicCatalogs({ popular: true, top250: true });
-    setPublicWatchlist(true);
-    setPublicOwnLists([]);
-    setPublicLikedFilms(false);
-    setPublicCatalogNames({});
-    setPublicCatalogOrder([]);
-    setPublicSortVariants({});
     setPasswordPreview("");
     if (passwordRef.current) passwordRef.current.value = "";
   };
@@ -624,6 +692,8 @@ export default function Configure() {
           onPublicSortVariantsChange={setPublicSortVariants}
           externalListUrl={externalListUrl}
           onExternalListUrlChange={setExternalListUrl}
+          publicContributors={publicContributors}
+          onRemovePublicContributor={(id, kind) => setPublicContributors((prev) => prev.filter((c) => !(c.id === id && c.kind === kind)))}
           onAddExternalList={handleResolvePublicList}
           isResolvingList={isResolvingList}
           onSave={handleInstallPublic}

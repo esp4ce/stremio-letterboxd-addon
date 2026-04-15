@@ -151,6 +151,26 @@ export const listNameCache = createCache<string>({
   ttl: 24 * 60 * 60 * 1000,
 });
 
+// Public contributor catalog cache (5 minutes)
+export const publicContributorCache = createCache<{ metas: StremioMeta[] }>({
+  maxSize: 100,
+  ttl: 5 * 60 * 1000,
+});
+
+// Contributor ID → display name cache (24 hours)
+export const contributorNameCache = createCache<string>({
+  maxSize: 300,
+  ttl: 24 * 60 * 60 * 1000,
+});
+
+export type ContributorKindShort = 'd' | 'a' | 's';
+export const CONTRIBUTOR_KIND_SHORT: Record<'director' | 'actor' | 'studio', ContributorKindShort> = {
+  director: 'd',
+  actor: 'a',
+  studio: 's',
+};
+export const contributorCacheKey = (kind: ContributorKindShort, id: string) => `${kind}:${id}`;
+
 // Liked films cache (5 minutes - user may update frequently)
 export const likedFilmsCache = createCache<{ metas: StremioMeta[] }>({
   maxSize: 50,
@@ -292,6 +312,7 @@ export const heavyCaches = [
   { name: 'poster', cache: posterCache },
   { name: 'cinemetaRaw', cache: cinemetaRawCache },
   { name: 'publicList', cache: publicListCache },
+  { name: 'publicContributor', cache: publicContributorCache },
   { name: 'publicWatchlist', cache: publicWatchlistCache },
   { name: 'userCatalog', cache: userCatalogCache },
   { name: 'recommendation', cache: recommendationCache },
@@ -309,6 +330,7 @@ export const allCaches = [
   { name: 'userLists', cache: userListsCache },
   { name: 'memberId', cache: memberIdCache },
   { name: 'listName', cache: listNameCache },
+  { name: 'contributorName', cache: contributorNameCache },
   { name: 'filmReviews', cache: filmReviewsCache },
   { name: 'tmdbToImdb', cache: tmdbToImdbCache },
   { name: 'userClient', cache: userClientCache },
@@ -335,7 +357,9 @@ export function getCacheStats(): CacheStats {
     memberId: { size: memberIdCache.size, max: memberIdCache.max },
     publicWatchlist: { size: publicWatchlistCache.size, max: publicWatchlistCache.max },
     publicList: { size: publicListCache.size, max: publicListCache.max },
+    publicContributor: { size: publicContributorCache.size, max: publicContributorCache.max },
     listName: { size: listNameCache.size, max: listNameCache.max },
+    contributorName: { size: contributorNameCache.size, max: contributorNameCache.max },
     likedFilms: { size: likedFilmsCache.size, max: likedFilmsCache.max },
     poster: { size: posterCache.size, max: posterCache.max },
     userClient: { size: userClientCache.size, max: userClientCache.max },
