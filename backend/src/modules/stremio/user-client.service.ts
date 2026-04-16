@@ -2,12 +2,20 @@ import {
   AuthenticatedClient,
   createAuthenticatedClient,
   refreshAccessToken,
+  LetterboxdApiError,
 } from '../letterboxd/letterboxd.client.js';
 import { getDecryptedRefreshToken, updateUser, User } from '../../db/repositories/user.repository.js';
 import { userClientCache, watchedImdbCache, cacheMetrics } from '../../lib/cache.js';
 import { throttled } from '../../lib/retry.js';
 import { createChildLogger } from '../../lib/logger.js';
 import { getImdbId } from './catalog.service.js';
+
+export class SessionExpiredError extends Error {
+  constructor(userId: string) {
+    super(`Session expired for user ${userId}`);
+    this.name = 'SessionExpiredError';
+  }
+}
 
 const logger = createChildLogger('user-client-service');
 
@@ -29,7 +37,22 @@ export async function createClientForUser(user: User): Promise<AuthenticatedClie
   cacheMetrics.tokenMisses++;
 
   const refreshToken = getDecryptedRefreshToken(user);
-  const tokens = await refreshAccessToken(refreshToken);
+  let tokens;
+  try {
+    tokens = await refreshAccessToken(refreshToken);
+  } catch (err) {
+    if (
+      err instanceof LetterboxdApiError &&
+      (err.status === 400 || err.status === 401) &&
+      typeof err.body === 'object' &&
+      err.body !== null &&
+      (err.body as Record<string, unknown>)['error'] === 'invalid_grant'
+    ) {
+      logger.warn({ userId: user.id }, 'Refresh token invalid — session expired');
+      throw new SessionExpiredError(user.id);
+    }
+    throw err;
+  }
 
   // Update stored refresh token if it changed
   if (tokens.refresh_token !== refreshToken) {

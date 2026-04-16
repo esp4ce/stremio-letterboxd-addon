@@ -25,7 +25,7 @@ import { SORT_VARIANT_KEYS } from '../stremio.service.js';
 import { trackEvent } from '../../../lib/metrics.js';
 import { callWithAppToken } from '../../../lib/app-client.js';
 import { getTmdbRecommendations, getTmdbExternalIds } from '../../../lib/tmdb-client.js';
-import { tmdbConfig } from '../../../config/index.js';
+import { tmdbConfig, config } from '../../../config/index.js';
 import {
   userListsCache,
   getUserCatalogCached,
@@ -51,7 +51,7 @@ import {
   filterUnreleasedFilms,
   parseExtra,
 } from './catalog-filter.js';
-import { createClientForUser, getWatchedImdbIds } from '../user-client.service.js';
+import { createClientForUser, getWatchedImdbIds, SessionExpiredError } from '../user-client.service.js';
 import { fetchPopularCatalogPublic, fetchTop250CatalogPublic, fetchWatchlistCatalogPublic, resolveMemberId, fetchContributorCatalogPublic } from './public-catalog-fetcher.service.js';
 
 const logger = createChildLogger('catalog-fetcher');
@@ -673,6 +673,20 @@ export async function handleCatalogRequest(
     result = { metas: await enrichMetasWithCinemeta(result.metas) };
     return result;
   } catch (error) {
+    if (error instanceof SessionExpiredError) {
+      logger.warn({ userId, catalogId }, 'Session expired — returning reconnect prompt');
+      const configureUrl = config.CORS_ORIGIN.split(',')[0]?.trim() + '/configure';
+      return {
+        metas: [
+          {
+            id: 'letterboxd-session-expired',
+            type: 'movie' as const,
+            name: 'Session Expired — Please Reconnect',
+            description: `Your session has expired. Visit ${configureUrl} to reconnect your account.`,
+          },
+        ],
+      };
+    }
     logger.error({ error, userId, catalogId }, 'Failed to fetch catalog');
     return { metas: [] };
   }
