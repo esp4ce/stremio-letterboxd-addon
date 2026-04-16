@@ -246,8 +246,8 @@ export function generateBaseManifest(): StremioManifest {
     version: '1.2.0',
     name: 'Stremboxd',
     description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com',
-    logo: `${config.PUBLIC_URL}/logo.svg`,
-    background: `${config.PUBLIC_URL}/logo.svg`,
+    logo: `${config.PUBLIC_URL}/logo.png`,
+    background: `${config.PUBLIC_URL}/background.jpg`,
     resources: [
       'catalog',
       {
@@ -398,8 +398,8 @@ export function generatePublicManifest(
     version: '1.2.0',
     name: `Stremboxd${namePart}`,
     description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com',
-    logo: `${config.PUBLIC_URL}/logo.svg`,
-    background: `${config.PUBLIC_URL}/logo.svg`,
+    logo: `${config.PUBLIC_URL}/logo.png`,
+    background: `${config.PUBLIC_URL}/background.jpg`,
     resources: [
       'catalog',
       {
@@ -431,7 +431,7 @@ export function generateManifest(user: {
     version: '1.2.0',
     name: `Letterboxd for ${displayName}`,
     description: `Your personal Letterboxd ratings and watchlist synced to Stremio. Connected as ${user.username}.`,
-    logo: `${config.PUBLIC_URL}/logo.svg`,
+    logo: `${config.PUBLIC_URL}/logo.png`,
     background: `${config.PUBLIC_URL}/background.jpg`,
     resources: [
       'catalog',
@@ -559,7 +559,7 @@ export function generateDynamicManifest(
     version: '1.2.0',
     name: `Letterboxd for ${displayName}`,
     description: `Your personal Letterboxd ratings and watchlist synced to Stremio. Connected as ${user.username}.`,
-    logo: `${config.PUBLIC_URL}/logo.svg`,
+    logo: `${config.PUBLIC_URL}/logo.png`,
     background: `${config.PUBLIC_URL}/background.jpg`,
     resources: [
       'catalog',
