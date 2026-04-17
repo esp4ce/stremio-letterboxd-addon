@@ -285,6 +285,16 @@ export async function authRoutes(app: FastifyInstance) {
           ? parsed.data.url
           : `https://${parsed.data.url}`;
 
+        let parsedUrlObj: URL;
+        try {
+          parsedUrlObj = new URL(normalizedUrl);
+        } catch {
+          return reply.status(400).send({ error: 'Invalid URL' });
+        }
+        if (parsedUrlObj.hostname !== 'letterboxd.com' && parsedUrlObj.hostname !== 'www.letterboxd.com') {
+          return reply.status(400).send({ error: 'Invalid Letterboxd list URL' });
+        }
+
         const pageHtml = await fetchPageHtml(normalizedUrl);
 
         if (pageHtml) {

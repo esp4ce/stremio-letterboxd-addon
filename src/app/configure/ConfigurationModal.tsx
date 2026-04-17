@@ -1,24 +1,28 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import type { UserPreferences } from "../../types/preferences";
 import {
-  DndContext,
-  closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
+import { Toggle } from "./components/primitives";
 import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  arrayMove,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+  ALL_BASE_DEFS,
+  SORT_VARIANT_OPTIONS,
+  PUBLIC_SORT_VARIANT_OPTIONS,
+  TRASH_PATH,
+  CATALOG_KEY_TO_ID,
+} from "./components/constants";
+import type { ActiveCatalogItem } from "./components/types";
+import { CatalogsSection } from "./components/CatalogsSection";
+import { DisplayOptionsSection } from "./components/DisplayOptionsSection";
+import { ExternalCatalogsSection } from "./components/ExternalCatalogsSection";
+import { UserListsSection } from "./components/UserListsSection";
 
 interface BaseProps {
   user?: { username: string; displayName: string | null };
@@ -69,155 +73,6 @@ interface PublicModeProps extends BaseProps {
 }
 
 type ConfigurationModalProps = FullModeProps | PublicModeProps;
-
-// ─── Types ─────────────────────────────────────────────────────────────────
-
-type ActiveCatalogItem =
-  | { id: string; type: "base"; key: string; label: string; description: string }
-  | { id: string; type: "ownList"; listId: string; label: string; filmCount: number }
-  | { id: string; type: "externalList"; list: { id: string; name: string; owner: string; filmCount: number } }
-  | { id: string; type: "externalWatchlist"; watchlist: { username: string; displayName: string } }
-  | { id: string; type: "contributor"; contributor: { id: string; name: string; kind: 'director' | 'actor' | 'studio' } }
-  | { id: string; type: "variant"; baseCatalogId: string; variantKey: string; label: string };
-
-interface BaseCatalogDef {
-  id: string;
-  key: string;
-  label: string;
-  description: string;
-}
-
-const ALL_BASE_DEFS: BaseCatalogDef[] = [
-  { id: "letterboxd-watchlist", key: "watchlist", label: "Watchlist", description: "Films you want to watch" },
-  { id: "letterboxd-diary", key: "diary", label: "Diary", description: "Your recently watched films" },
-  { id: "letterboxd-friends", key: "friends", label: "Friends Activity", description: "What your friends are watching" },
-  { id: "letterboxd-liked-films", key: "likedFilms", label: "Liked Films", description: "Films you have liked" },
-  { id: "letterboxd-recommended", key: "recommended", label: "Recommended", description: "Films recommended based on your taste" },
-  { id: "letterboxd-popular", key: "popular", label: "Popular This Week", description: "Trending films on Letterboxd" },
-  { id: "letterboxd-top250", key: "top250", label: "Top 250 Narrative Features", description: "Official Top 250 by Dave" },
-];
-
-const SORT_VARIANT_OPTIONS: Array<{ key: string; label: string; description: string }> = [
-  { key: 'shuffle', label: 'Shuffle', description: 'Random order each time' },
-  { key: 'not-watched', label: 'Not Watched', description: 'Hide films you\'ve seen' },
-  { key: 'popular', label: 'Popular', description: 'Sort by popularity' },
-];
-
-// Public mode: no auth → no "Not Watched" (requires user's watched history)
-const PUBLIC_SORT_VARIANT_OPTIONS = SORT_VARIANT_OPTIONS.filter((o) => o.key !== 'not-watched');
-
-const PENCIL_ICON = "M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z";
-const TRASH_PATH = "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16";
-
-// ─── Sub-components ────────────────────────────────────────────────────────
-
-function GripIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-      <circle cx="9" cy="5" r="1.5" />
-      <circle cx="15" cy="5" r="1.5" />
-      <circle cx="9" cy="12" r="1.5" />
-      <circle cx="15" cy="12" r="1.5" />
-      <circle cx="9" cy="19" r="1.5" />
-      <circle cx="15" cy="19" r="1.5" />
-    </svg>
-  );
-}
-
-function SortableCatalogRow({ id, children }: { id: string; children: ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-2 rounded-lg px-3 py-2.5 transition-colors ${isDragging ? "opacity-50 bg-zinc-800/60 shadow-lg" : "bg-zinc-800/35 hover:bg-zinc-800/50"}`}
-    >
-      <button
-        type="button"
-        {...listeners}
-        {...attributes}
-        tabIndex={-1}
-        className="flex-shrink-0 cursor-grab text-zinc-600 hover:text-zinc-400 active:cursor-grabbing touch-none"
-        aria-label="Drag to reorder"
-      >
-        <GripIcon />
-      </button>
-      {children}
-    </div>
-  );
-}
-
-function EditableName({
-  catalogId,
-  displayName,
-  editingCatalogId,
-  editingName,
-  onEditingNameChange,
-  onStartEditing,
-  onSave,
-  onCancel,
-  stopPropagation,
-}: {
-  catalogId: string;
-  displayName: string;
-  editingCatalogId: string | null;
-  editingName: string;
-  onEditingNameChange: (v: string) => void;
-  onStartEditing: () => void;
-  onSave: () => void;
-  onCancel: () => void;
-  stopPropagation?: boolean;
-}) {
-  if (editingCatalogId === catalogId) {
-    return (
-      <input
-        type="text"
-        value={editingName}
-        onChange={(e) => onEditingNameChange(e.target.value)}
-        onBlur={onSave}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") onSave();
-          if (e.key === "Escape") onCancel();
-        }}
-        autoFocus
-        className="w-full rounded border border-zinc-600 bg-zinc-800 px-2 py-0.5 text-[13px] text-white focus:border-zinc-400 focus:outline-none"
-      />
-    );
-  }
-  return (
-    <div className="flex items-center gap-1.5">
-      <p className="truncate text-[13px] font-medium text-white">{displayName}</p>
-      <button
-        type="button"
-        onClick={(e) => {
-          if (stopPropagation) e.stopPropagation();
-          onStartEditing();
-        }}
-        className="flex-shrink-0 text-zinc-600 transition-colors hover:text-zinc-300"
-      >
-        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={PENCIL_ICON} />
-        </svg>
-      </button>
-    </div>
-  );
-}
-
-function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${enabled ? "bg-white" : "bg-zinc-700"}`}
-    >
-      <span
-        className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full transition-transform ${enabled ? "translate-x-5 bg-black" : "translate-x-0 bg-zinc-400"}`}
-      />
-    </button>
-  );
-}
-
-// ─── Main Component ────────────────────────────────────────────────────────
 
 export default function ConfigurationModal(props: ConfigurationModalProps) {
   const { mode, user, lists, onBack, onSave, isSaving, externalListUrl, onExternalListUrlChange, onAddExternalList, isResolvingList } = props;
@@ -417,20 +272,10 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     return p.preferences.catalogs[key as keyof UserPreferences["catalogs"]] ?? false;
   };
 
-  const catalogKeyToId: Record<string, string> = {
-    watchlist: "letterboxd-watchlist",
-    diary: "letterboxd-diary",
-    friends: "letterboxd-friends",
-    likedFilms: "letterboxd-liked-films",
-    recommended: "letterboxd-recommended",
-    popular: "letterboxd-popular",
-    top250: "letterboxd-top250",
-  };
-
   // ── Toggle handlers ───────────────────────────────────────────────────────
 
   const toggleCatalog = (key: string) => {
-    const catalogId = catalogKeyToId[key]!;
+    const catalogId = CATALOG_KEY_TO_ID[key]!;
     const enabling = !getCatalogEnabled(key);
     const currentOrder = getCatalogOrder();
 
@@ -782,8 +627,6 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     );
   };
 
-  const ownListCount = selectedOwnListIds.length;
-
   return (
     <div className="fixed inset-0 flex h-screen w-screen items-center justify-center bg-[#0a0a0a] px-4 py-5 text-white sm:px-6">
       <div className="w-full max-w-3xl 2xl:max-w-4xl">
@@ -810,271 +653,71 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
             </p>
           </div>
 
-          {/* Active Catalogs */}
-          <div className="mt-7">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">Catalogs</h3>
-              {sortedActiveItems.length > 1 && (
-                <p className="text-[10px] text-zinc-600">drag to reorder</p>
-              )}
-            </div>
+          <CatalogsSection
+            sortedActiveItems={sortedActiveItems}
+            disabledBaseItems={disabledBaseItems}
+            effectiveCatalogOrder={effectiveCatalogOrder}
+            sensors={sensors}
+            onDragEnd={handleDragEnd}
+            editingCatalogId={editingCatalogId}
+            editingName={editingName}
+            onEditingNameChange={setEditingName}
+            onStartEditingName={startEditingCatalogName}
+            onSaveName={saveCatalogName}
+            onCancelEditing={() => setEditingCatalogId(null)}
+            expandedVariantCatalog={expandedVariantCatalog}
+            onToggleVariantExpand={setExpandedVariantCatalog}
+            availableVariantOptions={availableVariantOptions}
+            canHaveVariants={canHaveVariants}
+            getCatalogVariants={getCatalogVariants}
+            getItemDisplayName={getItemDisplayName}
+            getItemDefaultName={getItemDefaultName}
+            getItemSubtext={getItemSubtext}
+            renderActiveItemAction={renderActiveItemAction}
+            onToggleCatalog={toggleCatalog}
+            onToggleCatalogVariant={toggleCatalogVariant}
+          />
 
-            {sortedActiveItems.length > 0 && (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={effectiveCatalogOrder} strategy={verticalListSortingStrategy}>
-                  <div className="mt-3 space-y-1.5">
-                    {sortedActiveItems.map((item) => {
-                      const isVariantItem = item.type === "variant";
-                      const variants = isVariantItem ? [] : getCatalogVariants(item.id);
-                      const hasVariants = !isVariantItem && canHaveVariants(item.id);
-                      const isExpanded = expandedVariantCatalog === item.id;
-
-                      return (
-                        <div key={item.id}>
-                          <SortableCatalogRow id={item.id}>
-                            <div className="min-w-0 flex-1 pr-2">
-                              <EditableName
-                                catalogId={item.id}
-                                displayName={getItemDisplayName(item)}
-                                editingCatalogId={editingCatalogId}
-                                editingName={editingName}
-                                onEditingNameChange={setEditingName}
-                                onStartEditing={() => startEditingCatalogName(item.id, getItemDisplayName(item))}
-                                onSave={() => saveCatalogName(item.id, getItemDefaultName(item))}
-                                onCancel={() => setEditingCatalogId(null)}
-                              />
-                              <div className="flex items-center gap-2">
-                                <p className="text-[11px] text-zinc-500">{getItemSubtext(item)}</p>
-                                {variants.length > 0 && (
-                                  <span className="text-[10px] text-zinc-600">
-                                    +{variants.length} sort{variants.length > 1 ? "s" : ""}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            {hasVariants && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setExpandedVariantCatalog(isExpanded ? null : item.id);
-                                }}
-                                className={`flex-shrink-0 rounded p-1 text-zinc-500 transition-colors hover:text-zinc-300 ${isExpanded ? "bg-zinc-700/50 text-zinc-300" : ""}`}
-                                title="Sort variants"
-                              >
-                                <svg className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </button>
-                            )}
-                            {renderActiveItemAction(item)}
-                          </SortableCatalogRow>
-                          {isExpanded && hasVariants && (
-                            <div className="ml-6 mt-1 mb-1 flex flex-wrap gap-1.5 rounded-lg bg-zinc-800/20 px-3 py-2" onPointerDown={(e) => e.stopPropagation()}>
-                              {availableVariantOptions.map((opt) => {
-                                const active = variants.includes(opt.key);
-                                return (
-                                  <button
-                                    key={opt.key}
-                                    type="button"
-                                    onClick={() => toggleCatalogVariant(item.id, opt.key)}
-                                    className={`rounded-full border px-3 py-1 text-[11px] transition-colors ${active ? "border-white/30 bg-white/10 text-white" : "border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300"}`}
-                                    title={opt.description}
-                                  >
-                                    {opt.label}
-                                  </button>
-                                );
-                              })}
-                              <p className="w-full mt-1 text-[10px] text-zinc-600">Creates a separate catalog for each enabled option</p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            )}
-
-            {/* Disabled base catalogs */}
-            {disabledBaseItems.length > 0 && (
-              <div className={`${sortedActiveItems.length > 0 ? "mt-1.5" : "mt-3"} space-y-1.5`}>
-                {disabledBaseItems.map((def) => (
-                  <div
-                    key={def.key}
-                    className="flex items-center gap-2 rounded-lg bg-zinc-800/15 px-3 py-2.5 opacity-50"
-                  >
-                    <div className="w-4 flex-shrink-0" />
-                    <div className="min-w-0 flex-1 pr-2">
-                      <p className="truncate text-[13px] font-medium text-zinc-400">{def.label}</p>
-                      <p className="text-[11px] text-zinc-600">{def.description}</p>
-                    </div>
-                    <Toggle enabled={false} onToggle={() => toggleCatalog(def.key)} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Display Options */}
           {isPublic ? (
-            <div className="mt-7">
-              <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">Display Options</h3>
-              <div className="mt-3 space-y-2">
-                <div className="flex items-center justify-between rounded-lg bg-zinc-800/35 px-3.5 py-3">
-                  <div>
-                    <p className="text-[13px] font-medium text-white">Poster Ratings</p>
-                    <p className="mt-0.5 text-[11px] text-zinc-500">Show Letterboxd ratings on poster images</p>
-                  </div>
-                  <Toggle
-                    enabled={(props as PublicModeProps).showRatings}
-                    onToggle={() => (props as PublicModeProps).onShowRatingsChange(!(props as PublicModeProps).showRatings)}
-                  />
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-zinc-800/35 px-3.5 py-3">
-                  <div>
-                    <p className="text-[13px] font-medium text-white">Hide Unreleased Films</p>
-                    <p className="mt-0.5 text-[11px] text-zinc-500">Hide films that haven&apos;t been released yet</p>
-                  </div>
-                  <Toggle
-                    enabled={(props as PublicModeProps).hideUnreleased}
-                    onToggle={() => (props as PublicModeProps).onHideUnreleasedChange(!(props as PublicModeProps).hideUnreleased)}
-                  />
-                </div>
-              </div>
-            </div>
+            <DisplayOptionsSection
+              mode="public"
+              showRatings={(props as PublicModeProps).showRatings}
+              onShowRatingsChange={(props as PublicModeProps).onShowRatingsChange}
+              hideUnreleased={(props as PublicModeProps).hideUnreleased}
+              onHideUnreleasedChange={(props as PublicModeProps).onHideUnreleasedChange}
+            />
           ) : (
-            <div className="mt-7">
-              <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">Display Options</h3>
-              <div className="mt-3 space-y-2">
-                {([
-                  { key: "showRatings" as const, label: "Poster Ratings", description: "Show Letterboxd ratings on poster images", defaultOn: true },
-                  { key: "showActions" as const, label: "Letterboxd Actions", description: "Show rate, watched, liked and watchlist buttons in Stremio", defaultOn: true },
-                  { key: "showReviews" as const, label: "Popular Reviews", description: "Show popular Letterboxd reviews on film pages", defaultOn: true },
-                  { key: "hideUnreleased" as const, label: "Hide Unreleased Films", description: "Hide films that haven't been released yet", defaultOn: false },
-                ] as const).map(({ key, label, description, defaultOn }) => (
-                  <div key={key} className="flex items-center justify-between rounded-lg bg-zinc-800/35 px-3.5 py-3">
-                    <div>
-                      <p className="text-[13px] font-medium text-white">{label}</p>
-                      <p className="mt-0.5 text-[11px] text-zinc-500">{description}</p>
-                    </div>
-                    <Toggle
-                      enabled={defaultOn ? (props as FullModeProps).preferences[key] !== false : (props as FullModeProps).preferences[key] === true}
-                      onToggle={() => {
-                        const p = props as FullModeProps;
-                        const current = defaultOn ? p.preferences[key] !== false : p.preferences[key] === true;
-                        p.onPreferencesChange({ ...p.preferences, [key]: !current });
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+            <DisplayOptionsSection
+              mode="full"
+              preferences={(props as FullModeProps).preferences}
+              onPreferencesChange={(props as FullModeProps).onPreferencesChange}
+            />
           )}
 
-          {/* Add External Lists */}
-          <div className="mt-7">
-            <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">
-              External Catalogs
-            </h3>
-            <p className="mt-1 text-[11px] text-zinc-500">
-              Lists, watchlists, or filmographies — letterboxd.com/user/list/... · /watchlist/ · /director/name/ · /actor/name/ · /studio/name/
-            </p>
+          <ExternalCatalogsSection
+            externalListUrl={externalListUrl}
+            onExternalListUrlChange={onExternalListUrlChange}
+            onAddExternalList={onAddExternalList}
+            isResolvingList={isResolvingList}
+          />
 
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-              <input
-                type="text"
-                value={externalListUrl}
-                onChange={(e) => onExternalListUrlChange(e.target.value)}
-                placeholder="letterboxd.com/user/list/name/ or /user/watchlist/"
-                className="block w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-[13px] text-white placeholder-zinc-500 transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    onAddExternalList();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={onAddExternalList}
-                disabled={isResolvingList || !externalListUrl.trim()}
-                className="flex-shrink-0 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-[13px] text-zinc-300 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isResolvingList ? "..." : "Add"}
-              </button>
-            </div>
-          </div>
-
-          {/* User lists */}
-          {hasUsername && lists.length > 0 && (
-            <div className="mt-7">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">
-                  {user?.displayName || user?.username}&apos;s Lists
-                </h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-zinc-500">
-                    {ownListCount} / {lists.length}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={selectAllOwnLists}
-                    className="text-[11px] text-zinc-500 transition-colors hover:text-zinc-200"
-                  >
-                    All
-                  </button>
-                  <span className="text-[11px] text-zinc-700">/</span>
-                  <button
-                    type="button"
-                    onClick={deselectAllOwnLists}
-                    className="text-[11px] text-zinc-500 transition-colors hover:text-zinc-200"
-                  >
-                    None
-                  </button>
-                </div>
-              </div>
-              <div className="config-scroll mt-3 grid max-h-[20vh] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
-                {lists.map((list) => {
-                  const ownCatId = `letterboxd-list-${list.id}`;
-                  return (
-                    <div
-                      key={list.id}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg bg-zinc-800/35 px-3.5 py-2.5 transition-colors hover:bg-zinc-800/55"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isOwnListSelected(list.id)}
-                        onChange={() => toggleOwnList(list.id)}
-                        className="h-4 w-4 rounded border-zinc-600 bg-zinc-700 text-white accent-white"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <EditableName
-                          catalogId={ownCatId}
-                          displayName={getCatalogDisplayName(ownCatId, list.name)}
-                          editingCatalogId={editingCatalogId}
-                          editingName={editingName}
-                          onEditingNameChange={setEditingName}
-                          onStartEditing={() => startEditingCatalogName(ownCatId, getCatalogDisplayName(ownCatId, list.name))}
-                          onSave={() => saveCatalogName(ownCatId, list.name)}
-                          onCancel={() => setEditingCatalogId(null)}
-                          stopPropagation
-                        />
-                      </div>
-                      <span className="flex-shrink-0 text-[11px] text-zinc-500">{list.filmCount}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* No lists placeholder */}
-          {hasUsername && lists.length === 0 && (
-            <div className="mt-7">
-              <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">Your Lists</h3>
-              <p className="mt-3 text-[13px] text-zinc-500">No lists found on this account</p>
-            </div>
+          {hasUsername && user && (
+            <UserListsSection
+              user={user}
+              lists={lists}
+              selectedListIds={selectedOwnListIds}
+              editingCatalogId={editingCatalogId}
+              editingName={editingName}
+              onEditingNameChange={setEditingName}
+              onStartEditingName={startEditingCatalogName}
+              onSaveName={saveCatalogName}
+              onCancelEditing={() => setEditingCatalogId(null)}
+              getCatalogDisplayName={getCatalogDisplayName}
+              isOwnListSelected={isOwnListSelected}
+              onToggleOwnList={toggleOwnList}
+              onSelectAll={selectAllOwnLists}
+              onDeselectAll={deselectAllOwnLists}
+            />
           )}
 
           {/* Save Button */}

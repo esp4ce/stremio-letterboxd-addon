@@ -34,7 +34,17 @@ export const envSchema = z.object({
   POSTHOG_API_KEY: z.string().min(1).optional(),
   POSTHOG_HOST: z.string().url().default('https://us.i.posthog.com'),
 
-  CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  CORS_ORIGIN: z
+    .string()
+    .default('http://localhost:3000')
+    .refine(
+      (val) => !val.split(',').map((o) => o.trim()).includes('*'),
+      'CORS_ORIGIN must not contain "*" — list explicit origins separated by commas',
+    )
+    .refine(
+      (val) => val.split(',').every((o) => /^https?:\/\/[^\s,]+$/.test(o.trim())),
+      'CORS_ORIGIN entries must be valid http(s) URLs',
+    ),
   LOG_LEVEL: z
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
     .default('info'),
