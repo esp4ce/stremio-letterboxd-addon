@@ -749,6 +749,19 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                 </>
               )}
             </button>
+
+            <p className="mt-4 text-center text-xs text-zinc-500">
+              Enjoying Stremboxd?{" "}
+              <a
+                href="https://buymeacoffee.com/esp4ce"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-zinc-400 underline underline-offset-2 transition-colors hover:text-zinc-200"
+              >
+                Buy me a coffee ☕
+              </a>{" "}
+              — it keeps the servers running.
+            </p>
           </div>
         </div>
       </div>
