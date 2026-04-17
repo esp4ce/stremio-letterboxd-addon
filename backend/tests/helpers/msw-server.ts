@@ -1,7 +1,6 @@
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
-
-const API = 'https://api.letterboxd.com/api/v0';
+import { BASE_URL as API } from '@esp4ce/letterboxd-client';
 const TMDB = 'https://api.themoviedb.org/3';
 
 // ── Fixture factories ──────────────────────────────────────────────
