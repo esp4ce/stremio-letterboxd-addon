@@ -243,7 +243,7 @@ function listsToStremioCatalogs(lists: UserList[]): StremioCatalog[] {
 export function generateBaseManifest(): StremioManifest {
   return {
     id: 'community.stremboxd',
-    version: '1.2.0',
+    version: '1.2.2',
     name: 'Stremboxd',
     description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com',
     logo: `${config.PUBLIC_URL}/logo.png`,
@@ -395,7 +395,7 @@ export function generatePublicManifest(
 
   return {
     id: 'community.stremboxd',
-    version: '1.2.0',
+    version: '1.2.2',
     name: `Stremboxd${namePart}`,
     description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com',
     logo: `${config.PUBLIC_URL}/logo.png`,
@@ -428,7 +428,7 @@ export function generateManifest(user: {
 
   return {
     id: 'community.stremboxd',
-    version: '1.2.0',
+    version: '1.2.2',
     name: `Letterboxd for ${displayName}`,
     description: `Your personal Letterboxd ratings and watchlist synced to Stremio. Connected as ${user.username}.`,
     logo: `${config.PUBLIC_URL}/logo.png`,
@@ -556,7 +556,7 @@ export function generateDynamicManifest(
 
   return {
     id: 'community.stremboxd',
-    version: '1.2.0',
+    version: '1.2.2',
     name: `Letterboxd for ${displayName}`,
     description: `Your personal Letterboxd ratings and watchlist synced to Stremio. Connected as ${user.username}.`,
     logo: `${config.PUBLIC_URL}/logo.png`,
