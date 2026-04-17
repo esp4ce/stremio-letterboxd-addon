@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { parseLetterboxdListUrl, resolveFilm } from '../../../../src/modules/letterboxd/letterboxd.service.js';
+import { parseLetterboxdListUrl, resolveFilm, resolveExternalList } from '../../../../src/modules/letterboxd/letterboxd.service.js';
 import { filmCache } from '../../../../src/lib/cache.js';
 import type { AuthenticatedClient } from '../../../../src/modules/letterboxd/letterboxd.client.js';
+import * as htmlScraper from '../../../../src/lib/html-scraper.js';
+import * as appClientModule from '../../../../src/lib/app-client.js';
+
+vi.mock('../../../../src/lib/html-scraper.js');
+vi.mock('../../../../src/lib/app-client.js');
 
 function makeFilm(overrides: Record<string, unknown> = {}) {
   return {
@@ -128,5 +133,113 @@ describe('resolveFilm', () => {
 
     const result = await resolveFilm(mockClient, { title: 'Test Film' });
     expect(result?.poster).toBeUndefined();
+  });
+});
+
+describe('resolveExternalList', () => {
+  const mockClient = {
+    searchMemberByUsername: vi.fn(),
+    searchLists: vi.fn(),
+  } as unknown as AuthenticatedClient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('stratégie 1 : résout la liste via le scraping HTML', async () => {
+    vi.mocked(htmlScraper.fetchPageHtml).mockResolvedValue('<html>shortlink page</html>');
+    vi.mocked(htmlScraper.extractListIdFromListPage).mockReturnValue('list-abc');
+    vi.mocked(appClientModule.callWithAppToken).mockResolvedValue({
+      id: 'list-abc',
+      name: 'My Curated List',
+      filmCount: 42,
+      owner: { displayName: 'Test User', username: 'testuser' },
+    });
+
+    const result = await resolveExternalList(mockClient, 'testuser', 'my-curated-list');
+
+    expect(result).toEqual({
+      id: 'list-abc',
+      name: 'My Curated List',
+      filmCount: 42,
+      owner: 'Test User',
+    });
+    expect(mockClient.searchMemberByUsername).not.toHaveBeenCalled();
+  });
+
+  it('stratégie 1 fallback : pas d\'ID dans le HTML, passe à la stratégie 2', async () => {
+    vi.mocked(htmlScraper.fetchPageHtml).mockResolvedValue('<html>no list id here</html>');
+    vi.mocked(htmlScraper.extractListIdFromListPage).mockReturnValue(null);
+    mockClient.searchMemberByUsername = vi.fn().mockResolvedValue({
+      id: 'member-1',
+      username: 'testuser',
+      displayName: 'Test User',
+    });
+    mockClient.searchLists = vi.fn().mockResolvedValue({
+      items: [{ id: 'list-456', name: 'My Curated List', filmCount: 10 }],
+      cursor: undefined,
+    });
+
+    const result = await resolveExternalList(mockClient, 'testuser', 'my-curated-list');
+
+    expect(result).toMatchObject({ id: 'list-456', name: 'My Curated List', filmCount: 10 });
+  });
+
+  it('stratégie 1 fallback : HTML indisponible, passe à la stratégie 2', async () => {
+    vi.mocked(htmlScraper.fetchPageHtml).mockResolvedValue(null);
+    mockClient.searchMemberByUsername = vi.fn().mockResolvedValue({
+      id: 'member-1',
+      username: 'testuser',
+      displayName: 'Test User',
+    });
+    mockClient.searchLists = vi.fn().mockResolvedValue({
+      items: [{ id: 'list-789', name: 'Another List', filmCount: 5 }],
+      cursor: undefined,
+    });
+
+    const result = await resolveExternalList(mockClient, 'testuser', 'another-list');
+    expect(result).toMatchObject({ id: 'list-789' });
+  });
+
+  it('retourne null si le membre n\'existe pas (stratégie 2)', async () => {
+    vi.mocked(htmlScraper.fetchPageHtml).mockResolvedValue(null);
+    mockClient.searchMemberByUsername = vi.fn().mockResolvedValue(null);
+
+    const result = await resolveExternalList(mockClient, 'ghost', 'some-list');
+    expect(result).toBeNull();
+  });
+
+  it('retourne null si la liste n\'est pas trouvée par slug (stratégie 2)', async () => {
+    vi.mocked(htmlScraper.fetchPageHtml).mockResolvedValue(null);
+    mockClient.searchMemberByUsername = vi.fn().mockResolvedValue({
+      id: 'member-1',
+      username: 'testuser',
+      displayName: 'Test User',
+    });
+    mockClient.searchLists = vi.fn().mockResolvedValue({
+      items: [{ id: 'l1', name: 'Unrelated List', filmCount: 3 }],
+      cursor: undefined,
+    });
+
+    const result = await resolveExternalList(mockClient, 'testuser', 'nonexistent-slug');
+    expect(result).toBeNull();
+  });
+
+  it('stratégie 1 : API échoue après extraction de l\'ID, passe à la stratégie 2', async () => {
+    vi.mocked(htmlScraper.fetchPageHtml).mockResolvedValue('<html>page</html>');
+    vi.mocked(htmlScraper.extractListIdFromListPage).mockReturnValue('bad-id');
+    vi.mocked(appClientModule.callWithAppToken).mockRejectedValue(new Error('API error'));
+    mockClient.searchMemberByUsername = vi.fn().mockResolvedValue({
+      id: 'member-1',
+      username: 'testuser',
+      displayName: 'Test User',
+    });
+    mockClient.searchLists = vi.fn().mockResolvedValue({
+      items: [{ id: 'list-fallback', name: 'My Curated List', filmCount: 7 }],
+      cursor: undefined,
+    });
+
+    const result = await resolveExternalList(mockClient, 'testuser', 'my-curated-list');
+    expect(result?.id).toBe('list-fallback');
   });
 });
