@@ -11,6 +11,7 @@
 # Testing
 /coverage
 backend/coverage/
+backend/tests/coverage/
 
 # Next.js
 /.next/
