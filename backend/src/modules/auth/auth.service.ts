@@ -69,7 +69,7 @@ export async function loginUser(
         );
       }
     }
-    logger.error({ error, username }, 'Authentication failed');
+    logger.error({ err: error, username }, 'Authentication failed');
     throw new AuthenticationError(
       'Authentication service unavailable',
       'SERVICE_ERROR'
@@ -81,7 +81,7 @@ export async function loginUser(
     letterboxdUser = await getCurrentUser(tokens.access_token);
     logger.info({ letterboxdUser }, 'Letterboxd user profile received');
   } catch (error) {
-    logger.error({ error, username }, 'Failed to fetch user profile');
+    logger.error({ err: error, username }, 'Failed to fetch user profile');
     throw new AuthenticationError(
       'Failed to fetch user profile',
       'PROFILE_ERROR'
@@ -118,7 +118,7 @@ export async function loginUser(
       ...(l.description ? { description: l.description } : {}),
     }));
   } catch (error) {
-    logger.warn({ error, username }, 'Failed to fetch user lists during login');
+    logger.warn({ err: error, username }, 'Failed to fetch user lists during login');
   }
 
   const preferences = getUserPreferences(user);

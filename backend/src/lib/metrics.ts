@@ -253,30 +253,48 @@ export function getTopUsers(days: number = 30, limit: number = 50): TopUsersMetr
     first_seen: string;
   }>;
 
-  // Get breakdown for each user
-  const topUsers: UserMetrics[] = topUsersRaw.map((user) => {
-    const events = db.prepare(`
-      SELECT event FROM events WHERE user_id = ? AND created_at >= ?
-    `).all(user.user_id, since) as Array<{ event: string }>;
+  // Breakdown for all top users in a single aggregated query (avoids N+1).
+  const userIds = topUsersRaw.map((u) => u.user_id);
+  const breakdownMap = new Map<string, { catalog_views: number; streams: number; actions: number; logins: number }>();
+  if (userIds.length > 0) {
+    const placeholders = userIds.map(() => '?').join(',');
+    const breakdownRows = db.prepare(`
+      SELECT
+        user_id,
+        SUM(CASE WHEN event LIKE 'catalog_%' THEN 1 ELSE 0 END) as catalog_views,
+        SUM(CASE WHEN event = 'stream' THEN 1 ELSE 0 END) as streams,
+        SUM(CASE WHEN event LIKE 'action_%' THEN 1 ELSE 0 END) as actions,
+        SUM(CASE WHEN event = 'login' THEN 1 ELSE 0 END) as logins
+      FROM events
+      WHERE user_id IN (${placeholders}) AND created_at >= ?
+      GROUP BY user_id
+    `).all(...userIds, since) as Array<{
+      user_id: string;
+      catalog_views: number;
+      streams: number;
+      actions: number;
+      logins: number;
+    }>;
+    for (const row of breakdownRows) {
+      breakdownMap.set(row.user_id, {
+        catalog_views: row.catalog_views,
+        streams: row.streams,
+        actions: row.actions,
+        logins: row.logins,
+      });
+    }
+  }
 
-    const breakdown = {
-      catalog_views: events.filter((e) => e.event.startsWith('catalog_')).length,
-      streams: events.filter((e) => e.event === 'stream').length,
-      actions: events.filter((e) => e.event.startsWith('action_')).length,
-      logins: events.filter((e) => e.event === 'login').length,
-    };
-
-    return {
-      userId: user.user_id,
-      username: user.letterboxd_username,
-      displayName: user.letterboxd_display_name,
-      tier: user.tier ?? 1,
-      totalEvents: user.total_events,
-      lastActivity: user.last_activity,
-      firstSeen: user.first_seen,
-      breakdown,
-    };
-  });
+  const topUsers: UserMetrics[] = topUsersRaw.map((user) => ({
+    userId: user.user_id,
+    username: user.letterboxd_username,
+    displayName: user.letterboxd_display_name,
+    tier: user.tier ?? 1,
+    totalEvents: user.total_events,
+    lastActivity: user.last_activity,
+    firstSeen: user.first_seen,
+    breakdown: breakdownMap.get(user.user_id) ?? { catalog_views: 0, streams: 0, actions: 0, logins: 0 },
+  }));
 
   return {
     overview: {

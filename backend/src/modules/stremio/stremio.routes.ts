@@ -164,7 +164,7 @@ export async function stremioRoutes(app: FastifyInstance) {
           .header('Cache-Control', 'public, max-age=3600')
           .send(imageBuffer);
       } catch (error) {
-        logger.error({ error, url, rating }, 'Failed to generate rated poster');
+        logger.error({ err: error, url, rating }, 'Failed to generate rated poster');
         return reply.status(500).send({ error: 'Failed to generate poster' });
       }
     },
@@ -427,7 +427,7 @@ export async function stremioRoutes(app: FastifyInstance) {
         logger.info({ imdbId, streamCount: streams.length }, 'Letterboxd streams returned');
         return { streams };
       } catch (error) {
-        logger.error({ error, userId, imdbId }, 'Failed to fetch streams');
+        logger.error({ err: error, userId, imdbId }, 'Failed to fetch streams');
         return { streams: [] };
       }
     },

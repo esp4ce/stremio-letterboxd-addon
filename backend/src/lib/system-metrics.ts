@@ -31,20 +31,29 @@ export interface Alert {
 const RAILWAY_MEMORY_MB = 512;
 const MEMORY_WARNING_THRESHOLD = 0.8; // 80%
 
-export async function getSystemMetrics(): Promise<SystemMetrics> {
+let lastCpuSample: { usage: NodeJS.CpuUsage; time: number } | null = null;
+
+export function getSystemMetrics(): SystemMetrics {
   const uptime = process.uptime();
 
-  // Memory metrics
   const memUsage = process.memoryUsage();
   const usedMB = memUsage.heapUsed / 1024 / 1024;
   const percentage = (usedMB / RAILWAY_MEMORY_MB) * 100;
 
-  // CPU metrics - sample over 1 second
-  const startUsage = process.cpuUsage();
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  const endUsage = process.cpuUsage(startUsage);
-  const totalMicros = endUsage.user + endUsage.system;
-  const cpuPercentage = (totalMicros / 1000000) * 100;
+  // Non-blocking CPU sampling: delta vs last call.
+  // First call has no baseline — return 0 and record a sample.
+  const now = Date.now();
+  const currentUsage = process.cpuUsage();
+  let cpuPercentage = 0;
+  let deltaUser = 0;
+  let deltaSystem = 0;
+  if (lastCpuSample && now > lastCpuSample.time) {
+    deltaUser = currentUsage.user - lastCpuSample.usage.user;
+    deltaSystem = currentUsage.system - lastCpuSample.usage.system;
+    const elapsedMicros = (now - lastCpuSample.time) * 1000;
+    cpuPercentage = ((deltaUser + deltaSystem) / elapsedMicros) * 100;
+  }
+  lastCpuSample = { usage: currentUsage, time: now };
 
   return {
     uptime,
@@ -55,8 +64,8 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
       warning: percentage > MEMORY_WARNING_THRESHOLD * 100,
     },
     cpu: {
-      user: endUsage.user,
-      system: endUsage.system,
+      user: deltaUser,
+      system: deltaSystem,
       percentage: parseFloat(cpuPercentage.toFixed(2)),
     },
   };
