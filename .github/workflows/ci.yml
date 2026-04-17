@@ -28,6 +28,10 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
 
+      - name: Security audit
+        working-directory: backend
+        run: npm audit --audit-level=high
+
       - name: Run tests
         working-directory: backend
         run: npm run test:run
