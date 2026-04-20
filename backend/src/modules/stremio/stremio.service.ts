@@ -389,7 +389,7 @@ export function generatePublicManifest(
   // Expand sort variants for public config
   catalogs = expandWithSortVariants(catalogs, cfg.s || {}, allPublicTemplates);
 
-  catalogs.push(SEARCH_CATALOG);
+  if (cfg.q !== false) catalogs.push(SEARCH_CATALOG);
 
   const namePart = displayName ? ` for ${displayName}` : '';
 
@@ -552,7 +552,7 @@ export function generateDynamicManifest(
     }
   }
   catalogs = expandWithSortVariants(catalogs, preferences?.sortVariants || {}, allTemplates);
-  catalogs.push(SEARCH_CATALOG);
+  if (preferences?.search !== false) catalogs.push(SEARCH_CATALOG);
 
   return {
     id: 'community.stremboxd',

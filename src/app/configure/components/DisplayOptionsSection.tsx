@@ -10,6 +10,8 @@ type DisplayOptionsProps =
       onShowRatingsChange: (v: boolean) => void;
       hideUnreleased: boolean;
       onHideUnreleasedChange: (v: boolean) => void;
+      publicSearch: boolean;
+      onPublicSearchChange: (v: boolean) => void;
     }
   | {
       mode: "full";
@@ -43,6 +45,16 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
               onToggle={() => props.onHideUnreleasedChange(!props.hideUnreleased)}
             />
           </div>
+          <div className="flex items-center justify-between rounded-lg bg-zinc-800/35 px-3.5 py-3">
+            <div>
+              <p className="text-[13px] font-medium text-white">Letterboxd Search</p>
+              <p className="mt-0.5 text-[11px] text-zinc-500">Search films directly via Letterboxd in Stremio</p>
+            </div>
+            <Toggle
+              enabled={props.publicSearch}
+              onToggle={() => props.onPublicSearchChange(!props.publicSearch)}
+            />
+          </div>
         </div>
       </div>
     );
@@ -54,6 +66,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
     { key: "showActions" as const, label: "Letterboxd Actions", description: "Show rate, watched, liked and watchlist buttons in Stremio", defaultOn: true },
     { key: "showReviews" as const, label: "Popular Reviews", description: "Show popular Letterboxd reviews on film pages", defaultOn: true },
     { key: "hideUnreleased" as const, label: "Hide Unreleased Films", description: "Hide films that haven't been released yet", defaultOn: false },
+    { key: "search" as const, label: "Letterboxd Search", description: "Search films directly via Letterboxd in Stremio", defaultOn: true },
   ] as const;
 
   return (

@@ -49,6 +49,7 @@ interface PublicConfig {
   s?: Record<string, string[]>;
   f?: Array<{ t: 'd' | 'a' | 's'; id: string }>;
   h?: boolean;
+  q?: boolean;
 }
 
 interface ToastItem {
@@ -117,6 +118,7 @@ export default function Configure() {
   const [publicExternalWatchlists, setPublicExternalWatchlists] = useState<Array<{ username: string; displayName: string }>>([]);
   const [showRatings, setShowRatings] = useState(true);
   const [hideUnreleased, setHideUnreleased] = useState(false);
+  const [publicSearch, setPublicSearch] = useState(true);
   const [publicCatalogNames, setPublicCatalogNames] = useState<Record<string, string>>({});
   const [publicCatalogOrder, setPublicCatalogOrder] = useState<string[]>([]);
   const [publicSortVariants, setPublicSortVariants] = useState<Record<string, string[]>>({});
@@ -588,6 +590,10 @@ export default function Configure() {
       cfg.h = true;
     }
 
+    if (!publicSearch) {
+      cfg.q = false;
+    }
+
     if (publicContributors.length > 0) {
       cfg.f = publicContributors.map((c) => ({ t: c.kind[0] as 'd' | 'a' | 's', id: c.id }));
     }
@@ -684,6 +690,8 @@ export default function Configure() {
           onShowRatingsChange={setShowRatings}
           hideUnreleased={hideUnreleased}
           onHideUnreleasedChange={setHideUnreleased}
+          publicSearch={publicSearch}
+          onPublicSearchChange={setPublicSearch}
           publicCatalogNames={publicCatalogNames}
           onPublicCatalogNamesChange={setPublicCatalogNames}
           publicCatalogOrder={publicCatalogOrder}
