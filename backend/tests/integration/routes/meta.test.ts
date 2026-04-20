@@ -1,14 +1,41 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import { setupServer } from 'msw/node';
+import { http, HttpResponse } from 'msw';
 import { buildApp } from '../../../src/app.js';
 import { initDb, closeDb } from '../../../src/db/index.js';
 import { encodeConfig, type PublicConfig } from '../../../src/lib/config-encoding.js';
 import type { FastifyInstance } from 'fastify';
+
+const cinemetaResponse = {
+  meta: {
+    name: 'Test Film',
+    year: '2000',
+    releaseInfo: '2000',
+    poster: 'https://img.example.com/test.jpg',
+    background: null,
+    genres: ['Drama'],
+    director: ['Test Director'],
+    cast: [],
+    writer: [],
+    runtime: '90 min',
+    description: 'Test description.',
+    imdbRating: '7.0',
+    trailers: [],
+  },
+};
+
+const server = setupServer(
+  http.get('https://v3-cinemeta.strem.io/meta/movie/:id.json', () =>
+    HttpResponse.json(cinemetaResponse),
+  ),
+);
 
 describe('GET /:config/meta/movie/:id.json', () => {
   let app: FastifyInstance;
   let validConfig: string;
 
   beforeAll(async () => {
+    server.listen({ onUnhandledRequest: 'bypass' });
     initDb();
     app = await buildApp();
     await app.ready();
@@ -24,6 +51,11 @@ describe('GET /:config/meta/movie/:id.json', () => {
   afterAll(async () => {
     await app.close();
     closeDb();
+    server.close();
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
   });
 
   it('returns 400 for invalid IMDb ID format', async () => {
