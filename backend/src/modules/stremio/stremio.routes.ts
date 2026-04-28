@@ -437,6 +437,10 @@ export async function stremioRoutes(app: FastifyInstance) {
         const client = await createClientForUser(user);
         const preferences = getUserPreferences(user);
         const showActions = preferences?.showActions !== false;
+        const showRatings = preferences?.showRatings !== false;
+        if (!showActions && !showRatings) {
+          return { streams: [] };
+        }
         const streams = await buildLetterboxdStreams(client, imdbId, user.id, showActions);
         logger.info({ imdbId, streamCount: streams.length }, 'Letterboxd streams returned');
         return { streams };
