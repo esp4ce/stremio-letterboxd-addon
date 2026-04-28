@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { assertAllowedUrl } from './url-allowlist.js';
 
 const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -39,17 +40,13 @@ const LIST_SHORTLINK_TAG_ALT_REGEX = /href="https?:\/\/boxd\.it\/([A-Za-z0-9]+)"
 const LIST_LIKEABLE_IDENTIFIER_REGEX =
   /data-likeable-identifier='([^']+)'/;
 
-const ALLOWED_HOSTS = new Set(['letterboxd.com', 'www.letterboxd.com', 'boxd.it']);
-
 export async function fetchPageHtml(url: string): Promise<string | null> {
   let parsed: URL;
   try {
-    parsed = new URL(url);
+    parsed = assertAllowedUrl(url, { allowHttp: true });
   } catch {
     return null;
   }
-  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
-  if (!ALLOWED_HOSTS.has(parsed.hostname)) return null;
   return curlFetch(parsed.toString());
 }
 

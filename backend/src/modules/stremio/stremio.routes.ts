@@ -22,7 +22,6 @@ import {
   getPopularReviewsText,
 } from './meta.service.js';
 import { generateRatedPoster } from './poster.service.js';
-import { actionRateLimit } from '../../middleware/rate-limit.js';
 import { createChildLogger } from '../../lib/logger.js';
 import {
   imdbToLetterboxdCache,
@@ -539,7 +538,7 @@ export async function stremioRoutes(app: FastifyInstance) {
 
   app.get(
     '/action/:userId/:action/:filmId',
-    { config: { rateLimit: actionRateLimit }, schema: { params: actionParamsSchema } },
+    { config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { params: actionParamsSchema } },
     async (
       request: FastifyRequest<{
         Params: { userId: string; action: string; filmId: string };
@@ -616,7 +615,7 @@ export async function stremioRoutes(app: FastifyInstance) {
 
   app.get(
     '/action/:userId/rate/:filmId',
-    { config: { rateLimit: actionRateLimit }, schema: { params: rateParamsSchema } },
+    { config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { params: rateParamsSchema } },
     async (
       request: FastifyRequest<{
         Params: { userId: string; filmId: string };
@@ -663,7 +662,7 @@ export async function stremioRoutes(app: FastifyInstance) {
 
   app.get(
     '/action/:userId/rate/:filmId/submit',
-    { config: { rateLimit: actionRateLimit }, schema: { params: rateParamsSchema } },
+    { config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { params: rateParamsSchema } },
     async (
       request: FastifyRequest<{
         Params: { userId: string; filmId: string };

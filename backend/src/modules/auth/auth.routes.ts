@@ -8,7 +8,6 @@ import {
   updateUserPreferences,
   upsertTier1User,
 } from '../../db/repositories/user.repository.js';
-import { loginRateLimit, preferencesRateLimit } from '../../middleware/rate-limit.js';
 import { trackEvent } from '../../lib/metrics.js';
 import { callWithAppToken } from '../../lib/app-client.js';
 import {
@@ -88,7 +87,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.post(
     '/auth/login',
     {
-      config: { rateLimit: loginRateLimit },
+      config: { rateLimit: { max: 3, timeWindow: '1 minute' } },
       schema: {
         body: {
           type: 'object',
@@ -139,7 +138,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.post(
     '/auth/preferences',
     {
-      config: { rateLimit: preferencesRateLimit },
+      config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
       schema: {
         body: {
           type: 'object',

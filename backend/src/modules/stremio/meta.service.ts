@@ -4,6 +4,7 @@ import { Coalescer, imdbToLetterboxdCache, cinemetaCache, cinemetaRawCache, film
 import type { CachedRating, CinemetaFilmData } from '../../lib/cache.js';
 import { serverConfig } from '../../config/index.js';
 import { signAction } from '../../lib/action-sign.js';
+import { assertAllowedUrl, CINEMETA_ALLOWED_HOSTS } from '../../lib/url-allowlist.js';
 
 const logger = createChildLogger('meta-service');
 
@@ -43,7 +44,11 @@ async function fetchCinemetaRaw(imdbId: string): Promise<Record<string, unknown>
     if (rechecked) return rechecked;
 
     try {
-      const response = await fetch(`https://v3-cinemeta.strem.io/meta/movie/${imdbId}.json`);
+      const cinemetaUrl = assertAllowedUrl(
+        `https://v3-cinemeta.strem.io/meta/movie/${encodeURIComponent(imdbId)}.json`,
+        { extraHosts: CINEMETA_ALLOWED_HOSTS },
+      );
+      const response = await fetch(cinemetaUrl);
       if (!response.ok) {
         logger.debug({ imdbId, status: response.status }, 'Cinemeta lookup failed');
         return null;
@@ -500,8 +505,17 @@ export async function getPopularReviewsText(
     if (reviews.length === 0) return null;
 
     const lines = reviews.map(r => {
-      // Strip HTML tags from review text
-      let text = r.review!.text!.replace(/<[^>]+>/g, '').replace(/\n+/g, ' ').trim();
+      // Strip HTML tags from review text (loop until stable to avoid bypass via re-emerging sequences)
+      let text = r.review!.text!;
+      let prev: string;
+      do {
+        prev = text;
+        text = text
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/<script[^>]*>/gi, '')
+          .replace(/<[^>]+>/g, '');
+      } while (text !== prev);
+      text = text.replace(/\n+/g, ' ').trim();
       if (text.length > 150) text = text.slice(0, 147) + '...';
       const stars = r.rating ? ' ' + formatStars(r.rating, false) : '';
       const author = r.owner.displayName || r.owner.username;

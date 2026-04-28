@@ -5,24 +5,9 @@ export async function setupRateLimit(app: FastifyInstance) {
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
-errorResponseBuilder: () => ({
+    errorResponseBuilder: () => ({
       error: 'Too many requests',
       code: 'RATE_LIMIT_EXCEEDED',
     }),
   });
 }
-
-export const loginRateLimit = {
-  max: 3,
-  timeWindow: '1 minute',
-};
-
-export const actionRateLimit = {
-  max: 30,
-  timeWindow: '1 minute',
-};
-
-export const preferencesRateLimit = {
-  max: 20,
-  timeWindow: '1 minute',
-};

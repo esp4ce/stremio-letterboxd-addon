@@ -1,6 +1,7 @@
 import sharp from 'sharp';
 import { posterCache } from '../../lib/cache.js';
 import { createChildLogger } from '../../lib/logger.js';
+import { assertAllowedUrl } from '../../lib/url-allowlist.js';
 
 const logger = createChildLogger('poster-service');
 
@@ -39,12 +40,14 @@ export async function generateRatedPoster(
 
   logger.debug({ posterUrl, rating, queueSize: fetchQueue.length }, 'Generating rated poster');
 
+  const safePosterUrl = assertAllowedUrl(posterUrl);
+
   let response!: Response;
   await acquireFetchSlot();
   try {
     const MAX_RETRIES = 3;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      response = await fetch(posterUrl);
+      response = await fetch(safePosterUrl);
       if (response.status === 429 && attempt < MAX_RETRIES) {
         const retryAfter = response.headers.get('retry-after');
         const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : 1000 * Math.pow(2, attempt);
