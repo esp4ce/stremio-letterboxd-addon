@@ -1,6 +1,6 @@
 const LINKS = [
   { href: "https://github.com/esp4ce", label: "esp4ce" },
-  { href: "https://www.reddit.com/r/StremioAddons/", label: "reddit" },
+  { href: "https://www.reddit.com/r/stremboxd/", label: "reddit" },
   { href: "https://buymeacoffee.com/esp4ce", label: "support me" },
 ];
 
