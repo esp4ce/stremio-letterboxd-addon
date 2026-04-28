@@ -125,7 +125,7 @@ export interface ParsedListUrl {
 export function parseLetterboxdListUrl(input: string): ParsedListUrl | null {
   // Match URLs like: https://letterboxd.com/username/list/slug-name/
   const match = input.match(
-    /(?:https?:\/\/)?(?:www\.)?letterboxd\.com\/([^/]+)\/list\/([^/]+)/
+    /(?:https?:\/\/)?(?:www\.)?letterboxd\.com\/([a-zA-Z0-9_-]+)\/list\/([a-zA-Z0-9_-]+)/
   );
   if (!match) return null;
   return { username: match[1]!, slug: match[2]! };

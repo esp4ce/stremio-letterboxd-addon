@@ -186,7 +186,7 @@ export async function authRoutes(app: FastifyInstance) {
   // ═══════════════════════════════════════════════════════════════════════════
 
   const validateUsernameSchema = z.object({
-    username: z.string().min(1).max(100),
+    username: z.string().min(1).max(15).regex(/^[a-zA-Z0-9_-]+$/),
   });
 
   app.post(
