@@ -16,3 +16,13 @@ export const loginRateLimit = {
   max: 3,
   timeWindow: '1 minute',
 };
+
+export const actionRateLimit = {
+  max: 30,
+  timeWindow: '1 minute',
+};
+
+export const preferencesRateLimit = {
+  max: 20,
+  timeWindow: '1 minute',
+};

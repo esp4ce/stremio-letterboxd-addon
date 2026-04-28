@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [integration, main]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Tests backend
