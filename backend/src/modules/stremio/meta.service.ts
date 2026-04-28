@@ -481,6 +481,20 @@ export async function buildLetterboxdStreams(
 // ============================================================================
 
 /**
+ * HTML entities mapping for decoding common named entities.
+ * Numeric entities (&#x...; and &#...;) are handled separately via regex.
+ */
+const HTML_ENTITIES: Record<string, string> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&apos;': "'",
+  '&nbsp;': ' ',
+};
+
+/**
  * Fetch popular reviews for a film and format them for the meta description.
  * Returns a formatted string with up to 2 non-spoiler reviews, or null if none.
  */
@@ -505,17 +519,27 @@ export async function getPopularReviewsText(
     if (reviews.length === 0) return null;
 
     const lines = reviews.map(r => {
-      // Strip HTML tags from review text (loop until stable to avoid bypass via re-emerging sequences)
+      // Extract plain text from HTML review, removing tags and decoding entities
       let text = r.review!.text!;
-      let prev: string;
-      do {
-        prev = text;
-        text = text
-          .replace(/<script[\s\S]*?<\/script>/gi, '')
-          .replace(/<script[^>]*>/gi, '')
-          .replace(/<[^>]+>/g, '');
-      } while (text !== prev);
-      text = text.replace(/\n+/g, ' ').trim();
+
+      // Remove script and style tags with their content
+      text = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ');
+      text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ');
+
+      // Replace all other HTML tags with space
+      text = text.replace(/<[^>]+>/g, ' ');
+
+      // Decode numeric HTML entities (hex and decimal)
+      text = text.replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)));
+      text = text.replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)));
+
+      // Decode named HTML entities
+      for (const [entity, char] of Object.entries(HTML_ENTITIES)) {
+        text = text.split(entity).join(char);
+      }
+
+      text = text.replace(/\s+/g, ' ').trim();
+
       if (text.length > 150) text = text.slice(0, 147) + '...';
       const stars = r.rating ? ' ' + formatStars(r.rating, false) : '';
       const author = r.owner.displayName || r.owner.username;
