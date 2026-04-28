@@ -505,17 +505,33 @@ export async function getPopularReviewsText(
     if (reviews.length === 0) return null;
 
     const lines = reviews.map(r => {
-      // Strip HTML tags from review text (loop until stable to avoid bypass via re-emerging sequences)
+      // Extract plain text from HTML review, removing tags and decoding entities
       let text = r.review!.text!;
-      let prev: string;
-      do {
-        prev = text;
-        text = text
-          .replace(/<script[\s\S]*?<\/script>/gi, '')
-          .replace(/<script[^>]*>/gi, '')
-          .replace(/<[^>]+>/g, '');
-      } while (text !== prev);
-      text = text.replace(/\n+/g, ' ').trim();
+
+      // Remove script and style tags with their content
+      text = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ');
+      text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ');
+
+      // Replace all other HTML tags with space
+      text = text.replace(/<[^>]+>/g, ' ');
+
+      // Decode common HTML entities
+      const entities: Record<string, string> = {
+        '&amp;': '&',
+        '&lt;': '<',
+        '&gt;': '>',
+        '&quot;': '"',
+        '&#39;': "'",
+        '&apos;': "'",
+        '&nbsp;': ' ',
+      };
+      for (const [entity, char] of Object.entries(entities)) {
+        text = text.split(entity).join(char);
+      }
+
+      // Collapse multiple spaces and trim
+      text = text.replace(/\s+/g, ' ').trim();
+
       if (text.length > 150) text = text.slice(0, 147) + '...';
       const stars = r.rating ? ' ' + formatStars(r.rating, false) : '';
       const author = r.owner.displayName || r.owner.username;
