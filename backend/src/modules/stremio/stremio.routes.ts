@@ -258,6 +258,13 @@ export async function stremioRoutes(app: FastifyInstance) {
   );
 
   app.get(
+    '/:config/configure',
+    async (_request: FastifyRequest<{ Params: { config: string } }>, reply) => {
+      return reply.redirect('https://stremboxd.com/configure');
+    },
+  );
+
+  app.get(
     '/:config/catalog/movie/:id.json',
     async (request: FastifyRequest<{ Params: { config: string; id: string } }>, reply) => {
       const cfg = decodeConfig(request.params.config);
@@ -367,6 +374,13 @@ export async function stremioRoutes(app: FastifyInstance) {
   );
 
   app.get(
+    '/stremio/:userId/configure',
+    async (_request: FastifyRequest<{ Params: { userId: string } }>, reply) => {
+      return reply.redirect('https://stremboxd.com/configure');
+    },
+  );
+
+  app.get(
     '/stremio/:userId/catalog/:type/:id.json',
     async (request: FastifyRequest<{ Params: { userId: string; type: string; id: string } }>, reply) => {
       const { userId, type, id } = request.params;
@@ -423,6 +437,10 @@ export async function stremioRoutes(app: FastifyInstance) {
         const client = await createClientForUser(user);
         const preferences = getUserPreferences(user);
         const showActions = preferences?.showActions !== false;
+        const showRatings = preferences?.showRatings !== false;
+        if (!showActions && !showRatings) {
+          return { streams: [] };
+        }
         const streams = await buildLetterboxdStreams(client, imdbId, user.id, showActions);
         logger.info({ imdbId, streamCount: streams.length }, 'Letterboxd streams returned');
         return { streams };

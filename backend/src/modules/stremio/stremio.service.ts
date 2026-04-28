@@ -243,7 +243,7 @@ function listsToStremioCatalogs(lists: UserList[]): StremioCatalog[] {
 export function generateBaseManifest(): StremioManifest {
   return {
     id: 'community.stremboxd',
-    version: '1.2.2',
+    version: '1.2.3',
     name: 'Stremboxd',
     description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com',
     logo: `${config.PUBLIC_URL}/logo.png`,
@@ -395,7 +395,7 @@ export function generatePublicManifest(
 
   return {
     id: 'community.stremboxd',
-    version: '1.2.2',
+    version: '1.2.3',
     name: `Stremboxd${namePart}`,
     description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com',
     logo: `${config.PUBLIC_URL}/logo.png`,
@@ -411,7 +411,7 @@ export function generatePublicManifest(
     types: ['movie'],
     catalogs,
     behaviorHints: {
-      configurable: false,
+      configurable: true,
       configurationRequired: false,
     },
   };
@@ -428,7 +428,7 @@ export function generateManifest(user: {
 
   return {
     id: 'community.stremboxd',
-    version: '1.2.2',
+    version: '1.2.3',
     name: `Letterboxd for ${displayName}`,
     description: `Your personal Letterboxd ratings and watchlist synced to Stremio. Connected as ${user.username}.`,
     logo: `${config.PUBLIC_URL}/logo.png`,
@@ -448,7 +448,7 @@ export function generateManifest(user: {
     types: ['movie'],
     catalogs: [...getBaseCatalogs(displayName), SEARCH_CATALOG],
     behaviorHints: {
-      configurable: false,
+      configurable: true,
       configurationRequired: false,
     },
     stremioAddonsConfig: STREMIO_ADDONS_CONFIG,
@@ -554,31 +554,30 @@ export function generateDynamicManifest(
   catalogs = expandWithSortVariants(catalogs, preferences?.sortVariants || {}, allTemplates);
   if (preferences?.search !== false) catalogs.push(SEARCH_CATALOG);
 
+  const exposeStreams =
+    !preferences || preferences.showRatings !== false || preferences.showActions !== false;
+
+  const resources: (string | StremioResourceDescriptor)[] = ['catalog'];
+  if (exposeStreams) {
+    resources.push({ name: 'stream', types: ['movie'] });
+  }
+  resources.push({ name: 'meta', types: ['movie'], idPrefixes: ['tt'] });
+
   return {
     id: 'community.stremboxd',
-    version: '1.2.2',
+    version: '1.2.3',
     name: `Letterboxd for ${displayName}`,
     description: `Your personal Letterboxd ratings and watchlist synced to Stremio. Connected as ${user.username}.`,
     logo: `${config.PUBLIC_URL}/logo.png`,
     background: `${config.PUBLIC_URL}/background.jpg`,
-    resources: [
-      'catalog',
-      {
-        name: 'stream',
-        types: ['movie'],
-      },
-      {
-        name: 'meta',
-        types: ['movie'],
-        idPrefixes: ['tt'],
-      },
-    ],
+    resources,
     types: ['movie'],
     catalogs,
     behaviorHints: {
-      configurable: false,
+      configurable: true,
       configurationRequired: false,
     },
     stremioAddonsConfig: STREMIO_ADDONS_CONFIG,
   };
 }
+
