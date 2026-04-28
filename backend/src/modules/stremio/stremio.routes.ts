@@ -258,6 +258,13 @@ export async function stremioRoutes(app: FastifyInstance) {
   );
 
   app.get(
+    '/:config/configure',
+    async (_request: FastifyRequest<{ Params: { config: string } }>, reply) => {
+      return reply.redirect('https://stremboxd.com/configure');
+    },
+  );
+
+  app.get(
     '/:config/catalog/movie/:id.json',
     async (request: FastifyRequest<{ Params: { config: string; id: string } }>, reply) => {
       const cfg = decodeConfig(request.params.config);
@@ -363,6 +370,13 @@ export async function stremioRoutes(app: FastifyInstance) {
           displayName: user.letterboxd_display_name,
         });
       }
+    },
+  );
+
+  app.get(
+    '/stremio/:userId/configure',
+    async (_request: FastifyRequest<{ Params: { userId: string } }>, reply) => {
+      return reply.redirect('https://stremboxd.com/configure');
     },
   );
 
