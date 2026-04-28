@@ -91,3 +91,6 @@ start-dev.bat
 
 # Superpowers plans
 docs/superpowers/
+
+# Playwright MCP cache
+.playwright-mcp/
