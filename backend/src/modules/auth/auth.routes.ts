@@ -192,6 +192,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.post(
     '/auth/validate-username',
     {
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
       schema: {
         body: {
           type: 'object',
@@ -253,6 +254,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.post(
     '/auth/resolve-list-public',
     {
+      config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
       schema: {
         body: {
           type: 'object',
@@ -403,6 +405,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.post(
     '/auth/resolve-contributor-public',
     {
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
       schema: {
         body: {
           type: 'object',
