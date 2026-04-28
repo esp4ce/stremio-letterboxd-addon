@@ -22,6 +22,7 @@ import {
   getPopularReviewsText,
 } from './meta.service.js';
 import { generateRatedPoster } from './poster.service.js';
+import { actionRateLimit } from '../../middleware/rate-limit.js';
 import { createChildLogger } from '../../lib/logger.js';
 import {
   imdbToLetterboxdCache,
@@ -538,7 +539,7 @@ export async function stremioRoutes(app: FastifyInstance) {
 
   app.get(
     '/action/:userId/:action/:filmId',
-    { schema: { params: actionParamsSchema } },
+    { config: { rateLimit: actionRateLimit }, schema: { params: actionParamsSchema } },
     async (
       request: FastifyRequest<{
         Params: { userId: string; action: string; filmId: string };
@@ -615,7 +616,7 @@ export async function stremioRoutes(app: FastifyInstance) {
 
   app.get(
     '/action/:userId/rate/:filmId',
-    { schema: { params: rateParamsSchema } },
+    { config: { rateLimit: actionRateLimit }, schema: { params: rateParamsSchema } },
     async (
       request: FastifyRequest<{
         Params: { userId: string; filmId: string };
@@ -662,7 +663,7 @@ export async function stremioRoutes(app: FastifyInstance) {
 
   app.get(
     '/action/:userId/rate/:filmId/submit',
-    { schema: { params: rateParamsSchema } },
+    { config: { rateLimit: actionRateLimit }, schema: { params: rateParamsSchema } },
     async (
       request: FastifyRequest<{
         Params: { userId: string; filmId: string };
