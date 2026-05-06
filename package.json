@@ -14,7 +14,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@vercel/analytics": "^2.0.1",
     "next": "^16.2.4",
-    "posthog-js": "^1.372.3",
+    "posthog-js": "^1.372.8",
     "react": "19.2.5",
     "react-dom": "19.2.5",
     "recharts": "^2.15.0"
