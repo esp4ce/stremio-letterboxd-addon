@@ -21,7 +21,7 @@
     "lru-cache": "^10.0.0",
     "pino": "^9.0.0",
     "pino-pretty": "^11.0.0",
-    "posthog-node": "^5.30.6",
+    "posthog-node": "^5.33.2",
     "sharp": "^0.34.5",
     "zod": "^3.23.0"
   },
@@ -29,7 +29,7 @@
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.1.5",
-    "msw": "^2.13.6",
+    "msw": "^2.14.3",
     "tsx": "^4.0.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.5"
