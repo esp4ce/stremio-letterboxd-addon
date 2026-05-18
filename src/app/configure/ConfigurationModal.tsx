@@ -314,6 +314,27 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     }
   };
 
+  const hideParentCatalog = (key: string) => {
+    const catalogId = CATALOG_KEY_TO_ID[key]!;
+    const { newOrder, newVariants } = stripCatalogAndVariants(catalogId, getCatalogOrder(), getSortVariants(), true);
+    if (isPublic) {
+      const p = props as PublicModeProps;
+      if (key === "popular" || key === "top250") p.onPublicCatalogsChange({ ...p.publicCatalogs, [key]: false });
+      if (key === "watchlist" && hasUsername) p.onPublicWatchlistChange(false);
+      if (key === "likedFilms" && hasUsername) p.onPublicLikedFilmsChange(false);
+      p.onPublicSortVariantsChange(newVariants);
+      p.onPublicCatalogOrderChange(newOrder);
+      return;
+    }
+    const p = props as FullModeProps;
+    p.onPreferencesChange({
+      ...p.preferences,
+      catalogs: { ...p.preferences.catalogs, [key]: false },
+      sortVariants: newVariants,
+      catalogOrder: newOrder,
+    });
+  };
+
   const toggleOwnList = (listId: string) => {
     const catId = `letterboxd-list-${listId}`;
     const isSelected = isOwnListSelected(listId);
@@ -578,7 +599,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
       }
       case "contributor":
         return getCatalogDisplayName(item.id, item.contributor.name);
-      case "variant": return item.label;
+      case "variant": return getCatalogDisplayName(item.id, item.label);
     }
   };
 
@@ -610,7 +631,24 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
 
   const renderActiveItemAction = (item: ActiveCatalogItem) => {
     if (item.type === "base") {
-      return <Toggle enabled={true} onToggle={() => toggleCatalog(item.key)} />;
+      const hasActiveVariants = catalogHasVariants(CATALOG_KEY_TO_ID[item.key]!);
+      return (
+        <div className="flex flex-shrink-0 items-center gap-1.5">
+          {hasActiveVariants && (
+            <button
+              type="button"
+              onClick={() => hideParentCatalog(item.key)}
+              title="Hide parent catalog, keep sort variants"
+              className="rounded p-1 text-zinc-600 transition-colors hover:text-zinc-300"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              </svg>
+            </button>
+          )}
+          <Toggle enabled={true} onToggle={() => toggleCatalog(item.key)} />
+        </div>
+      );
     }
     const onRemove =
       item.type === "ownList" ? () => toggleOwnList(item.listId)
