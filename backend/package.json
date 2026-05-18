@@ -18,7 +18,7 @@
     "dotenv": "^17.4.2",
     "fastify": "^5.0.0",
     "jose": "^6.2.3",
-    "lru-cache": "^10.0.0",
+    "lru-cache": "^11.3.6",
     "pino": "^9.0.0",
     "pino-pretty": "^13.0.0",
     "posthog-node": "^5.33.2",
