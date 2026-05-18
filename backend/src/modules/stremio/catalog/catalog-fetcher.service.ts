@@ -12,6 +12,7 @@ import {
   transformActivityToMetas,
   transformListEntriesToMetas,
   transformSearchResultsToMetas,
+  applyAdultPosterFixes,
   cacheFilmMapping,
   getImdbId,
   getTmdbId,
@@ -86,7 +87,8 @@ export async function fetchWatchlistCatalog(
     cursor = watchlist.cursor;
   } while (cursor && page < 10);
 
-  const allMetas = transformWatchlistToMetas(allFilms, showRatings);
+  const allMetas = await transformWatchlistToMetas(allFilms, showRatings);
+  await applyAdultPosterFixes(allFilms, allMetas, showRatings);
   for (const film of allFilms) cacheFilmMapping(film);
 
   const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
@@ -119,7 +121,7 @@ export async function fetchDiaryCatalog(
     cursor = response.cursor;
   } while (cursor && page < 5);
 
-  const allMetas = transformLogEntriesToMetas(allEntries, showRatings);
+  const allMetas = await transformLogEntriesToMetas(allEntries, showRatings);
   const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
   logger.info({ total: allMetas.length, skip, returned: result.metas.length, username: user.letterboxd_username }, 'Diary fetched');
   return result;
@@ -149,7 +151,7 @@ export async function fetchFriendsCatalog(
     nextStart = response.next?.replace('start=', '');
   } while (nextStart && page < 3);
 
-  const allMetas = transformActivityToMetas(allItems, user.letterboxd_id, showRatings);
+  const allMetas = await transformActivityToMetas(allItems, user.letterboxd_id, showRatings);
   const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
   logger.info({ total: allMetas.length, skip, returned: result.metas.length, username: user.letterboxd_username }, 'Friends activity fetched');
   return result;
@@ -183,7 +185,7 @@ export async function fetchListCatalog(
     cursor = response.cursor;
   } while (cursor && page < 10);
 
-  const allMetas = transformListEntriesToMetas(allEntries, showRatings);
+  const allMetas = await transformListEntriesToMetas(allEntries, showRatings);
   for (const entry of allEntries) cacheFilmMapping(entry.film);
 
   const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
@@ -230,7 +232,8 @@ export async function fetchLikedFilmsCatalog(
     cursor = response.cursor;
   } while (cursor && page < 10);
 
-  let allMetas = transformWatchlistToMetas(allFilms, showRatings);
+  let allMetas = await transformWatchlistToMetas(allFilms, showRatings);
+  await applyAdultPosterFixes(allFilms, allMetas, showRatings);
   if (isShuffle) allMetas = shuffleArray(allMetas);
   for (const film of allFilms) cacheFilmMapping(film);
 

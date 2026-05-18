@@ -24,9 +24,9 @@ describe('catalog-fetcher service transforms', () => {
   });
 
   describe('transformLogEntriesToMetas', () => {
-    it('transforms log entries with diary info', () => {
+    it('transforms log entries with diary info', async () => {
       const entries = [makeLogEntry()];
-      const metas = transformLogEntriesToMetas(entries as never[]);
+      const metas = await transformLogEntriesToMetas(entries as never[]);
 
       expect(metas).toHaveLength(1);
       expect(metas[0]!.id).toBe('tt0001111');
@@ -34,27 +34,27 @@ describe('catalog-fetcher service transforms', () => {
       expect(metas[0]!.description).toContain('15 Mar 2024');
     });
 
-    it('deduplicates by IMDb ID', () => {
+    it('deduplicates by IMDb ID', async () => {
       const entries = [makeLogEntry(), makeLogEntry()];
-      const metas = transformLogEntriesToMetas(entries as never[]);
+      const metas = await transformLogEntriesToMetas(entries as never[]);
 
       expect(metas).toHaveLength(1);
     });
 
-    it('skips entries without IMDb ID', () => {
+    it('skips entries without IMDb ID', async () => {
       const entry = makeLogEntry({
         film: { id: 'f', name: 'X', links: [], poster: undefined },
       });
-      const metas = transformLogEntriesToMetas([entry] as never[]);
+      const metas = await transformLogEntriesToMetas([entry] as never[]);
 
       expect(metas).toHaveLength(0);
     });
 
-    it('includes review excerpt in description', () => {
+    it('includes review excerpt in description', async () => {
       const entry = makeLogEntry({
         review: { lbml: 'A really great film that everyone should watch' },
       });
-      const metas = transformLogEntriesToMetas([entry] as never[]);
+      const metas = await transformLogEntriesToMetas([entry] as never[]);
 
       expect(metas[0]!.description).toContain('great film');
     });
@@ -77,18 +77,18 @@ describe('catalog-fetcher service transforms', () => {
       ...overrides,
     });
 
-    it('transforms list entries with rank suffix', () => {
+    it('transforms list entries with rank suffix', async () => {
       const entries = [makeListEntry()];
-      const metas = transformListEntriesToMetas(entries as never[]);
+      const metas = await transformListEntriesToMetas(entries as never[]);
 
       expect(metas).toHaveLength(1);
       expect(metas[0]!.id).toBe('tt0002222');
       expect(metas[0]!._rankSuffix).toBe('#1');
     });
 
-    it('handles entries without rank', () => {
+    it('handles entries without rank', async () => {
       const entries = [makeListEntry({ rank: undefined })];
-      const metas = transformListEntriesToMetas(entries as never[]);
+      const metas = await transformListEntriesToMetas(entries as never[]);
 
       expect(metas[0]!._rankSuffix).toBeUndefined();
     });
@@ -124,7 +124,7 @@ describe('catalog-fetcher service transforms', () => {
       ...overrides,
     });
 
-    it('transforms friend activity and excludes own', () => {
+    it('transforms friend activity and excludes own', async () => {
       const items = [
         makeActivity(),
         makeActivity({
@@ -137,15 +137,15 @@ describe('catalog-fetcher service transforms', () => {
         }),
       ];
 
-      const metas = transformActivityToMetas(items as never[], 'self');
+      const metas = await transformActivityToMetas(items as never[], 'self');
 
       expect(metas).toHaveLength(1);
       expect(metas[0]!.id).toBe('tt0003333');
     });
 
-    it('deduplicates activity by IMDb ID', () => {
+    it('deduplicates activity by IMDb ID', async () => {
       const items = [makeActivity(), makeActivity()];
-      const metas = transformActivityToMetas(items as never[], 'other');
+      const metas = await transformActivityToMetas(items as never[], 'other');
 
       expect(metas).toHaveLength(1);
     });

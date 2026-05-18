@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { WatchlistFilm, LogEntry, ActivityItem, LetterboxdFilm } from '../../../../src/modules/letterboxd/letterboxd.client.js';
 import {
   getImdbId,
@@ -12,6 +12,26 @@ import {
   transformActivityToMetas,
   transformSearchResultsToMetas,
 } from '../../../../src/modules/stremio/catalog.service.js';
+
+// ---------------------------------------------------------------------------
+// Mock tmdb-client and config so unit tests don't make real HTTP calls
+// ---------------------------------------------------------------------------
+
+vi.mock('../../../../src/lib/tmdb-client.js', () => ({
+  getTmdbExternalIds: vi.fn().mockResolvedValue({ imdb_id: null }),
+  getTmdbMovieDetails: vi.fn().mockResolvedValue({ adult: false, poster_path: null }),
+}));
+
+vi.mock('../../../../src/config/index.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../../../src/config/index.js')>();
+  return {
+    ...original,
+    tmdbConfig: { apiKey: 'test-api-key' },
+  };
+});
+
+import { getTmdbExternalIds } from '../../../../src/lib/tmdb-client.js';
+const mockGetTmdbExternalIds = vi.mocked(getTmdbExternalIds);
 
 // ---------------------------------------------------------------------------
 // Factory helpers
@@ -101,6 +121,10 @@ function makeLetterboxdFilm(overrides: Partial<LetterboxdFilm> = {}): Letterboxd
 // Tests
 // ---------------------------------------------------------------------------
 
+beforeEach(() => {
+  mockGetTmdbExternalIds.mockResolvedValue({ imdb_id: null });
+});
+
 describe('getImdbId', () => {
   it('returns IMDb ID when imdb link exists', () => {
     expect(getImdbId(makeFilm())).toBe('tt1234567');
@@ -177,8 +201,8 @@ describe('buildPosterUrl', () => {
 });
 
 describe('transformToStremioMeta', () => {
-  it('returns correct StremioMeta with all fields', () => {
-    const meta = transformToStremioMeta(makeFilm());
+  it('returns correct StremioMeta with all fields', async () => {
+    const meta = await transformToStremioMeta(makeFilm());
     expect(meta).toEqual({
       id: 'tt1234567',
       type: 'movie',
@@ -191,52 +215,67 @@ describe('transformToStremioMeta', () => {
     });
   });
 
-  it('returns null when film has no IMDb ID', () => {
-    expect(transformToStremioMeta(makeFilm({ links: [] }))).toBeNull();
+  it('returns null when film has no IMDb ID and TMDB fallback also fails', async () => {
+    mockGetTmdbExternalIds.mockResolvedValueOnce({ imdb_id: null });
+    expect(await transformToStremioMeta(makeFilm({ links: [{ type: 'tmdb', id: '99999', url: '' }] }))).toBeNull();
   });
 
-  it('uses plain poster when showRatings is false', () => {
-    const meta = transformToStremioMeta(makeFilm(), false);
+  it('returns null when film has no IMDb ID and no TMDB ID either', async () => {
+    expect(await transformToStremioMeta(makeFilm({ links: [] }))).toBeNull();
+  });
+
+  it('uses TMDB fallback to resolve IMDb ID when direct link is missing', async () => {
+    mockGetTmdbExternalIds.mockResolvedValueOnce({ imdb_id: 'tt9876543' });
+    const film = makeFilm({ links: [{ type: 'tmdb', id: '99999', url: '' }] });
+    const meta = await transformToStremioMeta(film);
+    expect(meta).not.toBeNull();
+    expect(meta!.id).toBe('tt9876543');
+    expect(meta!.name).toBe('Test Film');
+    expect(mockGetTmdbExternalIds).toHaveBeenCalledWith(99999, expect.any(String));
+  });
+
+  it('uses plain poster when showRatings is false', async () => {
+    const meta = await transformToStremioMeta(makeFilm(), false);
     expect(meta?.poster).toBe('https://img.example.com/300.jpg');
   });
 
-  it('uses plain poster when film has no rating', () => {
-    const meta = transformToStremioMeta(makeFilm({ rating: undefined }));
+  it('uses plain poster when film has no rating', async () => {
+    const meta = await transformToStremioMeta(makeFilm({ rating: undefined }));
     expect(meta?.poster).toBe('https://img.example.com/300.jpg');
   });
 });
 
 describe('transformWatchlistToMetas', () => {
-  it('transforms array and filters films without IMDb ID', () => {
+  it('transforms array and filters films without IMDb ID', async () => {
     const films = [makeFilm(), makeFilm({ links: [], id: 'noImdb', name: 'No IMDB' })];
-    const metas = transformWatchlistToMetas(films);
+    const metas = await transformWatchlistToMetas(films);
     expect(metas).toHaveLength(1);
     expect(metas[0]!.id).toBe('tt1234567');
   });
 
-  it('returns empty array for empty input', () => {
-    expect(transformWatchlistToMetas([])).toEqual([]);
+  it('returns empty array for empty input', async () => {
+    expect(await transformWatchlistToMetas([])).toEqual([]);
   });
 });
 
 describe('transformLogEntryToMeta', () => {
-  it('builds description with liked, rating and date', () => {
-    const meta = transformLogEntryToMeta(makeLogEntry());
+  it('builds description with liked, rating and date', async () => {
+    const meta = await transformLogEntryToMeta(makeLogEntry());
     expect(meta).not.toBeNull();
     expect(meta!.description).toContain('Liked');
     expect(meta!.description).toContain('★★★★');
     expect(meta!.description).toContain('15 Jan 2024');
   });
 
-  it('returns null when film has no IMDb ID', () => {
+  it('returns null when film has no IMDb ID', async () => {
     const entry = makeLogEntry({ film: { type: 'film', id: 'x', name: 'X', links: [] } });
-    expect(transformLogEntryToMeta(entry)).toBeNull();
+    expect(await transformLogEntryToMeta(entry)).toBeNull();
   });
 
-  it('includes review excerpt truncated at 100 chars', () => {
+  it('includes review excerpt truncated at 100 chars', async () => {
     const longReview = 'A'.repeat(150);
     const entry = makeLogEntry({ review: { lbml: longReview } });
-    const meta = transformLogEntryToMeta(entry);
+    const meta = await transformLogEntryToMeta(entry);
     expect(meta!.description).toContain('…');
     // 100 chars + opening quote + ellipsis
     const reviewLine = meta!.description!.split('\n').pop()!;
@@ -244,65 +283,65 @@ describe('transformLogEntryToMeta', () => {
     expect(reviewLine.length).toBeLessThanOrEqual(104); // "  + 100 + … + "
   });
 
-  it('includes short review without truncation', () => {
+  it('includes short review without truncation', async () => {
     const entry = makeLogEntry({ review: { lbml: 'Great film!' } });
-    const meta = transformLogEntryToMeta(entry);
+    const meta = await transformLogEntryToMeta(entry);
     expect(meta!.description).toContain('"Great film!"');
   });
 
-  it('omits description parts when fields are missing', () => {
+  it('omits description parts when fields are missing', async () => {
     const entry = makeLogEntry({ like: false, rating: undefined, diaryDate: undefined, review: undefined });
-    const meta = transformLogEntryToMeta(entry);
+    const meta = await transformLogEntryToMeta(entry);
     expect(meta!.description).toBeUndefined();
   });
 });
 
 describe('transformLogEntriesToMetas', () => {
-  it('deduplicates by IMDb ID', () => {
+  it('deduplicates by IMDb ID', async () => {
     const entries = [makeLogEntry({ id: 'e1' }), makeLogEntry({ id: 'e2' })];
-    const metas = transformLogEntriesToMetas(entries);
+    const metas = await transformLogEntriesToMetas(entries);
     expect(metas).toHaveLength(1);
   });
 
-  it('keeps first occurrence on duplicate', () => {
+  it('keeps first occurrence on duplicate', async () => {
     const entries = [
       makeLogEntry({ id: 'e1', rating: 5.0 }),
       makeLogEntry({ id: 'e2', rating: 1.0 }),
     ];
-    const metas = transformLogEntriesToMetas(entries);
+    const metas = await transformLogEntriesToMetas(entries);
     expect(metas[0]!.description).toContain('★★★★★');
   });
 });
 
 describe('transformActivityToMetas', () => {
-  it('excludes own activity', () => {
+  it('excludes own activity', async () => {
     const items = [makeActivityItem({ member: { id: 'me', username: 'me' } })];
-    const metas = transformActivityToMetas(items, 'me');
+    const metas = await transformActivityToMetas(items, 'me');
     expect(metas).toHaveLength(0);
   });
 
-  it('deduplicates by IMDb ID', () => {
+  it('deduplicates by IMDb ID', async () => {
     const items = [
       makeActivityItem({ member: { id: 'm1', username: 'a' } }),
       makeActivityItem({ member: { id: 'm2', username: 'b' } }),
     ];
-    const metas = transformActivityToMetas(items, 'me');
+    const metas = await transformActivityToMetas(items, 'me');
     expect(metas).toHaveLength(1);
   });
 
-  it('builds description for FilmRatingActivity', () => {
+  it('builds description for FilmRatingActivity', async () => {
     const items = [makeActivityItem({ type: 'FilmRatingActivity', rating: 3.5 })];
-    const metas = transformActivityToMetas(items, 'me');
+    const metas = await transformActivityToMetas(items, 'me');
     expect(metas[0]!.description).toBe('Rated ★★★½ by Friend One');
   });
 
-  it('builds description for WatchlistActivity', () => {
+  it('builds description for WatchlistActivity', async () => {
     const items = [makeActivityItem({ type: 'WatchlistActivity' })];
-    const metas = transformActivityToMetas(items, 'me');
+    const metas = await transformActivityToMetas(items, 'me');
     expect(metas[0]!.description).toBe('Added to watchlist by Friend One');
   });
 
-  it('builds description for DiaryEntryActivity', () => {
+  it('builds description for DiaryEntryActivity', async () => {
     const items = [
       makeActivityItem({
         type: 'DiaryEntryActivity',
@@ -315,22 +354,22 @@ describe('transformActivityToMetas', () => {
         },
       }),
     ];
-    const metas = transformActivityToMetas(items, 'me');
+    const metas = await transformActivityToMetas(items, 'me');
     expect(metas[0]!.description).toContain('Liked');
     expect(metas[0]!.description).toContain('Rated ★★★★');
     expect(metas[0]!.description).toContain('by Friend One');
     expect(metas[0]!.description).toContain('on 2024-03-10');
   });
 
-  it('builds fallback description for unknown activity type', () => {
+  it('builds fallback description for unknown activity type', async () => {
     const items = [makeActivityItem({ type: 'UnknownActivity' })];
-    const metas = transformActivityToMetas(items, 'me');
+    const metas = await transformActivityToMetas(items, 'me');
     expect(metas[0]!.description).toBe('Activity by Friend One');
   });
 
-  it('skips items without a film', () => {
+  it('skips items without a film', async () => {
     const items = [makeActivityItem({ film: undefined, diaryEntry: undefined })];
-    const metas = transformActivityToMetas(items, 'me');
+    const metas = await transformActivityToMetas(items, 'me');
     expect(metas).toHaveLength(0);
   });
 });

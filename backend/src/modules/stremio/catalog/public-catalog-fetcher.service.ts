@@ -12,6 +12,7 @@ import {
   transformWatchlistToMetas,
   transformListEntriesToMetas,
   transformSearchResultsToMetas,
+  applyAdultPosterFixes,
   cacheFilmMapping,
   enrichMetasWithCinemeta,
 } from '../catalog.service.js';
@@ -91,7 +92,8 @@ export async function fetchPopularCatalogPublic(
     cursor = response.cursor;
   } while (cursor && page < 10);
 
-  let allMetas = transformWatchlistToMetas(allFilms, showRatings);
+  let allMetas = await transformWatchlistToMetas(allFilms, showRatings);
+  await applyAdultPosterFixes(allFilms, allMetas, showRatings);
   if (isShuffle) allMetas = shuffleArray(allMetas);
   for (const film of allFilms) cacheFilmMapping(film);
 
@@ -129,7 +131,8 @@ export async function fetchTop250CatalogPublic(
     cursor = response.cursor;
   } while (cursor && page < 5);
 
-  const allMetas = transformListEntriesToMetas(allEntries, showRatings);
+  const allMetas = await transformListEntriesToMetas(allEntries, showRatings);
+  await applyAdultPosterFixes(allEntries.map((e) => e.film), allMetas, showRatings);
   for (const entry of allEntries) cacheFilmMapping(entry.film);
 
   top250CatalogCache.set(cacheKey, { metas: allMetas });
@@ -167,7 +170,7 @@ export async function fetchWatchlistCatalogPublic(
     cursor = response.cursor;
   } while (cursor && page < 10);
 
-  const allMetas = transformWatchlistToMetas(allFilms, showRatings);
+  const allMetas = await transformWatchlistToMetas(allFilms, showRatings);
   for (const film of allFilms) cacheFilmMapping(film);
 
   publicWatchlistCache.set(cacheKey, { metas: allMetas });
@@ -205,7 +208,7 @@ export async function fetchListCatalogPublic(
     cursor = response.cursor;
   } while (cursor && page < 10);
 
-  const allMetas = transformListEntriesToMetas(allEntries, showRatings);
+  const allMetas = await transformListEntriesToMetas(allEntries, showRatings);
   for (const entry of allEntries) cacheFilmMapping(entry.film);
 
   publicListCache.set(cacheKey, { metas: allMetas });
@@ -254,7 +257,7 @@ export async function fetchLikedFilmsCatalogPublic(
     cursor = response.cursor;
   } while (cursor && page < 10);
 
-  let allMetas = transformWatchlistToMetas(allFilms, showRatings);
+  let allMetas = await transformWatchlistToMetas(allFilms, showRatings);
   if (isShuffle) allMetas = shuffleArray(allMetas);
   for (const film of allFilms) cacheFilmMapping(film);
 
@@ -304,7 +307,7 @@ export async function fetchContributorCatalogPublic(
     cursor = response.cursor;
   } while (cursor && page < 10);
 
-  const allMetas = transformWatchlistToMetas(allFilms, showRatings);
+  const allMetas = await transformWatchlistToMetas(allFilms, showRatings);
   for (const film of allFilms) cacheFilmMapping(film);
 
   publicContributorCache.set(cacheKey, { metas: allMetas });

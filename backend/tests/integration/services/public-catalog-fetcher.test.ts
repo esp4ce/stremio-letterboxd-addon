@@ -106,9 +106,9 @@ describe('catalog.service transformations (public catalogs)', () => {
   });
 
   describe('transformToStremioMeta', () => {
-    it('transforms film to Stremio meta', () => {
+    it('transforms film to Stremio meta', async () => {
       const film = makeFilm();
-      const meta = transformToStremioMeta(film as never);
+      const meta = await transformToStremioMeta(film as never);
 
       expect(meta).not.toBeNull();
       expect(meta!.id).toBe('tt1234567');
@@ -120,44 +120,44 @@ describe('catalog.service transformations (public catalogs)', () => {
       expect(meta!.runtime).toBe('120 min');
     });
 
-    it('returns null for film without IMDb ID', () => {
+    it('returns null for film without IMDb ID', async () => {
       const film = makeFilm({ links: [] });
-      const meta = transformToStremioMeta(film as never);
+      const meta = await transformToStremioMeta(film as never);
 
       expect(meta).toBeNull();
     });
 
-    it('includes rating badge in poster when showRatings is true', () => {
+    it('includes rating badge in poster when showRatings is true', async () => {
       const film = makeFilm();
-      const meta = transformToStremioMeta(film as never, true);
+      const meta = await transformToStremioMeta(film as never, true);
 
       expect(meta!.poster).toContain('/poster?url=');
       expect(meta!.poster).toContain('rating=');
     });
 
-    it('uses raw poster when showRatings is false', () => {
+    it('uses raw poster when showRatings is false', async () => {
       const film = makeFilm();
-      const meta = transformToStremioMeta(film as never, false);
+      const meta = await transformToStremioMeta(film as never, false);
 
       expect(meta!.poster).toBe('https://a.ltrbxd.com/300.jpg');
     });
   });
 
   describe('transformWatchlistToMetas', () => {
-    it('transforms array and skips films without IMDb', () => {
+    it('transforms array and skips films without IMDb', async () => {
       const films = [
         makeFilm({ id: 'f1' }),
         makeFilm({ id: 'f2', links: [] }),
         makeFilm({ id: 'f3' }),
       ];
 
-      const metas = transformWatchlistToMetas(films as never[]);
+      const metas = await transformWatchlistToMetas(films as never[]);
 
       expect(metas).toHaveLength(2);
     });
 
-    it('returns empty array for empty input', () => {
-      expect(transformWatchlistToMetas([])).toEqual([]);
+    it('returns empty array for empty input', async () => {
+      expect(await transformWatchlistToMetas([])).toEqual([]);
     });
   });
 });

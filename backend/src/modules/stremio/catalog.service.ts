@@ -1,9 +1,10 @@
 import { WatchlistFilm, LogEntry, ListEntry, ActivityItem, LetterboxdFilm } from '../letterboxd/letterboxd.client.js';
 import { createChildLogger } from '../../lib/logger.js';
-import { imdbToLetterboxdCache, cinemetaCache } from '../../lib/cache.js';
-import { serverConfig } from '../../config/index.js';
+import { imdbToLetterboxdCache, cinemetaCache, tmdbAdultCache } from '../../lib/cache.js';
+import { serverConfig, tmdbConfig } from '../../config/index.js';
 import { getFullFilmInfoFromCinemeta } from './meta.service.js';
 import { mapConcurrent } from '../../lib/concurrency.js';
+import { getTmdbExternalIds, getTmdbMovieDetails } from '../../lib/tmdb-client.js';
 
 const logger = createChildLogger('catalog-service');
 
@@ -44,11 +45,33 @@ export function getImdbId(film: FilmLike): string | null {
 /**
  * Extract TMDB ID from Letterboxd film links
  */
-export function getTmdbId(film: WatchlistFilm): number | null {
+export function getTmdbId(film: FilmLike): number | null {
   const tmdbLink = film.links?.find((link) => link.type === 'tmdb');
   if (!tmdbLink?.id) return null;
   const parsed = parseInt(tmdbLink.id, 10);
   return isNaN(parsed) ? null : parsed;
+}
+
+/**
+ * Resolve IMDb ID from film links, with TMDB external_ids fallback when missing.
+ */
+async function resolveImdbId(film: FilmLike): Promise<string | null> {
+  const direct = getImdbId(film);
+  if (direct) return direct;
+
+  const apiKey = tmdbConfig.apiKey;
+  if (!apiKey) return null;
+
+  const tmdbId = getTmdbId(film);
+  if (!tmdbId) return null;
+
+  try {
+    const ext = await getTmdbExternalIds(tmdbId, apiKey);
+    return ext.imdb_id ?? null;
+  } catch (err) {
+    logger.warn({ tmdbId, err }, 'TMDB external_ids lookup failed');
+    return null;
+  }
 }
 
 /**
@@ -74,6 +97,66 @@ export function buildPosterUrl(originalPoster: string | undefined, rating?: numb
 }
 
 /**
+ * Post-process metas in-place, replacing the Letterboxd poster with the TMDB image
+ * for films flagged as adult (to avoid the blurred/pixelated version served by the
+ * mobile API). Non-adult films are left untouched. Silently skipped when no API key.
+ *
+ * Matches films to metas by IMDb ID, so order does not need to be identical.
+ *
+ * @param films       Original Letterboxd film objects
+ * @param metas       Stremio metas to mutate in-place
+ * @param showRatings Whether the rating badge proxy URL is in use
+ */
+export async function applyAdultPosterFixes(
+  films: Array<{ links?: Array<{ type: string; id: string }>; rating?: number }>,
+  metas: StremioMeta[],
+  showRatings = true,
+): Promise<void> {
+  const apiKey = tmdbConfig.apiKey;
+  if (!apiKey) return;
+
+  // Build IMDb → meta map for O(1) lookup
+  const metaByImdbId = new Map<string, StremioMeta>();
+  for (const meta of metas) {
+    metaByImdbId.set(meta.id, meta);
+  }
+
+  await Promise.all(
+    films.map(async (film) => {
+      const imdbId = getImdbId(film);
+      const meta = imdbId ? metaByImdbId.get(imdbId) : undefined;
+      if (!meta) return;
+
+      const tmdbId = getTmdbId(film);
+      if (!tmdbId) return;
+
+      const cacheKey = String(tmdbId);
+      let info = tmdbAdultCache.get(cacheKey);
+
+      if (!info) {
+        try {
+          const details = await getTmdbMovieDetails(tmdbId, apiKey);
+          info = { adult: details.adult, posterPath: details.poster_path };
+          tmdbAdultCache.set(cacheKey, info);
+        } catch (err) {
+          logger.warn({ tmdbId, err }, 'TMDB movie details lookup failed in applyAdultPosterFixes');
+          return;
+        }
+      }
+
+      if (info.adult && info.posterPath) {
+        const tmdbPosterUrl = `https://image.tmdb.org/t/p/w500${info.posterPath}`;
+        meta.poster =
+          showRatings && film.rating
+            ? buildPosterUrl(tmdbPosterUrl, film.rating)
+            : tmdbPosterUrl;
+        logger.debug({ tmdbId, tmdbPosterUrl }, 'Replaced adult film poster with TMDB image');
+      }
+    }),
+  );
+}
+
+/**
  * Format a personal rating as star glyphs only: "★★★★½"
  */
 function formatStarsOnly(rating: number): string {
@@ -95,10 +178,11 @@ function formatDiaryDate(isoDate: string): string {
 }
 
 /**
- * Transform Letterboxd watchlist film to Stremio Meta
+ * Transform Letterboxd watchlist film to Stremio Meta.
+ * Falls back to TMDB external_ids when no IMDb link is present.
  */
-export function transformToStremioMeta(film: WatchlistFilm, showRatings = true): StremioMeta | null {
-  const imdbId = getImdbId(film);
+export async function transformToStremioMeta(film: WatchlistFilm, showRatings = true): Promise<StremioMeta | null> {
+  const imdbId = await resolveImdbId(film);
 
   if (!imdbId) {
     logger.warn({ filmId: film.id, filmName: film.name }, 'Film has no IMDb ID, skipping');
@@ -120,25 +204,19 @@ export function transformToStremioMeta(film: WatchlistFilm, showRatings = true):
 /**
  * Transform array of Letterboxd films to Stremio metas
  */
-export function transformWatchlistToMetas(films: WatchlistFilm[], showRatings = true): StremioMeta[] {
-  const metas: StremioMeta[] = [];
-
-  for (const film of films) {
-    const meta = transformToStremioMeta(film, showRatings);
-    if (meta) {
-      metas.push(meta);
-    }
-  }
-
+export async function transformWatchlistToMetas(films: WatchlistFilm[], showRatings = true): Promise<StremioMeta[]> {
+  const results = await Promise.all(films.map((film) => transformToStremioMeta(film, showRatings)));
+  const metas = results.filter((m): m is StremioMeta => m !== null);
   logger.debug({ count: metas.length, total: films.length }, 'Transformed films to metas');
   return metas;
 }
 
 /**
- * Transform LogEntry to Stremio Meta
+ * Transform LogEntry to Stremio Meta.
+ * Falls back to TMDB external_ids when no IMDb link is present.
  */
-export function transformLogEntryToMeta(entry: LogEntry, showRatings = true): StremioMeta | null {
-  const imdbId = getImdbId(entry.film);
+export async function transformLogEntryToMeta(entry: LogEntry, showRatings = true): Promise<StremioMeta | null> {
+  const imdbId = await resolveImdbId(entry.film);
 
   if (!imdbId) {
     logger.warn({ filmId: entry.film.id, filmName: entry.film.name }, 'LogEntry film has no IMDb ID, skipping');
@@ -177,28 +255,27 @@ export function transformLogEntryToMeta(entry: LogEntry, showRatings = true): St
  * Transform array of LogEntries to Stremio metas
  * Deduplicates by IMDb ID (keeps first occurrence)
  */
-export function transformLogEntriesToMetas(entries: LogEntry[], showRatings = true): StremioMeta[] {
+export async function transformLogEntriesToMetas(entries: LogEntry[], showRatings = true): Promise<StremioMeta[]> {
+  const results = await Promise.all(entries.map((entry) => transformLogEntryToMeta(entry, showRatings)));
   const metas: StremioMeta[] = [];
   const seenIds = new Set<string>();
-
-  for (const entry of entries) {
-    const meta = transformLogEntryToMeta(entry, showRatings);
+  for (const meta of results) {
     if (meta && !seenIds.has(meta.id)) {
       metas.push(meta);
       seenIds.add(meta.id);
     }
   }
-
   logger.debug({ count: metas.length, total: entries.length }, 'Transformed log entries to metas');
   return metas;
 }
 
 /**
- * Transform ListEntry to Stremio Meta
+ * Transform ListEntry to Stremio Meta.
+ * Falls back to TMDB external_ids when no IMDb link is present.
  */
-export function transformListEntryToMeta(entry: ListEntry, showRatings = true): StremioMeta | null {
+export async function transformListEntryToMeta(entry: ListEntry, showRatings = true): Promise<StremioMeta | null> {
   const film = entry.film;
-  const imdbId = getImdbId(film);
+  const imdbId = await resolveImdbId(film);
 
   if (!imdbId) {
     logger.warn({ filmId: film.id, filmName: film.name }, 'List entry film has no IMDb ID, skipping');
@@ -224,16 +301,9 @@ export function transformListEntryToMeta(entry: ListEntry, showRatings = true): 
 /**
  * Transform array of ListEntries to Stremio metas
  */
-export function transformListEntriesToMetas(entries: ListEntry[], showRatings = true): StremioMeta[] {
-  const metas: StremioMeta[] = [];
-
-  for (const entry of entries) {
-    const meta = transformListEntryToMeta(entry, showRatings);
-    if (meta) {
-      metas.push(meta);
-    }
-  }
-
+export async function transformListEntriesToMetas(entries: ListEntry[], showRatings = true): Promise<StremioMeta[]> {
+  const results = await Promise.all(entries.map((entry) => transformListEntryToMeta(entry, showRatings)));
+  const metas = results.filter((m): m is StremioMeta => m !== null);
   logger.debug({ count: metas.length, total: entries.length }, 'Transformed list entries to metas');
   return metas;
 }
@@ -248,13 +318,14 @@ function getActivityFilm(item: ActivityItem): WatchlistFilm | undefined {
 }
 
 /**
- * Transform ActivityItem to Stremio Meta
+ * Transform ActivityItem to Stremio Meta.
+ * Falls back to TMDB external_ids when no IMDb link is present.
  */
-function transformActivityItemToMeta(item: ActivityItem, showRatings = true): StremioMeta | null {
+async function transformActivityItemToMeta(item: ActivityItem, showRatings = true): Promise<StremioMeta | null> {
   const film = getActivityFilm(item);
   if (!film) return null;
 
-  const imdbId = getImdbId(film);
+  const imdbId = await resolveImdbId(film);
   if (!imdbId) {
     logger.warn({ filmId: film.id, filmName: film.name, activityType: item.type }, 'Activity film has no IMDb ID, skipping');
     return null;
@@ -305,21 +376,17 @@ function transformActivityItemToMeta(item: ActivityItem, showRatings = true): St
  * Transform array of ActivityItems to Stremio metas
  * Filters to friends only (excludes own activity) and deduplicates by IMDb ID
  */
-export function transformActivityToMetas(items: ActivityItem[], excludeMemberId: string, showRatings = true): StremioMeta[] {
+export async function transformActivityToMetas(items: ActivityItem[], excludeMemberId: string, showRatings = true): Promise<StremioMeta[]> {
+  const friendItems = items.filter((item) => item.member.id !== excludeMemberId);
+  const results = await Promise.all(friendItems.map((item) => transformActivityItemToMeta(item, showRatings)));
   const metas: StremioMeta[] = [];
   const seenIds = new Set<string>();
-
-  for (const item of items) {
-    // Skip own activity
-    if (item.member.id === excludeMemberId) continue;
-
-    const meta = transformActivityItemToMeta(item, showRatings);
+  for (const meta of results) {
     if (meta && !seenIds.has(meta.id)) {
       metas.push(meta);
       seenIds.add(meta.id);
     }
   }
-
   logger.debug({ count: metas.length, total: items.length }, 'Transformed activity items to metas');
   return metas;
 }
