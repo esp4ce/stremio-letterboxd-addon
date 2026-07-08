@@ -13,7 +13,7 @@ const CONSOLE_STYLES = {
 const CONSOLE_LINKS = [
   { label: "GitHub", url: "https://github.com/esp4ce" },
   { label: "Reddit", url: "https://www.reddit.com/r/stremboxd/", desc: "(Support & Community)" },
-  { label: "Support", url: "https://buymeacoffee.com/esp4ce", desc: "(Buy me a coffee)" },
+  { label: "Support", url: "https://buymeacoffee.com/esp4ce", desc: "(hosting costs ~$14/month)" },
 ];
 
 /**

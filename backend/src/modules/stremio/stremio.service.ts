@@ -285,7 +285,7 @@ export function generateBaseManifest(): StremioManifest {
     id: 'community.stremboxd',
     version: '1.2.3',
     name: 'Stremboxd',
-    description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com',
+    description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com. Free forever — donations welcome: https://buymeacoffee.com/esp4ce',
     logo: `${config.PUBLIC_URL}/logo.png`,
     background: `${config.PUBLIC_URL}/background.jpg`,
     resources: [
@@ -464,7 +464,7 @@ export function generatePublicManifest(
     id: 'community.stremboxd',
     version: '1.2.3',
     name: `Stremboxd${namePart}`,
-    description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com',
+    description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com. Free forever — donations welcome: https://buymeacoffee.com/esp4ce',
     logo: `${config.PUBLIC_URL}/logo.png`,
     background: `${config.PUBLIC_URL}/background.jpg`,
     resources: [
