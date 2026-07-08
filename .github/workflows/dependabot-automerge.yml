@@ -15,6 +15,14 @@ jobs:
         id: metadata
         uses: dependabot/fetch-metadata@v3
 
+      - name: Approve minor and patch updates
+        if: |
+          steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        uses: hmarr/auto-approve-action@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Auto-merge minor and patch updates
         if: |
           steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
