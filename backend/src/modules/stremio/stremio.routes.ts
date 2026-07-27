@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import {
   findUserById,
   findUserByLetterboxdUsername,
@@ -36,6 +36,7 @@ import { callWithAppToken } from '../../lib/app-client.js';
 import { decodeConfig, type PublicConfig } from '../../lib/config-encoding.js';
 import { serverConfig } from '../../config/index.js';
 import { verifyAction } from '../../lib/action-sign.js';
+import { TINY_MP4 } from '../../lib/tiny-mp4.js';
 
 // ─── Sub-modules ──────────────────────────────────────────────────────────────
 
@@ -731,6 +732,127 @@ export async function stremioRoutes(app: FastifyInstance) {
       } catch (error) {
         logger.error({ error, userId, filmId, rating }, 'Failed to submit rating');
         return sendHtml(reply, buildErrorPage('Rating failed', 'Could not update Letterboxd. Please try again.'), 500);
+      }
+    },
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // API Actions: TV-compatible endpoints that perform the action and return MP4
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const apiActionParamsSchema = {
+    type: 'object' as const,
+    properties: {
+      userId: { type: 'string' as const, pattern: '^[0-9a-f]{32}$' },
+      action: { type: 'string' as const, enum: ['watched', 'liked', 'watchlist'] },
+      filmId: { type: 'string' as const, pattern: '^[a-zA-Z0-9]+$' },
+    },
+    required: ['userId', 'action', 'filmId'] as const,
+  };
+
+  const apiRateParamsSchema = {
+    type: 'object' as const,
+    properties: {
+      userId: { type: 'string' as const, pattern: '^[0-9a-f]{32}$' },
+      filmId: { type: 'string' as const, pattern: '^[a-zA-Z0-9]+$' },
+      rating: { type: 'string' as const, pattern: '^(remove|0\\.5|1(\\.0|.5)?|2(\\.0|.5)?|3(\\.0|.5)?|4(\\.0|.5)?|5(\\.0)?)$' },
+    },
+    required: ['userId', 'filmId', 'rating'] as const,
+  };
+
+  function sendMp4(reply: FastifyReply) {
+    return reply
+      .header('Content-Type', 'video/mp4')
+      .header('Content-Length', TINY_MP4.length)
+      .header('Access-Control-Allow-Origin', '*')
+      .send(TINY_MP4);
+  }
+
+  app.get(
+    '/api/action/:userId/:action/:filmId',
+    { config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { params: apiActionParamsSchema } },
+    async (
+      request: FastifyRequest<{
+        Params: { userId: string; action: string; filmId: string };
+        Querystring: { set?: string; imdb?: string; tok?: string };
+      }>,
+      reply,
+    ) => {
+      const { userId, action, filmId } = request.params;
+      const tok = request.query.tok;
+
+      if (!tok || !verifyAction(userId, filmId, action, tok)) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+
+      const setValue = request.query.set === 'true';
+      const rawImdbId = request.query.imdb;
+      const imdbId = rawImdbId && IMDB_REGEX.test(rawImdbId) ? rawImdbId : undefined;
+
+      const user = findUserById(userId);
+      if (!user) return reply.status(404).send({ error: 'User not found' });
+
+      logger.info({ userId, action, filmId, setValue, imdbId }, 'API action request');
+
+      try {
+        const eventType = { watched: 'action_watched', liked: 'action_liked', watchlist: 'action_watchlist' }[action] as EventType | undefined;
+        if (eventType) trackEvent(eventType, userId, { filmId, setValue, ...(imdbId && { imdbId }) });
+
+        const client = await createClientForUser(user);
+        const update: FilmRelationshipUpdate = {};
+        if (action === 'watched') update.watched = setValue;
+        if (action === 'liked') update.liked = setValue;
+        if (action === 'watchlist') update.inWatchlist = setValue;
+
+        await client.updateFilmRelationship(filmId, update);
+        invalidateUserCatalogs(userId);
+
+        return sendMp4(reply);
+      } catch (error) {
+        logger.error({ error, userId, action, filmId }, 'API action failed');
+        return reply.status(500).send({ error: 'Action failed' });
+      }
+    },
+  );
+
+  app.get(
+    '/api/action/:userId/rate/:filmId/:rating',
+    { config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { params: apiRateParamsSchema } },
+    async (
+      request: FastifyRequest<{
+        Params: { userId: string; filmId: string; rating: string };
+        Querystring: { imdb?: string; tok?: string };
+      }>,
+      reply,
+    ) => {
+      const { userId, filmId, rating: ratingStr } = request.params;
+      const tok = request.query.tok;
+
+      if (!tok || !verifyAction(userId, filmId, 'rate', tok)) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+
+      const rawImdbId = request.query.imdb;
+      const imdbId = rawImdbId && IMDB_REGEX.test(rawImdbId) ? rawImdbId : undefined;
+
+      const user = findUserById(userId);
+      if (!user) return reply.status(404).send({ error: 'User not found' });
+
+      const isRemove = ratingStr === 'remove';
+      const rating = isRemove ? null : parseFloat(ratingStr);
+
+      logger.info({ userId, filmId, rating, isRemove, imdbId }, 'API rate request');
+      trackEvent('action_rate', userId, { filmId, rating, isRemove, ...(imdbId && { imdbId }) });
+
+      try {
+        const client = await createClientForUser(user);
+        await client.updateFilmRelationship(filmId, { rating: isRemove ? null : rating });
+        invalidateUserCatalogs(userId);
+
+        return sendMp4(reply);
+      } catch (error) {
+        logger.error({ error, userId, filmId, rating }, 'API rate failed');
+        return reply.status(500).send({ error: 'Rating failed' });
       }
     },
   );
