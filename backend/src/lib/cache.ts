@@ -179,7 +179,7 @@ export const likedFilmsCache = createCache<{ metas: StremioMeta[] }>({
 
 // Poster cache (from poster.service.ts - imported dynamically to avoid circular deps)
 export const posterCache = createCache<Buffer>({
-  maxSize: 20,
+  maxSize: 500,
   ttl: 60 * 60 * 1000,
 });
 
