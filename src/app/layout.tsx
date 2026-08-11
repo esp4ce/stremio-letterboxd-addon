@@ -57,9 +57,6 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
-  alternates: {
-    canonical: "/",
-  },
 };
 
 export const viewport: Viewport = {

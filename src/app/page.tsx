@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import TransitionLink from "./components/TransitionLink";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 
 const FEATURES = [
