@@ -182,8 +182,8 @@ export function getFullCatalogFromCache(
 }
 
 /**
- * Lit le catalogue complet (non paginé) depuis le cache public correspondant.
- * Renvoie undefined si absent — l'appelant doit alors se rabattre sur la page déjà servie.
+ * Read the full (unpaginated) catalog from the matching public cache.
+ * Returns undefined if not found — the caller should then fall back to the page already served.
  */
 export function getFullPublicCatalogFromCache(
   catalogId: string,

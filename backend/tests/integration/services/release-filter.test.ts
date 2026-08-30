@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, beforeEach, vi } 
 import { http, HttpResponse } from 'msw';
 import { mswServer } from '../../helpers/msw-server.js';
 
-// Injecte une clé API TMDB tout en gardant le vrai client (les requêtes passent par MSW).
+// Inject a TMDB API key while keeping the real client (requests go through MSW).
 vi.mock('../../../src/config/index.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/config/index.js')>();
   return { ...actual, tmdbConfig: { apiKey: 'test-api-key' } };
@@ -29,8 +29,8 @@ beforeEach(() => {
   releaseDatesCache.clear();
 });
 
-describe('filterFilmsByReleaseData (intégration MSW / TMDB)', () => {
-  it('#77 — masque un film dont la sortie cinéma est future (même année)', async () => {
+describe('filterFilmsByReleaseData (MSW / TMDB integration)', () => {
+  it('#77 — hides a film with a future theatrical release (same year)', async () => {
     mswServer.use(
       http.get(`${TMDB}/movie/:id/release_dates`, () =>
         HttpResponse.json({
@@ -47,7 +47,7 @@ describe('filterFilmsByReleaseData (intégration MSW / TMDB)', () => {
     expect(out).toHaveLength(0);
   });
 
-  it('#90 — masque un film sans sortie home et garde celui qui en a une', async () => {
+  it('#90 — hides a film with no home release and keeps one that has it', async () => {
     mswServer.use(
       http.get(`${TMDB}/find/:externalId`, ({ params }) =>
         HttpResponse.json({ movie_results: [{ id: params['externalId'] === 'tt-home' ? 1 : 2 }] }),
@@ -70,7 +70,7 @@ describe('filterFilmsByReleaseData (intégration MSW / TMDB)', () => {
     expect(out.map((m) => m.id)).toEqual(['tt-home']);
   });
 
-  it('TMDB indisponible (500) → aucun filtrage', async () => {
+  it('TMDB unavailable (500) → no filtering', async () => {
     mswServer.use(
       http.get(`${TMDB}/find/:externalId`, () => new HttpResponse(null, { status: 500 })),
     );

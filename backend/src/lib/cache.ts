@@ -223,22 +223,22 @@ export const tmdbToImdbCache = createCache<string>({
   ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
 });
 
-// IMDb ID → TMDB ID mapping (ne change jamais)
+// IMDb ID → TMDB ID mapping (never changes)
 export const imdbToTmdbCache = createCache<string>({
   maxSize: 1000,
-  ttl: 7 * 24 * 60 * 60 * 1000, // 7 jours
+  ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
 });
 
-// Données de dates de sortie TMDB par IMDb ID (issue #77 / #90)
+// TMDB release-date data keyed by IMDb ID (release-date filters)
 export interface ReleaseDatesInfo {
-  /** Date de première sortie mondiale (tous types confondus), ISO — null si inconnue */
+  /** Earliest worldwide release date (any type), ISO — null if unknown */
   earliestRelease: string | null;
-  /** Dates de sortie "home" (numérique / physique / TV), tous pays confondus */
+  /** Home release dates (digital / physical / TV), across all countries */
   homeReleaseDates: string[];
 }
 export const releaseDatesCache = createCache<ReleaseDatesInfo>({
   maxSize: 1000,
-  ttl: 24 * 60 * 60 * 1000, // 24h — une sortie à venir peut devenir effective
+  ttl: 24 * 60 * 60 * 1000, // 24h — an upcoming release can become effective
 });
 
 // TMDB ID → adult flag + poster path (permanent data)

@@ -9,37 +9,37 @@ import type { StremioMeta } from '../catalog.service.js';
 const logger = createChildLogger('release-filter');
 
 /**
- * Types TMDB considérés comme une sortie "home" (visionnable chez soi) :
- * 4 = Numérique, 5 = Physique, 6 = TV.
+ * TMDB release types that count as a "home" release (watchable at home):
+ * 4 = Digital, 5 = Physical, 6 = TV.
  */
 const HOME_RELEASE_TYPES = new Set([4, 5, 6]);
 
-/** Concurrence des lookups TMDB (le client applique déjà son propre sémaphore global). */
+/** Concurrency for TMDB lookups (the client already has its own global semaphore). */
 const LOOKUP_CONCURRENCY = 10;
 
 /**
- * Passé ce délai après la première sortie, on considère qu'un film a une sortie
- * "home" même si TMDB ne la liste pas : les films anciens sont dispos en numérique
- * / physique mais leurs entrées TMDB type 4/5/6 sont souvent absentes.
+ * Past this delay after the first release, a film is assumed to have a home
+ * release even if TMDB doesn't list one: old films are available digitally /
+ * physically but their TMDB type 4/5/6 entries are often missing.
  */
 const HOME_RELEASE_GRACE_MS = 2 * 365 * 24 * 60 * 60 * 1000;
 
 export interface ReleaseFilterOptions {
-  /** Masquer les films dont la date de sortie réelle est dans le futur (issue #77). */
+  /** Hide films whose real release date is in the future (issue #77). */
   hideUnreleased: boolean;
-  /** Masquer les films sans sortie numérique / physique / TV disponible (issue #90). */
+  /** Hide films with no digital / physical / TV release available (issue #90). */
   hideNoHomeRelease: boolean;
 }
 
 /**
- * Décision de conservation pays : on considère TOUS les pays.
- * Un film est gardé dès qu'AU MOINS un pays propose une sortie "home" effective.
- * Choix le plus permissif : évite de sur-filtrer des sorties home réelles mais
- * absentes du marché US (ex. productions européennes ou asiatiques).
+ * Country decision: all countries are considered. A film is kept as soon as at
+ * least one country has an effective "home" release — the most permissive choice,
+ * so real home releases missing from the US market (e.g. European or Asian
+ * productions) are not over-filtered.
  */
 
 /**
- * Normalise la réponse TMDB release_dates en info exploitable et cachable.
+ * Normalise the TMDB release_dates response into cacheable, usable info.
  */
 function normalizeReleaseDates(
   results: Array<{ release_dates: Array<{ type: number; release_date: string }> }>,
@@ -64,9 +64,9 @@ function normalizeReleaseDates(
 }
 
 /**
- * Récupère (avec cache) les infos de dates de sortie TMDB pour un IMDb ID.
- * Retourne null si TMDB est indisponible ou le film introuvable — l'appelant
- * doit alors adopter un fallback gracieux (ne pas sur-filtrer).
+ * Fetch (cached) the TMDB release-date info for an IMDb ID. Returns null when TMDB
+ * is unavailable or the film is not found — the caller must then degrade
+ * gracefully (do not over-filter).
  */
 async function getReleaseInfo(imdbId: string, apiKey: string): Promise<ReleaseDatesInfo | null> {
   const cached = releaseDatesCache.get(imdbId);
@@ -88,24 +88,24 @@ async function getReleaseInfo(imdbId: string, apiKey: string): Promise<ReleaseDa
     releaseDatesCache.set(imdbId, info);
     return info;
   } catch (err) {
-    logger.warn({ imdbId, err }, 'Lookup TMDB des dates de sortie échoué');
+    logger.warn({ imdbId, err }, 'TMDB release-dates lookup failed');
     return null;
   }
 }
 
 /**
- * Filtre une liste de metas selon les données de date de sortie réelles (TMDB).
+ * Filter a list of metas against real release-date data (TMDB).
  *
- * - #77 : un film sort plus tard dans l'année courante → masqué (granularité à la date).
- *   Si aucune date TMDB n'est disponible pour ce film, on retombe sur le filtre
- *   annuel historique (`filterUnreleasedFilms`) pour ne pas sur-filtrer.
- * - #90 : un film sans sortie numérique / physique / TV effective → masqué.
- *   Si aucune donnée TMDB n'est disponible, ou si le film est sorti il y a plus de
- *   deux ans (TMDB liste rarement les sorties home des vieux films), il est conservé.
+ * - #77: a film released later this year → hidden (date-level granularity). When
+ *   no TMDB date is available, fall back to the historical year check
+ *   (`filterUnreleasedFilms`) to avoid over-filtering.
+ * - #90: a film with no effective digital / physical / TV release → hidden. It is
+ *   kept when no TMDB data is available, or when it was first released more than
+ *   two years ago (TMDB rarely lists home releases for old films).
  *
- * Si aucune option n'est active, la liste est renvoyée telle quelle.
- * Si la clé API TMDB est absente, on retombe entièrement sur le filtre annuel
- * pour `hideUnreleased` et on n'applique aucun filtrage "home release".
+ * If no option is active, the list is returned as-is. If the TMDB API key is
+ * missing, fall back entirely to the year check for `hideUnreleased` and apply no
+ * home-release filtering.
  */
 export async function filterFilmsByReleaseData(
   metas: StremioMeta[],
@@ -131,7 +131,7 @@ export async function filterFilmsByReleaseData(
       if (info?.earliestRelease) {
         if (Date.parse(info.earliestRelease) > now) continue;
       } else if (filterUnreleasedFilms([meta], true).length === 0) {
-        // Pas de date TMDB → comportement annuel historique.
+        // No TMDB date → historical year-based behaviour.
         continue;
       }
     }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock du client TMDB et de la config avant import du module testé
+// Mock the TMDB client and config before importing the module under test
 vi.mock('../../../../src/lib/tmdb-client.js', () => ({
   findTmdbIdByImdbId: vi.fn(),
   getTmdbReleaseDates: vi.fn(),
@@ -39,7 +39,7 @@ beforeEach(() => {
 });
 
 describe('filterFilmsByReleaseData — hideUnreleased (#77)', () => {
-  it('masque un film qui sort plus tard dans l’année courante', async () => {
+  it('hides a film released later in the current year', async () => {
     mockReleaseDates.mockResolvedValue([
       { iso_3166_1: 'US', release_dates: [{ type: 3, release_date: future }] },
     ]);
@@ -53,7 +53,7 @@ describe('filterFilmsByReleaseData — hideUnreleased (#77)', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('garde un film déjà sorti cette année', async () => {
+  it('keeps a film already released this year', async () => {
     mockReleaseDates.mockResolvedValue([
       { iso_3166_1: 'US', release_dates: [{ type: 3, release_date: past }] },
     ]);
@@ -64,7 +64,7 @@ describe('filterFilmsByReleaseData — hideUnreleased (#77)', () => {
     expect(result).toHaveLength(1);
   });
 
-  it('retombe sur le filtre annuel quand TMDB n’a aucune date', async () => {
+  it('falls back to the year filter when TMDB has no date', async () => {
     mockFind.mockResolvedValue(null);
     const metas = [
       makeMeta({ id: 'a', year: 2020 }),
@@ -82,7 +82,7 @@ describe('filterFilmsByReleaseData — hideUnreleased (#77)', () => {
 });
 
 describe('filterFilmsByReleaseData — hideNoHomeRelease (#90)', () => {
-  it('masque un film récent sans sortie numérique/physique/TV', async () => {
+  it('hides a recent film with no digital/physical/TV release', async () => {
     mockReleaseDates.mockResolvedValue([
       { iso_3166_1: 'US', release_dates: [{ type: 3, release_date: recentPast }] },
     ]);
@@ -93,7 +93,7 @@ describe('filterFilmsByReleaseData — hideNoHomeRelease (#90)', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('garde un vieux film même sans entrée de sortie home dans TMDB', async () => {
+  it('keeps an old film even with no home-release entry in TMDB', async () => {
     mockReleaseDates.mockResolvedValue([
       { iso_3166_1: 'US', release_dates: [{ type: 3, release_date: '2005-01-01' }] },
     ]);
@@ -104,7 +104,7 @@ describe('filterFilmsByReleaseData — hideNoHomeRelease (#90)', () => {
     expect(result).toHaveLength(1);
   });
 
-  it('garde un film avec une sortie numérique passée dans n’importe quel pays', async () => {
+  it('keeps a film with a past digital release in any country', async () => {
     mockReleaseDates.mockResolvedValue([
       { iso_3166_1: 'FR', release_dates: [{ type: 4, release_date: past }] },
     ]);
@@ -115,7 +115,7 @@ describe('filterFilmsByReleaseData — hideNoHomeRelease (#90)', () => {
     expect(result).toHaveLength(1);
   });
 
-  it('masque un film dont la sortie physique est encore à venir', async () => {
+  it('hides a film whose physical release is still upcoming', async () => {
     mockReleaseDates.mockResolvedValue([
       { iso_3166_1: 'US', release_dates: [{ type: 5, release_date: future }] },
     ]);
@@ -126,7 +126,7 @@ describe('filterFilmsByReleaseData — hideNoHomeRelease (#90)', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('ne filtre pas quand TMDB est indisponible pour ce film', async () => {
+  it('does not filter when TMDB is unavailable for the film', async () => {
     mockFind.mockResolvedValue(null);
     const result = await filterFilmsByReleaseData([makeMeta()], {
       hideUnreleased: false,
@@ -136,8 +136,8 @@ describe('filterFilmsByReleaseData — hideNoHomeRelease (#90)', () => {
   });
 });
 
-describe('filterFilmsByReleaseData — garde-fous', () => {
-  it('renvoie la liste inchangée si aucune option active', async () => {
+describe('filterFilmsByReleaseData — guards', () => {
+  it('returns the list unchanged when no option is active', async () => {
     const metas = [makeMeta({ year: currentYear + 5 })];
     const result = await filterFilmsByReleaseData(metas, {
       hideUnreleased: false,
@@ -147,7 +147,7 @@ describe('filterFilmsByReleaseData — garde-fous', () => {
     expect(mockFind).not.toHaveBeenCalled();
   });
 
-  it('sans clé API : fallback annuel pour hideUnreleased, aucun filtrage home', async () => {
+  it('no API key: year fallback for hideUnreleased, no home filtering', async () => {
     (tmdbConfig as { apiKey?: string }).apiKey = undefined;
     const metas = [
       makeMeta({ id: 'a', year: 2020 }),
@@ -162,7 +162,7 @@ describe('filterFilmsByReleaseData — garde-fous', () => {
     expect(mockFind).not.toHaveBeenCalled();
   });
 
-  it('met en cache le résultat TMDB entre deux appels', async () => {
+  it('caches the TMDB result between two calls', async () => {
     mockReleaseDates.mockResolvedValue([
       { iso_3166_1: 'US', release_dates: [{ type: 3, release_date: past }] },
     ]);

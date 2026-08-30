@@ -61,12 +61,12 @@ describe('filterUnreleasedFilms', () => {
 
 describe('sliceReleased', () => {
   const currentYear = new Date().getFullYear();
-  // 20 films, un sur cinq non sorti (indices 4, 9, 14, 19) → 16 sortis
+  // 20 films, every 5th one unreleased (indices 4, 9, 14, 19) → 16 released
   const full = Array.from({ length: 20 }, (_, i) =>
     makeMeta({ id: `tt${i}`, year: i % 5 === 4 ? currentYear + 3 : 2000 }),
   );
 
-  it('pagine sur la liste filtrée, pas sur la liste brute', () => {
+  it('paginates over the filtered list, not the raw list', () => {
     const page1 = sliceReleased(full, 0, 10, true);
     const page2 = sliceReleased(full, 10, 10, true);
 
@@ -78,7 +78,7 @@ describe('sliceReleased', () => {
     expect([...page1, ...page2].every((m) => m.year! <= currentYear)).toBe(true);
   });
 
-  it('reste un simple découpage quand hideUnreleased est faux', () => {
+  it('is a plain slice when hideUnreleased is false', () => {
     expect(sliceReleased(full, 0, 10, false)).toHaveLength(10);
     expect(sliceReleased(full, 10, 10, false)).toHaveLength(10);
   });

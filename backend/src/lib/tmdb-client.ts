@@ -102,8 +102,8 @@ interface TmdbFindResponse {
 }
 
 /**
- * Résout un identifiant IMDb en identifiant TMDB via l'endpoint /find.
- * Retourne null si aucune correspondance.
+ * Resolve an IMDb ID to a TMDB ID via the /find endpoint. Returns null when
+ * there is no match.
  */
 export async function findTmdbIdByImdbId(
   imdbId: string,
@@ -130,7 +130,7 @@ interface TmdbReleaseDatesResponse {
 }
 
 /**
- * Récupère les dates de sortie détaillées d'un film TMDB (par pays et par type).
+ * Fetch the detailed release dates of a TMDB movie (per country and per type).
  */
 export async function getTmdbReleaseDates(
   tmdbId: number,
