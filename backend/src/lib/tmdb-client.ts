@@ -97,6 +97,50 @@ export async function getTmdbExternalIds(
   return tmdbFetch<TmdbExternalIds>(url);
 }
 
+interface TmdbFindResponse {
+  movie_results?: Array<{ id: number }>;
+}
+
+/**
+ * Résout un identifiant IMDb en identifiant TMDB via l'endpoint /find.
+ * Retourne null si aucune correspondance.
+ */
+export async function findTmdbIdByImdbId(
+  imdbId: string,
+  apiKey: string,
+): Promise<number | null> {
+  const url = `${TMDB_BASE_URL}/find/${encodeURIComponent(imdbId)}?api_key=${apiKey}&external_source=imdb_id`;
+  const data = await tmdbFetch<TmdbFindResponse>(url);
+  return data.movie_results?.[0]?.id ?? null;
+}
+
+export interface TmdbReleaseDateEntry {
+  /** Type TMDB : 1 Premiere, 2 Theatrical (limited), 3 Theatrical, 4 Digital, 5 Physical, 6 TV */
+  type: number;
+  release_date: string;
+}
+
+export interface TmdbReleaseDatesResult {
+  iso_3166_1: string;
+  release_dates: TmdbReleaseDateEntry[];
+}
+
+interface TmdbReleaseDatesResponse {
+  results?: TmdbReleaseDatesResult[];
+}
+
+/**
+ * Récupère les dates de sortie détaillées d'un film TMDB (par pays et par type).
+ */
+export async function getTmdbReleaseDates(
+  tmdbId: number,
+  apiKey: string,
+): Promise<TmdbReleaseDatesResult[]> {
+  const url = `${TMDB_BASE_URL}/movie/${tmdbId}/release_dates?api_key=${apiKey}`;
+  const data = await tmdbFetch<TmdbReleaseDatesResponse>(url);
+  return data.results ?? [];
+}
+
 export interface TmdbMovieDetails {
   adult: boolean;
   poster_path: string | null;

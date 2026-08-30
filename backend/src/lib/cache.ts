@@ -223,6 +223,24 @@ export const tmdbToImdbCache = createCache<string>({
   ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
 });
 
+// IMDb ID → TMDB ID mapping (ne change jamais)
+export const imdbToTmdbCache = createCache<string>({
+  maxSize: 1000,
+  ttl: 7 * 24 * 60 * 60 * 1000, // 7 jours
+});
+
+// Données de dates de sortie TMDB par IMDb ID (issue #77 / #90)
+export interface ReleaseDatesInfo {
+  /** Date de première sortie mondiale (tous types confondus), ISO — null si inconnue */
+  earliestRelease: string | null;
+  /** Dates de sortie "home" (numérique / physique / TV), tous pays confondus */
+  homeReleaseDates: string[];
+}
+export const releaseDatesCache = createCache<ReleaseDatesInfo>({
+  maxSize: 1000,
+  ttl: 24 * 60 * 60 * 1000, // 24h — une sortie à venir peut devenir effective
+});
+
 // TMDB ID → adult flag + poster path (permanent data)
 export interface TmdbAdultInfo {
   adult: boolean;
@@ -343,6 +361,8 @@ export const allCaches = [
   { name: 'contributorName', cache: contributorNameCache },
   { name: 'filmReviews', cache: filmReviewsCache },
   { name: 'tmdbToImdb', cache: tmdbToImdbCache },
+  { name: 'imdbToTmdb', cache: imdbToTmdbCache },
+  { name: 'releaseDates', cache: releaseDatesCache },
   { name: 'userClient', cache: userClientCache },
   { name: 'popularCatalog', cache: popularCatalogCache },
   { name: 'top250Catalog', cache: top250CatalogCache },
@@ -378,5 +398,7 @@ export function getCacheStats(): CacheStats {
     filmReviews: { size: filmReviewsCache.size, max: filmReviewsCache.max },
     recommendation: { size: recommendationCache.size, max: recommendationCache.max },
     tmdbToImdb: { size: tmdbToImdbCache.size, max: tmdbToImdbCache.max },
+    imdbToTmdb: { size: imdbToTmdbCache.size, max: imdbToTmdbCache.max },
+    releaseDates: { size: releaseDatesCache.size, max: releaseDatesCache.max },
   };
 }
