@@ -209,6 +209,14 @@ export const defaultHandlers = [
   http.get(`${TMDB}/movie/:id/external_ids`, () =>
     HttpResponse.json({ imdb_id: 'tt9999999' }),
   ),
+
+  http.get(`${TMDB}/find/:externalId`, () =>
+    HttpResponse.json({ movie_results: [{ id: 100 }] }),
+  ),
+
+  http.get(`${TMDB}/movie/:id/release_dates`, () =>
+    HttpResponse.json({ results: [] }),
+  ),
 ];
 
 // ── Server instance ─────────────────────────────────────────────────
