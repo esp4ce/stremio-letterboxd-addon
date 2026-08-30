@@ -44,6 +44,7 @@ export const userPreferencesSchema = z.object({
   showRatings: z.boolean().default(true),
   showReviews: z.boolean().optional(),
   hideUnreleased: z.boolean().optional(),
+  hideNoHomeRelease: z.boolean().optional(),
   search: z.boolean().optional(),
   catalogNames: z.record(z.string()).optional(),
   catalogOrder: z.array(z.string()).optional(),

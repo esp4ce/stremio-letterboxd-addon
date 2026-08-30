@@ -19,6 +19,7 @@ export interface UserPreferences {
   catalogOrder?: string[];
   sortVariants?: Record<string, string[]>;
   hideUnreleased?: boolean;
+  hideNoHomeRelease?: boolean;
   search?: boolean;
 }
 

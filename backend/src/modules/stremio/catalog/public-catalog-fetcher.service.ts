@@ -42,6 +42,7 @@ import {
   getFullPublicCatalogFromCache,
 } from './catalog-cache-keys.js';
 import { parseCombinedFilter, shuffleArray, filterUnreleasedFilms, sliceReleased, parseExtra } from './catalog-filter.js';
+import { filterFilmsByReleaseData } from './release-filter.js';
 
 const logger = createChildLogger('public-catalog-fetcher');
 
@@ -347,6 +348,7 @@ export async function handlePublicCatalogRequest(
   const isShuffle = parsed.isShuffle || variantConfig?.special === 'shuffle';
   const sort = isShuffle ? 'Shuffle' : (parsed.sort || variantConfig?.sort);
   const hideUnreleased = parsed.isReleasedOnly || cfg.h === true;
+  const hideNoHomeRelease = cfg.nh === true;
 
   try {
     // Search catalog (handled separately — returns immediately)
@@ -424,6 +426,13 @@ export async function handlePublicCatalogRequest(
       result = full
         ? { metas: sliceReleased(full, skip, CATALOG_PAGE_SIZE, true) }
         : { metas: filterUnreleasedFilms(result.metas, true) };
+    }
+
+    // Precise release-date pass (TMDB) on the paginated page.
+    if (hideUnreleased || hideNoHomeRelease) {
+      result = {
+        metas: await filterFilmsByReleaseData(result.metas, { hideUnreleased, hideNoHomeRelease }),
+      };
     }
     result = { metas: await enrichMetasWithCinemeta(result.metas) };
     return result;

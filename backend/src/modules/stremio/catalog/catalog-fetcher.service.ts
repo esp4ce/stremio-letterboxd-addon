@@ -52,6 +52,7 @@ import {
   filterUnreleasedFilms,
   parseExtra,
 } from './catalog-filter.js';
+import { filterFilmsByReleaseData } from './release-filter.js';
 import { createClientForUser, getWatchedImdbIds, SessionExpiredError } from '../user-client.service.js';
 import { fetchPopularCatalogPublic, fetchTop250CatalogPublic, fetchWatchlistCatalogPublic, fetchLikedFilmsCatalogPublic, fetchListCatalogPublic, resolveMemberId, fetchContributorCatalogPublic } from './public-catalog-fetcher.service.js';
 
@@ -584,6 +585,7 @@ export async function handleCatalogRequest(
   const isNotWatched = parsed.isNotWatched || isVariantNotWatched;
   const isReleasedOnly = parsed.isReleasedOnly;
   const hideUnreleased = isReleasedOnly || preferences?.hideUnreleased === true;
+  const hideNoHomeRelease = preferences?.hideNoHomeRelease === true;
   const includeGenre = parsed.includeGenre;
   const decade = parsed.decade;
 
@@ -702,6 +704,14 @@ export async function handleCatalogRequest(
       }
     }
 
+    // Precise release-date pass (TMDB) on the paginated page: catches films whose
+    // exact release is in the future within the current year, and — for opt-in
+    // users — films with no digital/physical/TV release yet.
+    if (hideUnreleased || hideNoHomeRelease) {
+      result = {
+        metas: await filterFilmsByReleaseData(result.metas, { hideUnreleased, hideNoHomeRelease }),
+      };
+    }
     result = { metas: await enrichMetasWithCinemeta(result.metas) };
     return result;
   } catch (error) {
