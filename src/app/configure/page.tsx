@@ -49,6 +49,7 @@ interface PublicConfig {
   s?: Record<string, string[]>;
   f?: Array<{ t: 'd' | 'a' | 's'; id: string }>;
   h?: boolean;
+  nh?: boolean;
   q?: boolean;
 }
 
@@ -118,6 +119,7 @@ export default function Configure() {
   const [publicExternalWatchlists, setPublicExternalWatchlists] = useState<Array<{ username: string; displayName: string }>>([]);
   const [showRatings, setShowRatings] = useState(true);
   const [hideUnreleased, setHideUnreleased] = useState(false);
+  const [hideNoHomeRelease, setHideNoHomeRelease] = useState(false);
   const [publicSearch, setPublicSearch] = useState(true);
   const [publicCatalogNames, setPublicCatalogNames] = useState<Record<string, string>>({});
   const [publicCatalogOrder, setPublicCatalogOrder] = useState<string[]>([]);
@@ -590,6 +592,10 @@ export default function Configure() {
       cfg.h = true;
     }
 
+    if (hideNoHomeRelease) {
+      cfg.nh = true;
+    }
+
     if (!publicSearch) {
       cfg.q = false;
     }
@@ -690,6 +696,8 @@ export default function Configure() {
           onShowRatingsChange={setShowRatings}
           hideUnreleased={hideUnreleased}
           onHideUnreleasedChange={setHideUnreleased}
+          hideNoHomeRelease={hideNoHomeRelease}
+          onHideNoHomeReleaseChange={setHideNoHomeRelease}
           publicSearch={publicSearch}
           onPublicSearchChange={setPublicSearch}
           publicCatalogNames={publicCatalogNames}

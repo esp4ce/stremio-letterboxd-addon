@@ -64,6 +64,8 @@ interface PublicModeProps extends BaseProps {
   onShowRatingsChange: (val: boolean) => void;
   hideUnreleased: boolean;
   onHideUnreleasedChange: (val: boolean) => void;
+  hideNoHomeRelease: boolean;
+  onHideNoHomeReleaseChange: (val: boolean) => void;
   publicSearch: boolean;
   onPublicSearchChange: (val: boolean) => void;
   publicCatalogNames: Record<string, string>;
@@ -724,6 +726,8 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
               onShowRatingsChange={(props as PublicModeProps).onShowRatingsChange}
               hideUnreleased={(props as PublicModeProps).hideUnreleased}
               onHideUnreleasedChange={(props as PublicModeProps).onHideUnreleasedChange}
+              hideNoHomeRelease={(props as PublicModeProps).hideNoHomeRelease}
+              onHideNoHomeReleaseChange={(props as PublicModeProps).onHideNoHomeReleaseChange}
               publicSearch={(props as PublicModeProps).publicSearch}
               onPublicSearchChange={(props as PublicModeProps).onPublicSearchChange}
             />
