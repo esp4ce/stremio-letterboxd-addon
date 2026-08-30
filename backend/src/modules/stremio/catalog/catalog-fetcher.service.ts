@@ -53,7 +53,7 @@ import {
   parseExtra,
 } from './catalog-filter.js';
 import { createClientForUser, getWatchedImdbIds, SessionExpiredError } from '../user-client.service.js';
-import { fetchPopularCatalogPublic, fetchTop250CatalogPublic, fetchWatchlistCatalogPublic, resolveMemberId, fetchContributorCatalogPublic } from './public-catalog-fetcher.service.js';
+import { fetchPopularCatalogPublic, fetchTop250CatalogPublic, fetchWatchlistCatalogPublic, fetchLikedFilmsCatalogPublic, fetchListCatalogPublic, resolveMemberId, fetchContributorCatalogPublic } from './public-catalog-fetcher.service.js';
 
 const logger = createChildLogger('catalog-fetcher');
 
@@ -596,7 +596,15 @@ export async function handleCatalogRequest(
 
     if (baseCatalogId === 'letterboxd-watchlist') {
       trackEvent('catalog_watchlist', userId);
-      result = await fetchWatchlistCatalog(user, fetchSkip, showRatings, sort, includeGenre, decade);
+      try {
+        result = await fetchWatchlistCatalog(user, fetchSkip, showRatings, sort, includeGenre, decade);
+      } catch (err) {
+        // "Not Watched" needs the authenticated watched history, so let it fail.
+        if (!(err instanceof SessionExpiredError) || isNotWatched) throw err;
+        logger.warn({ userId }, 'Session expired — serving public watchlist');
+        resolvedExtMemberId = user.letterboxd_id;
+        result = await fetchWatchlistCatalogPublic(resolvedExtMemberId, fetchSkip, showRatings, sort, includeGenre, decade);
+      }
     } else if (baseCatalogId === 'letterboxd-diary') {
       trackEvent('catalog_diary', userId);
       result = await fetchDiaryCatalog(user, fetchSkip, showRatings, sort);
@@ -605,7 +613,14 @@ export async function handleCatalogRequest(
       result = await fetchFriendsCatalog(user, fetchSkip, showRatings);
     } else if (baseCatalogId === 'letterboxd-liked-films') {
       trackEvent('catalog_liked', userId);
-      result = await fetchLikedFilmsCatalog(user, fetchSkip, showRatings, sort, includeGenre, decade);
+      try {
+        result = await fetchLikedFilmsCatalog(user, fetchSkip, showRatings, sort, includeGenre, decade);
+      } catch (err) {
+        if (!(err instanceof SessionExpiredError) || isNotWatched) throw err;
+        logger.warn({ userId }, 'Session expired — serving public liked films');
+        resolvedExtMemberId = user.letterboxd_id;
+        result = await fetchLikedFilmsCatalogPublic(resolvedExtMemberId, fetchSkip, showRatings, sort, includeGenre, decade);
+      }
     } else if (baseCatalogId === 'letterboxd-recommended') {
       trackEvent('catalog_recommended', userId);
       result = await fetchRecommendationsCatalog(user, fetchSkip, showRatings, sort);
@@ -626,7 +641,14 @@ export async function handleCatalogRequest(
       const listId = baseCatalogId.replace('letterboxd-list-', '');
       const listName = listNameCache.get(listId);
       trackEvent('catalog_list', userId, { listId, ...(listName && { listName }) });
-      result = await fetchListCatalog(user, listId, fetchSkip, showRatings, sort, includeGenre, decade);
+      // Public lists don't need the user session. Fall back to the authenticated
+      // fetch only when the public one fails (private list, or a transient error).
+      try {
+        result = await fetchListCatalogPublic(listId, fetchSkip, showRatings, sort, includeGenre, decade);
+      } catch (err) {
+        logger.info({ listId, err }, 'Public list fetch failed — falling back to user session');
+        result = await fetchListCatalog(user, listId, fetchSkip, showRatings, sort, includeGenre, decade);
+      }
     } else if (baseCatalogId.startsWith('letterboxd-contributor-')) {
       const m = baseCatalogId.match(/^letterboxd-contributor-([das])-([A-Za-z0-9]+)$/);
       if (m && preferences?.contributors?.some((c) => c.t === m[1] && c.id === m[2])) {

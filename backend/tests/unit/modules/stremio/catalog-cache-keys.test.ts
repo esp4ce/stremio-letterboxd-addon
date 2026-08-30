@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import {
   cacheKeyWatchlist,
   cacheKeyDiary,
@@ -13,7 +13,14 @@ import {
   cacheKeyPublicContributor,
   cacheKeyReco,
   filterSuffix,
+  getFullCatalogFromCache,
 } from '../../../../src/modules/stremio/catalog/catalog-cache-keys.js';
+import {
+  publicWatchlistCache,
+  likedFilmsCache,
+  userCatalogCache,
+} from '../../../../src/lib/cache.js';
+import type { StremioMeta } from '../../../../src/modules/stremio/catalog.service.js';
 
 describe('catalog-cache-keys', () => {
   describe('filterSuffix', () => {
@@ -140,6 +147,36 @@ describe('catalog-cache-keys', () => {
     it('public contributor key keeps its historical format', () => {
       expect(cacheKeyPublicContributor('d', 'xyz', true)).toBe('contrib:d:xyz:true:default');
       expect(cacheKeyPublicContributor('a', 'xyz', false, 'FilmPopularity')).toBe('contrib:a:xyz:false:FilmPopularity');
+    });
+  });
+
+  describe('getFullCatalogFromCache — own catalogs served from the public cache', () => {
+    const metas: StremioMeta[] = [{ id: 'tt1', type: 'movie', name: 'A' }];
+
+    afterEach(() => {
+      publicWatchlistCache.clear();
+      likedFilmsCache.clear();
+      userCatalogCache.clear();
+    });
+
+    it('reads the public watchlist cache when extMemberId is provided', () => {
+      publicWatchlistCache.set(cacheKeyPublicWatchlist('member-9', true), { metas });
+
+      expect(getFullCatalogFromCache('letterboxd-watchlist', 'user-9', true, undefined, 'member-9')).toEqual(metas);
+      // Without the member id it can only see the (empty) authenticated cache.
+      expect(getFullCatalogFromCache('letterboxd-watchlist', 'user-9', true)).toBeUndefined();
+    });
+
+    it('reads the public liked-films cache when extMemberId is provided', () => {
+      likedFilmsCache.set(cacheKeyPublicLiked('member-9', true), { metas });
+
+      expect(getFullCatalogFromCache('letterboxd-liked-films', 'user-9', true, undefined, 'member-9')).toEqual(metas);
+    });
+
+    it('falls back to the authenticated cache when the public one misses', () => {
+      userCatalogCache.set(cacheKeyWatchlist('user-9', true), { metas });
+
+      expect(getFullCatalogFromCache('letterboxd-watchlist', 'user-9', true, undefined, 'member-9')).toEqual(metas);
     });
   });
 

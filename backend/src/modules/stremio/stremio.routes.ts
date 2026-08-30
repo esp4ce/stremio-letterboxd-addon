@@ -3,11 +3,13 @@ import {
   findUserById,
   findUserByLetterboxdUsername,
   getUserPreferences,
+  type UserPreferences,
 } from '../../db/repositories/user.repository.js';
 import {
   FilmRelationshipUpdate,
   getList as rawGetList,
   getMember as rawGetMember,
+  type UserList,
 } from '../letterboxd/letterboxd.client.js';
 import {
   generateManifest,
@@ -44,7 +46,7 @@ import { handlePublicCatalogRequest, resolveMemberId, fetchPopularCatalogPublic,
 import { parseCombinedFilter, filterUnreleasedFilms, sliceReleased } from './catalog/catalog-filter.js';
 import { getFullPublicCatalogFromCache } from './catalog/catalog-cache-keys.js';
 import { sendHtml, buildErrorPage, buildActionSuccessPage, buildRatingPage } from './action/action-html.js';
-import { createClientForUser } from './user-client.service.js';
+import { createClientForUser, SessionExpiredError } from './user-client.service.js';
 
 const logger = createChildLogger('stremio-routes');
 
@@ -110,6 +112,22 @@ async function resolveListNames(listIds: string[]): Promise<Map<string, string>>
     }),
   );
   return names;
+}
+
+/** Resolve friendly names for sort-variant lists that aren't in the fetched or external list sets. */
+async function resolveOrphanListNames(
+  preferences: UserPreferences | null,
+  lists: UserList[],
+): Promise<Map<string, string> | undefined> {
+  const orphanListIds = Object.keys(preferences?.sortVariants || {})
+    .filter((k) => k.startsWith('letterboxd-list-'))
+    .map((k) => k.slice('letterboxd-list-'.length))
+    .filter(
+      (id) =>
+        !preferences?.externalLists.some((e) => e.id === id) &&
+        !lists.some((l) => l.id === id),
+    );
+  return orphanListIds.length > 0 ? resolveListNames(orphanListIds) : undefined;
 }
 
 function resolveContributorNames(
@@ -372,16 +390,7 @@ export async function stremioRoutes(app: FastifyInstance) {
       try {
         const lists = await fetchUserLists(user);
         const preferences = getUserPreferences(user);
-        const orphanListIds = Object.keys(preferences?.sortVariants || {})
-          .filter((k) => k.startsWith('letterboxd-list-'))
-          .map((k) => k.slice('letterboxd-list-'.length))
-          .filter(
-            (id) =>
-              !preferences?.externalLists.some((e) => e.id === id) &&
-              !lists.some((l) => l.id === id),
-          );
-        const orphanListNames =
-          orphanListIds.length > 0 ? await resolveListNames(orphanListIds) : undefined;
+        const orphanListNames = await resolveOrphanListNames(preferences, lists);
         const manifest = generateDynamicManifest(
           { username: user.letterboxd_username, displayName: user.letterboxd_display_name },
           lists,
@@ -395,6 +404,18 @@ export async function stremioRoutes(app: FastifyInstance) {
         );
         return manifest;
       } catch (error) {
+        // Session expired: keep external lists + preferences instead of the static manifest.
+        const preferences = getUserPreferences(user);
+        if (error instanceof SessionExpiredError && preferences) {
+          logger.warn({ userId }, 'Session expired — dynamic manifest without own lists');
+          const orphanListNames = await resolveOrphanListNames(preferences, []);
+          return generateDynamicManifest(
+            { username: user.letterboxd_username, displayName: user.letterboxd_display_name },
+            [],
+            preferences,
+            orphanListNames,
+          );
+        }
         logger.error({ error, userId }, 'Failed to fetch user lists, using static manifest');
         return generateManifest({
           username: user.letterboxd_username,

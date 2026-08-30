@@ -136,14 +136,24 @@ export function getFullCatalogFromCache(
   includeGenre?: string[],
   decade?: number,
 ): StremioMeta[] | undefined {
-  if (catalogId === 'letterboxd-watchlist')
-    return userCatalogCache.get(cacheKeyWatchlist(userId, showRatings, sort, includeGenre, decade))?.metas;
+  // `extMemberId` is set for own catalogs served from the public path after a
+  // session expiry — check that cache before the authenticated one.
+  if (catalogId === 'letterboxd-watchlist') {
+    const pub = extMemberId
+      ? publicWatchlistCache.get(cacheKeyPublicWatchlist(extMemberId, showRatings, sort, includeGenre, decade))?.metas
+      : undefined;
+    return pub ?? userCatalogCache.get(cacheKeyWatchlist(userId, showRatings, sort, includeGenre, decade))?.metas;
+  }
   if (catalogId === 'letterboxd-diary')
     return userCatalogCache.get(cacheKeyDiary(userId, showRatings, sort))?.metas;
   if (catalogId === 'letterboxd-friends')
     return userCatalogCache.get(cacheKeyFriends(userId, showRatings))?.metas;
-  if (catalogId === 'letterboxd-liked-films')
-    return userCatalogCache.get(cacheKeyLiked(userId, showRatings, sort, includeGenre, decade))?.metas;
+  if (catalogId === 'letterboxd-liked-films') {
+    const pub = extMemberId
+      ? likedFilmsCache.get(cacheKeyPublicLiked(extMemberId, showRatings, sort, includeGenre, decade))?.metas
+      : undefined;
+    return pub ?? userCatalogCache.get(cacheKeyLiked(userId, showRatings, sort, includeGenre, decade))?.metas;
+  }
   if (catalogId === 'letterboxd-recommended')
     return recommendationCache.get(cacheKeyReco(userId, sort))?.metas;
   if (catalogId === 'letterboxd-popular')
@@ -156,9 +166,11 @@ export function getFullCatalogFromCache(
     )?.metas;
   if (catalogId.startsWith('letterboxd-list-')) {
     const listId = catalogId.replace('letterboxd-list-', '');
-    return userCatalogCache.get(
-      cacheKeyList(userId, listId, showRatings, sort, includeGenre, decade),
-    )?.metas;
+    // Public-first path, then the authenticated cache for private lists.
+    return (
+      publicListCache.get(cacheKeyPublicList(listId, showRatings, sort, includeGenre, decade))?.metas ??
+      userCatalogCache.get(cacheKeyList(userId, listId, showRatings, sort, includeGenre, decade))?.metas
+    );
   }
   // Contributor catalogs share the public cache even on the authenticated path.
   const contrib = catalogId.match(/^letterboxd-contributor-([das])-([A-Za-z0-9]+)$/);
