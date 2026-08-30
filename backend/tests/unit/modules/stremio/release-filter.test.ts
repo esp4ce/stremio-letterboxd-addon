@@ -28,6 +28,7 @@ function makeMeta(overrides: Partial<StremioMeta> = {}): StremioMeta {
 
 const future = new Date(Date.now() + 90 * 864e5).toISOString().slice(0, 10);
 const past = '2020-01-01';
+const recentPast = new Date(Date.now() - 180 * 864e5).toISOString().slice(0, 10);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -81,15 +82,26 @@ describe('filterFilmsByReleaseData — hideUnreleased (#77)', () => {
 });
 
 describe('filterFilmsByReleaseData — hideNoHomeRelease (#90)', () => {
-  it('masque un film sans sortie numérique/physique/TV', async () => {
+  it('masque un film récent sans sortie numérique/physique/TV', async () => {
     mockReleaseDates.mockResolvedValue([
-      { iso_3166_1: 'US', release_dates: [{ type: 3, release_date: past }] },
+      { iso_3166_1: 'US', release_dates: [{ type: 3, release_date: recentPast }] },
     ]);
     const result = await filterFilmsByReleaseData([makeMeta()], {
       hideUnreleased: false,
       hideNoHomeRelease: true,
     });
     expect(result).toHaveLength(0);
+  });
+
+  it('garde un vieux film même sans entrée de sortie home dans TMDB', async () => {
+    mockReleaseDates.mockResolvedValue([
+      { iso_3166_1: 'US', release_dates: [{ type: 3, release_date: '2005-01-01' }] },
+    ]);
+    const result = await filterFilmsByReleaseData([makeMeta()], {
+      hideUnreleased: false,
+      hideNoHomeRelease: true,
+    });
+    expect(result).toHaveLength(1);
   });
 
   it('garde un film avec une sortie numérique passée dans n’importe quel pays', async () => {

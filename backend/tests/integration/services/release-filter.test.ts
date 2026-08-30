@@ -15,6 +15,7 @@ import type { StremioMeta } from '../../../src/modules/stremio/catalog.service.j
 const TMDB = 'https://api.themoviedb.org/3';
 const currentYear = new Date().getFullYear();
 const future = new Date(Date.now() + 120 * 864e5).toISOString().slice(0, 10);
+const recentPast = new Date(Date.now() - 200 * 864e5).toISOString().slice(0, 10);
 
 function meta(id: string, year?: number): StremioMeta {
   return { id, type: 'movie', name: id, year: year ?? 2019 };
@@ -55,8 +56,8 @@ describe('filterFilmsByReleaseData (intégration MSW / TMDB)', () => {
         HttpResponse.json({
           results:
             params['id'] === '1'
-              ? [{ iso_3166_1: 'FR', release_dates: [{ type: 4, release_date: '2020-05-01T00:00:00.000Z' }] }]
-              : [{ iso_3166_1: 'US', release_dates: [{ type: 3, release_date: '2020-01-01T00:00:00.000Z' }] }],
+              ? [{ iso_3166_1: 'FR', release_dates: [{ type: 4, release_date: `${recentPast}T00:00:00.000Z` }] }]
+              : [{ iso_3166_1: 'US', release_dates: [{ type: 3, release_date: `${recentPast}T00:00:00.000Z` }] }],
         }),
       ),
     );

@@ -17,6 +17,13 @@ const HOME_RELEASE_TYPES = new Set([4, 5, 6]);
 /** Concurrence des lookups TMDB (le client applique déjà son propre sémaphore global). */
 const LOOKUP_CONCURRENCY = 10;
 
+/**
+ * Passé ce délai après la première sortie, on considère qu'un film a une sortie
+ * "home" même si TMDB ne la liste pas : les films anciens sont dispos en numérique
+ * / physique mais leurs entrées TMDB type 4/5/6 sont souvent absentes.
+ */
+const HOME_RELEASE_GRACE_MS = 2 * 365 * 24 * 60 * 60 * 1000;
+
 export interface ReleaseFilterOptions {
   /** Masquer les films dont la date de sortie réelle est dans le futur (issue #77). */
   hideUnreleased: boolean;
@@ -93,7 +100,8 @@ async function getReleaseInfo(imdbId: string, apiKey: string): Promise<ReleaseDa
  *   Si aucune date TMDB n'est disponible pour ce film, on retombe sur le filtre
  *   annuel historique (`filterUnreleasedFilms`) pour ne pas sur-filtrer.
  * - #90 : un film sans sortie numérique / physique / TV effective → masqué.
- *   Si aucune donnée TMDB n'est disponible, le film est conservé (fallback gracieux).
+ *   Si aucune donnée TMDB n'est disponible, ou si le film est sorti il y a plus de
+ *   deux ans (TMDB liste rarement les sorties home des vieux films), il est conservé.
  *
  * Si aucune option n'est active, la liste est renvoyée telle quelle.
  * Si la clé API TMDB est absente, on retombe entièrement sur le filtre annuel
@@ -133,7 +141,10 @@ export async function filterFilmsByReleaseData(
         const ts = Date.parse(d);
         return !Number.isNaN(ts) && ts <= now;
       });
-      if (!hasHomeRelease) continue;
+      const releasedLongAgo =
+        info.earliestRelease !== null &&
+        now - Date.parse(info.earliestRelease) > HOME_RELEASE_GRACE_MS;
+      if (!hasHomeRelease && !releasedLongAgo) continue;
     }
 
     kept.push(meta);
