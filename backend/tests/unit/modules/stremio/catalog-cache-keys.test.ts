@@ -8,6 +8,9 @@ import {
   cacheKeyPopular,
   cacheKeyTop250,
   cacheKeyPublicWatchlist,
+  cacheKeyPublicList,
+  cacheKeyPublicLiked,
+  cacheKeyPublicContributor,
   cacheKeyReco,
   filterSuffix,
 } from '../../../../src/modules/stremio/catalog/catalog-cache-keys.js';
@@ -119,6 +122,24 @@ describe('catalog-cache-keys', () => {
 
       expect(key).toContain('user-1');
       expect(key).toContain('FilmName');
+    });
+  });
+
+  describe('public list / liked / contributor keys', () => {
+    it('public list key keeps its historical format', () => {
+      expect(cacheKeyPublicList('abc', true, 'FilmName')).toBe('list:abc:true:FilmName');
+      expect(cacheKeyPublicList('abc', false)).toBe('list:abc:false:default');
+      expect(cacheKeyPublicList('abc', true, undefined, ['7I'], 1990)).toBe('list:abc:true:default:g:7I:d:1990');
+    });
+
+    it('public liked key keeps its historical format', () => {
+      expect(cacheKeyPublicLiked('m1', true)).toBe('liked:m1:true:default');
+      expect(cacheKeyPublicLiked('m1', false, 'DateLatestFirst')).toBe('liked:m1:false:DateLatestFirst');
+    });
+
+    it('public contributor key keeps its historical format', () => {
+      expect(cacheKeyPublicContributor('d', 'xyz', true)).toBe('contrib:d:xyz:true:default');
+      expect(cacheKeyPublicContributor('a', 'xyz', false, 'FilmPopularity')).toBe('contrib:a:xyz:false:FilmPopularity');
     });
   });
 

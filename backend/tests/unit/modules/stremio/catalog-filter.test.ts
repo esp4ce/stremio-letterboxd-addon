@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterUnreleasedFilms, parseExtra, parseCombinedFilter } from '../../../../src/modules/stremio/catalog/catalog-filter.js';
+import { filterUnreleasedFilms, sliceReleased, parseExtra, parseCombinedFilter } from '../../../../src/modules/stremio/catalog/catalog-filter.js';
 import type { StremioMeta } from '../../../../src/modules/stremio/catalog.service.js';
 
 function makeMeta(overrides: Partial<StremioMeta> = {}): StremioMeta {
@@ -56,6 +56,31 @@ describe('filterUnreleasedFilms', () => {
     const result = filterUnreleasedFilms(metas, true);
 
     expect(result).toHaveLength(1);
+  });
+});
+
+describe('sliceReleased', () => {
+  const currentYear = new Date().getFullYear();
+  // 20 films, un sur cinq non sorti (indices 4, 9, 14, 19) → 16 sortis
+  const full = Array.from({ length: 20 }, (_, i) =>
+    makeMeta({ id: `tt${i}`, year: i % 5 === 4 ? currentYear + 3 : 2000 }),
+  );
+
+  it('pagine sur la liste filtrée, pas sur la liste brute', () => {
+    const page1 = sliceReleased(full, 0, 10, true);
+    const page2 = sliceReleased(full, 10, 10, true);
+
+    expect(page1).toHaveLength(10);
+    expect(page2).toHaveLength(6);
+
+    const ids = [...page1, ...page2].map((m) => m.id);
+    expect(new Set(ids).size).toBe(16); // ni doublon, ni trou
+    expect([...page1, ...page2].every((m) => m.year! <= currentYear)).toBe(true);
+  });
+
+  it('reste un simple découpage quand hideUnreleased est faux', () => {
+    expect(sliceReleased(full, 0, 10, false)).toHaveLength(10);
+    expect(sliceReleased(full, 10, 10, false)).toHaveLength(10);
   });
 });
 

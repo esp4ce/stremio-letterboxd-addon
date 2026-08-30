@@ -40,8 +40,9 @@ import { verifyAction } from '../../lib/action-sign.js';
 // ─── Sub-modules ──────────────────────────────────────────────────────────────
 
 import { handleCatalogRequest, fetchUserLists } from './catalog/catalog-fetcher.service.js';
-import { handlePublicCatalogRequest, resolveMemberId, fetchPopularCatalogPublic, fetchTop250CatalogPublic } from './catalog/public-catalog-fetcher.service.js';
-import { parseCombinedFilter, filterUnreleasedFilms } from './catalog/catalog-filter.js';
+import { handlePublicCatalogRequest, resolveMemberId, fetchPopularCatalogPublic, fetchTop250CatalogPublic, CATALOG_PAGE_SIZE } from './catalog/public-catalog-fetcher.service.js';
+import { parseCombinedFilter, filterUnreleasedFilms, sliceReleased } from './catalog/catalog-filter.js';
+import { getFullPublicCatalogFromCache } from './catalog/catalog-cache-keys.js';
 import { sendHtml, buildErrorPage, buildActionSuccessPage, buildRatingPage } from './action/action-html.js';
 import { createClientForUser } from './user-client.service.js';
 
@@ -192,7 +193,9 @@ export async function stremioRoutes(app: FastifyInstance) {
       const { skip, sort, isShuffle, isReleasedOnly, includeGenre, decade } = parseCombinedFilter(request.params.extra);
       const effectiveSort = isShuffle ? 'Shuffle' : sort;
       const { metas } = await fetchPopularCatalogPublic(skip, true, effectiveSort, includeGenre, decade);
-      return { metas: filterUnreleasedFilms(metas, isReleasedOnly) };
+      if (!isReleasedOnly) return { metas };
+      const full = getFullPublicCatalogFromCache('letterboxd-popular', true, effectiveSort, undefined, includeGenre, decade);
+      return { metas: full ? sliceReleased(full, skip, CATALOG_PAGE_SIZE, true) : filterUnreleasedFilms(metas, true) };
     },
   );
 
@@ -210,7 +213,9 @@ export async function stremioRoutes(app: FastifyInstance) {
       const { skip, sort, isShuffle, isReleasedOnly, includeGenre, decade } = parseCombinedFilter(request.params.extra);
       const effectiveSort = isShuffle ? 'Shuffle' : sort;
       const { metas } = await fetchTop250CatalogPublic(skip, true, effectiveSort, includeGenre, decade);
-      return { metas: filterUnreleasedFilms(metas, isReleasedOnly) };
+      if (!isReleasedOnly) return { metas };
+      const full = getFullPublicCatalogFromCache('letterboxd-top250', true, effectiveSort, undefined, includeGenre, decade);
+      return { metas: full ? sliceReleased(full, skip, CATALOG_PAGE_SIZE, true) : filterUnreleasedFilms(metas, true) };
     },
   );
 

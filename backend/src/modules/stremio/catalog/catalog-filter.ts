@@ -86,3 +86,19 @@ export function filterUnreleasedFilms(metas: StremioMeta[], hideUnreleased: bool
   const currentYear = new Date().getFullYear();
   return metas.filter((m) => m.year !== undefined && m.year <= currentYear);
 }
+
+/**
+ * Filter unreleased films on the FULL catalog, then slice the requested page.
+ *
+ * Order matters: filtering after the slice returns pages shorter than `pageSize`,
+ * which drifts the pagination of clients that add up the item counts they receive
+ * (duplicate or missing items at the top of the catalog).
+ */
+export function sliceReleased(
+  fullMetas: StremioMeta[],
+  skip: number,
+  pageSize: number,
+  hideUnreleased: boolean,
+): StremioMeta[] {
+  return filterUnreleasedFilms(fullMetas, hideUnreleased).slice(skip, skip + pageSize);
+}

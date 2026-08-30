@@ -36,14 +36,17 @@ import {
   cacheKeyPopular,
   cacheKeyTop250,
   cacheKeyPublicWatchlist,
-  filterSuffix,
+  cacheKeyPublicList,
+  cacheKeyPublicLiked,
+  cacheKeyPublicContributor,
+  getFullPublicCatalogFromCache,
 } from './catalog-cache-keys.js';
-import { parseCombinedFilter, shuffleArray, filterUnreleasedFilms, parseExtra } from './catalog-filter.js';
+import { parseCombinedFilter, shuffleArray, filterUnreleasedFilms, sliceReleased, parseExtra } from './catalog-filter.js';
 
 const logger = createChildLogger('public-catalog-fetcher');
 
 // Stremio expects pages of this size
-const CATALOG_PAGE_SIZE = 100;
+export const CATALOG_PAGE_SIZE = 100;
 
 // Top 250 Narrative Feature Films list by Dave (LID)
 const TOP_250_LIST_ID = '8HjM';
@@ -190,7 +193,7 @@ export async function fetchListCatalogPublic(
   includeGenre?: string[],
   decade?: number,
 ): Promise<{ metas: StremioMeta[] }> {
-  const cacheKey = `list:${listId}:${showRatings}:${sort || 'default'}${filterSuffix(includeGenre, decade)}`;
+  const cacheKey = cacheKeyPublicList(listId, showRatings, sort, includeGenre, decade);
   const cached = publicListCache.get(cacheKey);
   if (cached) {
     return { metas: cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE) };
@@ -230,7 +233,7 @@ export async function fetchLikedFilmsCatalogPublic(
 ): Promise<{ metas: StremioMeta[] }> {
   const isShuffle = sort === 'Shuffle';
   const effectiveSort = isShuffle ? 'DateLatestFirst' : (sort || 'DateLatestFirst');
-  const cacheKey = `liked:${memberId}:${showRatings}:${sort || 'default'}${filterSuffix(includeGenre, decade)}`;
+  const cacheKey = cacheKeyPublicLiked(memberId, showRatings, sort, includeGenre, decade);
   const cached = likedFilmsCache.get(cacheKey);
   if (cached) {
     return { metas: cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE) };
@@ -284,7 +287,7 @@ export async function fetchContributorCatalogPublic(
   sort?: string,
 ): Promise<{ metas: StremioMeta[] }> {
   const apiType = CONTRIBUTOR_KIND_TO_API[kind];
-  const cacheKey = `contrib:${kind}:${contribId}:${showRatings}:${sort || 'default'}`;
+  const cacheKey = cacheKeyPublicContributor(kind, contribId, showRatings, sort);
   const cached = publicContributorCache.get(cacheKey);
   if (cached) {
     return { metas: cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE) };
@@ -358,6 +361,9 @@ export async function handlePublicCatalogRequest(
     }
 
     let result: { metas: StremioMeta[] } | null = null;
+    // Member ID effectivement interrogé (watchlist/liked propres ou externes), pour
+    // retrouver le catalogue complet en cache lors du filtrage.
+    let resolvedMemberId: string | null | undefined = memberId;
 
     const inSortVariants = (id: string): boolean => !!cfg.s?.[id]?.length;
 
@@ -379,6 +385,7 @@ export async function handlePublicCatalogRequest(
         trackEvent('catalog_watchlist', undefined, { externalUsername: username });
         const extMemberId = await resolveMemberId(username);
         if (extMemberId) {
+          resolvedMemberId = extMemberId;
           result = await fetchWatchlistCatalogPublic(extMemberId, skip, showRatings, sort, includeGenre, decade);
         }
       }
@@ -403,7 +410,21 @@ export async function handlePublicCatalogRequest(
 
     if (!result) return { metas: [] };
 
-    result = { metas: filterUnreleasedFilms(result.metas, hideUnreleased) };
+    if (hideUnreleased) {
+      // Filter the full catalog then re-paginate; filtering the sliced page
+      // returns short pages and drifts the client's pagination.
+      const full = getFullPublicCatalogFromCache(
+        baseCatalogId,
+        showRatings,
+        sort,
+        resolvedMemberId,
+        includeGenre,
+        decade,
+      );
+      result = full
+        ? { metas: sliceReleased(full, skip, CATALOG_PAGE_SIZE, true) }
+        : { metas: filterUnreleasedFilms(result.metas, true) };
+    }
     result = { metas: await enrichMetasWithCinemeta(result.metas) };
     return result;
   } catch (error) {

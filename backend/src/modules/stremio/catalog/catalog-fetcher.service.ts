@@ -650,8 +650,10 @@ export async function handleCatalogRequest(
       return { metas: [] };
     }
 
-    // "Not Watched" filter: get full catalog, remove watched films, re-paginate
-    if (isNotWatched) {
+    // "Not Watched" and "unreleased films" filters run on the full catalog before
+    // re-pagination; filtering the already-sliced page returns short pages and
+    // drifts the client's pagination (duplicate or missing items at the top).
+    if (isNotWatched || hideUnreleased) {
       const fullMetas = getFullCatalogFromCache(
         baseCatalogId,
         user.id,
@@ -662,17 +664,22 @@ export async function handleCatalogRequest(
         decade,
       );
       if (fullMetas) {
-        const watchedIds = await getWatchedImdbIds(user);
-        const filtered = fullMetas.filter((m) => !watchedIds.has(m.id));
-        logger.info(
-          { catalogId: baseCatalogId, total: fullMetas.length, filtered: filtered.length, watched: watchedIds.size },
-          'Not Watched filter applied',
-        );
+        let filtered = fullMetas;
+        if (isNotWatched) {
+          const watchedIds = await getWatchedImdbIds(user);
+          filtered = filtered.filter((m) => !watchedIds.has(m.id));
+          logger.info(
+            { catalogId: baseCatalogId, total: fullMetas.length, filtered: filtered.length, watched: watchedIds.size },
+            'Not Watched filter applied',
+          );
+        }
+        filtered = filterUnreleasedFilms(filtered, hideUnreleased);
         result = { metas: filtered.slice(skip, skip + CATALOG_PAGE_SIZE) };
+      } else if (hideUnreleased) {
+        result = { metas: filterUnreleasedFilms(result.metas, true) };
       }
     }
 
-    result = { metas: filterUnreleasedFilms(result.metas, hideUnreleased) };
     result = { metas: await enrichMetasWithCinemeta(result.metas) };
     return result;
   } catch (error) {

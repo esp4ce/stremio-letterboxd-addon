@@ -4,6 +4,9 @@ import {
   popularCatalogCache,
   top250CatalogCache,
   publicWatchlistCache,
+  publicListCache,
+  publicContributorCache,
+  likedFilmsCache,
   recommendationCache,
 } from '../../../lib/cache.js';
 
@@ -89,6 +92,35 @@ export function cacheKeyPublicWatchlist(
   return `watchlist:${memberId}:${showRatings}:${sort || 'default'}${filterSuffix(genre, decade)}`;
 }
 
+export function cacheKeyPublicList(
+  listId: string,
+  showRatings: boolean,
+  sort?: string,
+  genre?: string[],
+  decade?: number,
+): string {
+  return `list:${listId}:${showRatings}:${sort || 'default'}${filterSuffix(genre, decade)}`;
+}
+
+export function cacheKeyPublicLiked(
+  memberId: string,
+  showRatings: boolean,
+  sort?: string,
+  genre?: string[],
+  decade?: number,
+): string {
+  return `liked:${memberId}:${showRatings}:${sort || 'default'}${filterSuffix(genre, decade)}`;
+}
+
+export function cacheKeyPublicContributor(
+  kind: string,
+  contribId: string,
+  showRatings: boolean,
+  sort?: string,
+): string {
+  return `contrib:${kind}:${contribId}:${showRatings}:${sort || 'default'}`;
+}
+
 // ─── Full catalog lookup from cache ──────────────────────────────────────────
 
 /**
@@ -128,5 +160,44 @@ export function getFullCatalogFromCache(
       cacheKeyList(userId, listId, showRatings, sort, includeGenre, decade),
     )?.metas;
   }
+  // Contributor catalogs share the public cache even on the authenticated path.
+  const contrib = catalogId.match(/^letterboxd-contributor-([das])-([A-Za-z0-9]+)$/);
+  if (contrib)
+    return publicContributorCache.get(
+      cacheKeyPublicContributor(contrib[1]!, contrib[2]!, showRatings, sort),
+    )?.metas;
+  return undefined;
+}
+
+/**
+ * Lit le catalogue complet (non paginé) depuis le cache public correspondant.
+ * Renvoie undefined si absent — l'appelant doit alors se rabattre sur la page déjà servie.
+ */
+export function getFullPublicCatalogFromCache(
+  catalogId: string,
+  showRatings: boolean,
+  sort?: string,
+  memberId?: string | null,
+  includeGenre?: string[],
+  decade?: number,
+): StremioMeta[] | undefined {
+  if (catalogId === 'letterboxd-popular')
+    return popularCatalogCache.get(cacheKeyPopular(showRatings, sort, includeGenre, decade))?.metas;
+  if (catalogId === 'letterboxd-top250')
+    return top250CatalogCache.get(cacheKeyTop250(showRatings, sort, includeGenre, decade))?.metas;
+  if (catalogId === 'letterboxd-liked-films' && memberId)
+    return likedFilmsCache.get(
+      cacheKeyPublicLiked(memberId, showRatings, sort, includeGenre, decade),
+    )?.metas;
+  if ((catalogId === 'letterboxd-watchlist' || catalogId.startsWith('letterboxd-watchlist-')) && memberId)
+    return publicWatchlistCache.get(
+      cacheKeyPublicWatchlist(memberId, showRatings, sort, includeGenre, decade),
+    )?.metas;
+  if (catalogId.startsWith('letterboxd-list-'))
+    return publicListCache.get(
+      cacheKeyPublicList(catalogId.replace('letterboxd-list-', ''), showRatings, sort, includeGenre, decade),
+    )?.metas;
+  const contrib = catalogId.match(/^letterboxd-contributor-([das])-([A-Za-z0-9]+)$/);
+  if (contrib) return publicContributorCache.get(cacheKeyPublicContributor(contrib[1]!, contrib[2]!, showRatings, sort))?.metas;
   return undefined;
 }
