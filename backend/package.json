@@ -26,7 +26,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.11",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.4.0",
     "@vitest/coverage-v8": "^4.1.11",
     "msw": "^2.15.0",
