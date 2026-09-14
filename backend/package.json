@@ -29,7 +29,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^26.5.1",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.0",
     "msw": "^2.15.0",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3",
