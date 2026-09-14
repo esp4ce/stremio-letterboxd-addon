@@ -369,7 +369,8 @@ function formatNumber(num: number): string {
 export interface LetterboxdStream {
   name: string;
   description: string;
-  externalUrl: string;
+  url?: string;
+  externalUrl?: string;
   behaviorHints: {
     notWebReady: true;
     bingeGroup: string;
@@ -377,8 +378,9 @@ export interface LetterboxdStream {
 }
 
 /**
- * Build Letterboxd info streams for cross-platform display.
- * Streams support \n in descriptions (white-space: pre) and work on all platforms.
+ * Build Letterboxd info & action streams.
+ * Actions use `url` pointing to backend endpoints that perform the action and
+ * return a tiny MP4 — works on TV clients (VortX etc.) where externalUrl is locked.
  */
 export async function buildLetterboxdStreams(
   client: AuthenticatedClient,
@@ -403,7 +405,7 @@ export async function buildLetterboxdStreams(
 
   const streams: LetterboxdStream[] = [];
 
-  // ── Stream 1: Rating & Status Info ──
+  // ── Stream 1: Rating & Status Info (view-only, opens Letterboxd page) ──
   if (showRatings) {
     const infoLines: string[] = [];
 
@@ -432,45 +434,56 @@ export async function buildLetterboxdStreams(
   }
 
   if (showActions) {
-    // ── Stream 2: Rate action ──
-    const encodedFilmName = encodeURIComponent(film.name);
-    if (rating.userRating !== null) {
+    const tok = signAction(userId, letterboxdFilmId, 'rate');
+    const actionToks = {
+      watched: signAction(userId, letterboxdFilmId, 'watched'),
+      liked: signAction(userId, letterboxdFilmId, 'liked'),
+      watchlist: signAction(userId, letterboxdFilmId, 'watchlist'),
+    };
+
+    // ── Rating streams: one per half-star value ──
+    const RATING_VALUES = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
+    for (const val of RATING_VALUES) {
+      const label = formatStars(val, false);
+      const isCurrentRating = rating.userRating === val;
       streams.push({
-        name: `★ ${rating.userRating.toFixed(1)}`,
-        description: 'Change your Letterboxd rating',
-        externalUrl: `${baseUrl}/action/${userId}/rate/${letterboxdFilmId}?imdb=${imdbId}&current=${rating.userRating}&name=${encodedFilmName}&tok=${signAction(userId, letterboxdFilmId, 'rate')}`,
-        behaviorHints: { notWebReady: true, bingeGroup },
-      });
-    } else {
-      streams.push({
-        name: '★ Rate',
-        description: 'Rate this film on Letterboxd',
-        externalUrl: `${baseUrl}/action/${userId}/rate/${letterboxdFilmId}?imdb=${imdbId}&name=${encodedFilmName}&tok=${signAction(userId, letterboxdFilmId, 'rate')}`,
+        name: `${isCurrentRating ? '▸ ' : ''}Rate ${label}`,
+        description: isCurrentRating ? 'Current rating' : `Rate ${val.toFixed(1)} on Letterboxd`,
+        url: `${baseUrl}/api/action/${userId}/rate/${letterboxdFilmId}/${val}?imdb=${imdbId}&tok=${tok}`,
         behaviorHints: { notWebReady: true, bingeGroup },
       });
     }
 
-    // ── Stream 3: Watched toggle ──
+    if (rating.userRating !== null) {
+      streams.push({
+        name: '✕ Remove Rating',
+        description: 'Remove your Letterboxd rating',
+        url: `${baseUrl}/api/action/${userId}/rate/${letterboxdFilmId}/remove?imdb=${imdbId}&tok=${tok}`,
+        behaviorHints: { notWebReady: true, bingeGroup },
+      });
+    }
+
+    // ── Watched toggle ──
     streams.push({
-      name: rating.watched ? '✓ Watched' : '○ Watch',
-      description: rating.watched ? 'Click to remove from watched' : 'Click to mark as watched',
-      externalUrl: `${baseUrl}/action/${userId}/watched/${letterboxdFilmId}?set=${!rating.watched}&imdb=${imdbId}&tok=${signAction(userId, letterboxdFilmId, 'watched')}`,
+      name: rating.watched ? '✓ Watched' : '○ Mark Watched',
+      description: rating.watched ? 'Remove from watched' : 'Mark as watched',
+      url: `${baseUrl}/api/action/${userId}/watched/${letterboxdFilmId}?set=${!rating.watched}&imdb=${imdbId}&tok=${actionToks.watched}`,
       behaviorHints: { notWebReady: true, bingeGroup },
     });
 
-    // ── Stream 4: Liked toggle ──
+    // ── Liked toggle ──
     streams.push({
       name: rating.liked ? '♥ Liked' : '♡ Like',
-      description: rating.liked ? 'Click to unlike' : 'Click to like on Letterboxd',
-      externalUrl: `${baseUrl}/action/${userId}/liked/${letterboxdFilmId}?set=${!rating.liked}&imdb=${imdbId}&tok=${signAction(userId, letterboxdFilmId, 'liked')}`,
+      description: rating.liked ? 'Remove like' : 'Like on Letterboxd',
+      url: `${baseUrl}/api/action/${userId}/liked/${letterboxdFilmId}?set=${!rating.liked}&imdb=${imdbId}&tok=${actionToks.liked}`,
       behaviorHints: { notWebReady: true, bingeGroup },
     });
 
-    // ── Stream 5: Watchlist toggle ──
+    // ── Watchlist toggle ──
     streams.push({
-      name: rating.inWatchlist ? 'In Watchlist' : '+ Watchlist',
-      description: rating.inWatchlist ? 'Click to remove from watchlist' : 'Click to add to watchlist',
-      externalUrl: `${baseUrl}/action/${userId}/watchlist/${letterboxdFilmId}?set=${!rating.inWatchlist}&imdb=${imdbId}&tok=${signAction(userId, letterboxdFilmId, 'watchlist')}`,
+      name: rating.inWatchlist ? '✓ In Watchlist' : '+ Watchlist',
+      description: rating.inWatchlist ? 'Remove from watchlist' : 'Add to watchlist',
+      url: `${baseUrl}/api/action/${userId}/watchlist/${letterboxdFilmId}?set=${!rating.inWatchlist}&imdb=${imdbId}&tok=${actionToks.watchlist}`,
       behaviorHints: { notWebReady: true, bingeGroup },
     });
   }
