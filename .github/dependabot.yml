@@ -1,8 +1,16 @@
 version: 2
+registries:
+  github-npm:
+    type: npm-registry
+    url: https://npm.pkg.github.com
+    token: ${{secrets.NPM_TOKEN}}
+
 updates:
   - package-ecosystem: npm
     directory: /backend
     target-branch: integration
+    registries:
+      - github-npm
     schedule:
       interval: weekly
       day: monday
