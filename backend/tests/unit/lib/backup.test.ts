@@ -1,4 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Lets a test pretend the live database is huge without writing gigabytes to disk.
+const fakeSizes = vi.hoisted(() => new Map<string, number>());
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    statSync: ((path: string, ...rest: unknown[]) => {
+      const st = (actual.statSync as (...a: unknown[]) => import('node:fs').Stats)(path, ...rest);
+      const size = typeof path === 'string' ? fakeSizes.get(path) : undefined;
+      return size === undefined ? st : new Proxy(st, { get: (t, k) => (k === 'size' ? size : Reflect.get(t, k)) });
+    }) as typeof actual.statSync,
+  };
+});
 import { envSchema } from '../../../src/config/env.schema.js';
 import Database from 'better-sqlite3';
 import { mkdtempSync, mkdirSync, rmSync, readdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
@@ -41,6 +55,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  fakeSizes.clear();
   vi.useRealTimers();
   if (db.open) db.close();
   rmSync(dir, { recursive: true, force: true });
@@ -280,12 +295,35 @@ describe('runBackup', () => {
     expect(existsSync(res.path!)).toBe(true);
   });
 
-  it('skips with no snapshot when free space is below 2x db size plus margin', async () => {
+  it('skips with no snapshot when free space is below the required threshold', async () => {
     const free = vi.fn().mockResolvedValue(0);
     const res = await runBackup(db, opts(), vi.fn() as unknown as typeof fetch, free);
     expect(res.ok).toBe(false);
     expect(res.skipped).toBe(true);
     expect(readdirSync(join(dir, 'backups'))).toEqual([]);
+  });
+
+  it('runs the backup with the exact prod numbers (free 3236851712, db ~1.49 GB)', async () => {
+    fakeSizes.set(db.name, 1_486_970_880);
+    const free = vi.fn().mockResolvedValue(3_236_851_712);
+    const res = await runBackup(db, opts(), vi.fn() as unknown as typeof fetch, free);
+    expect(res.skipped).toBeUndefined();
+    expect(res.ok).toBe(true);
+    expect(existsSync(res.path!)).toBe(true);
+  });
+
+  it('still skips when free space is really insufficient (1.2x db size)', async () => {
+    const dbBytes = 1_486_970_880;
+    fakeSizes.set(db.name, dbBytes);
+    const free = vi.fn().mockResolvedValue(Math.round(1.2 * dbBytes));
+    const res = await runBackup(db, opts(), vi.fn() as unknown as typeof fetch, free);
+    expect(res.ok).toBe(false);
+    expect(res.skipped).toBe(true);
+    expect(readdirSync(join(dir, 'backups'))).toEqual([]);
+  });
+
+  it('requires 1.5x db size plus 128 MiB', () => {
+    expect(requiredFreeBytes(1_000_000_000)).toBe(1_500_000_000 + 128 * 1024 * 1024);
   });
 
   it('rotates to keep-1 to make room, then proceeds if space suffices', async () => {
