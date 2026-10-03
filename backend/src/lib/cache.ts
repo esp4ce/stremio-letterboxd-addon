@@ -66,13 +66,13 @@ export interface FilmLookupCacheEntry {
   film: unknown; // LetterboxdFilm — stored as unknown to avoid circular import
 }
 export const filmLookupCache = createCache<FilmLookupCacheEntry>({
-  maxSize: 100,
+  maxSize: 5000,
   ttl: 60 * 60 * 1000, // 1 hour
 });
 
 // IMDb ID → Letterboxd ID mapping cache (populated from catalog fetches)
 export const imdbToLetterboxdCache = createCache<string>({
-  maxSize: 500,
+  maxSize: 20000,
   ttl: 60 * 60 * 1000, // 1 hour TTL
 });
 
@@ -103,14 +103,14 @@ export interface CinemetaFilmData {
 
 // Cinemeta cache (long TTL since this data rarely changes)
 export const cinemetaCache = createCache<CinemetaFilmData>({
-  maxSize: 200,
+  maxSize: 5000,
   ttl: 60 * 60 * 1000, // 1 hour
 });
 
 
 // Raw Cinemeta meta cache — stores the full unfiltered meta object for pass-through
 export const cinemetaRawCache = createCache<Record<string, unknown>>({
-  maxSize: 50,
+  maxSize: 2000,
   ttl: 60 * 60 * 1000, // 1 hour
 });
 
@@ -138,13 +138,13 @@ export const memberIdCache = createCache<string>({
 
 // Public watchlist cache (configurable TTL, default 5 min)
 export const publicWatchlistCache = createCache<{ metas: StremioMeta[] }>({
-  maxSize: 100,
+  maxSize: 300,
   ttl: cacheConfig.watchlistTtl,
 });
 
 // Public list catalog cache (5 minutes)
 export const publicListCache = createCache<{ metas: StremioMeta[] }>({
-  maxSize: 100,
+  maxSize: 300,
   ttl: 5 * 60 * 1000,
 });
 
@@ -198,7 +198,7 @@ export const userClientCache = createCache<{ client: AuthenticatedClient; expire
 // ── Per-user catalog cache (Tier 2) ────────────────────────────────────────
 
 export const userCatalogCache = createCache<{ metas: StremioMeta[] }>({
-  maxSize: 50,
+  maxSize: 500,
   ttl: 5 * 60 * 1000, // 5min — invalidateUserCatalogs() covers manual changes
   // Diary/Friends are live feeds fetched whole and paginated from one cached snapshot
   // (see fetchDiaryCatalog / fetchFriendsCatalog). Without this, a client that takes
