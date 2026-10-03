@@ -85,7 +85,7 @@ export async function loginUser(
   let letterboxdUser;
   try {
     letterboxdUser = await getCurrentUser(tokens.access_token);
-    logger.info({ letterboxdUser }, 'Letterboxd user profile received');
+    logger.info({ letterboxdId: letterboxdUser.member.id }, 'Letterboxd user profile received');
   } catch (error) {
     logger.error({ err: error, username }, 'Failed to fetch user profile');
     throw new AuthenticationError(
