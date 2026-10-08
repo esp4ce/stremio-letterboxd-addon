@@ -302,4 +302,29 @@ describe('native sync worker', () => {
       expect(row()).toBeUndefined();
     });
   });
+
+  it('does not spend the retry budget while billing is unreachable', async () => {
+    getEntitlementStatus.mockResolvedValue({ entitled: false, trustworthy: false });
+    enqueue('diary');
+    const makeDue = () => getDb().prepare('UPDATE native_sync_jobs SET next_attempt_at = ?').run(NOW.toISOString());
+    for (let i = 0; i < 5; i++) {
+      await processNextJob(NOW);
+      makeDue();
+    }
+    getEntitlementStatus.mockResolvedValue({ entitled: true, trustworthy: true });
+    client.createDiaryEntry.mockRejectedValue(new LetterboxdApiError(503, 'Service Unavailable'));
+    await processNextJob(NOW);
+    expect(row()).toMatchObject({ status: 'pending', last_error: 'upstream_error', next_attempt_at: '2026-10-08T12:01:00.000Z' });
+  });
+
+  it('stop gives up on a job that never settles', async () => {
+    vi.useFakeTimers({ now: NOW });
+    getEntitlementStatus.mockReturnValue(new Promise(() => {}));
+    enqueue('diary');
+    const stop = startNativeSyncWorker();
+    vi.advanceTimersByTime(2000);
+    const stopping = stop();
+    await vi.advanceTimersByTimeAsync(10_000);
+    await expect(stopping).resolves.toBeUndefined();
+  });
 });

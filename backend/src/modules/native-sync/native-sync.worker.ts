@@ -8,6 +8,7 @@ import {
   purgeJobs,
   resetStaleProcessing,
   scheduleRetry,
+  scheduleRetryKeepingAttempts,
   type NativeSyncJob,
 } from '../../db/repositories/native-sync-job.repository.js';
 import { getEntitlementStatus } from '../billing/billing.service.js';
@@ -21,6 +22,7 @@ import { createChildLogger } from '../../lib/logger.js';
 const logger = createChildLogger('native-sync-worker');
 
 export const TICK_MS = 2000;
+const STOP_WAIT_MS = 10_000;
 const PURGE_EVERY_MS = 60 * 60 * 1000;
 export const RETRY_DELAYS_MS = [60_000, 300_000, 1_800_000];
 const ENTITLEMENT_RETRY_MS = 30 * 60 * 1000;
@@ -98,10 +100,11 @@ export async function processNextJob(now: Date = new Date()): Promise<'idle' | '
     logger.info({ userId: job.userId, outcome }, 'Native sync job finished');
   } catch (err) {
     const failure = classify(err);
+    const outage = failure instanceof RetryableError && failure.reason === 'entitlement_unavailable';
     let delay: number | undefined;
     if (failure instanceof RetryableError) {
-      if (failure.reason === 'entitlement_unavailable') {
-        // A billing outage must not cost a paying member their watch: keep trying for a day.
+      if (outage) {
+        // A billing outage must not cost a paying member their watch, nor their retry budget: keep trying for a day.
         const age = now.getTime() - new Date(job.occurredAt).getTime();
         delay = age <= ENTITLEMENT_GIVE_UP_MS ? ENTITLEMENT_RETRY_MS : undefined;
       } else {
@@ -109,7 +112,9 @@ export async function processNextJob(now: Date = new Date()): Promise<'idle' | '
       }
     }
     if (failure instanceof RetryableError && delay !== undefined) {
-      scheduleRetry(job.id, new Date(now.getTime() + delay), failure.reason);
+      const at = new Date(now.getTime() + delay);
+      if (outage) scheduleRetryKeepingAttempts(job.id, at, failure.reason);
+      else scheduleRetry(job.id, at, failure.reason);
       logger.warn({ userId: job.userId, reason: failure.reason, attempt: job.attempts }, 'Native sync job will retry');
     } else {
       markFailed(job.id, failure.reason);
@@ -124,7 +129,7 @@ export async function processNextJob(now: Date = new Date()): Promise<'idle' | '
  * One job per tick so Native Sync never crowds out catalogue requests.
  * Returns a stop function whose promise settles once any in-flight job has finished.
  */
-export function startNativeSyncWorker(): () => Promise<void> {
+export function startNativeSyncWorker(): (timeoutMs?: number) => Promise<void> {
   const reset = resetStaleProcessing();
   if (reset > 0) logger.info({ reset }, 'Requeued native sync jobs interrupted by a restart');
 
@@ -146,9 +151,19 @@ export function startNativeSyncWorker(): () => Promise<void> {
 
   const purge = setInterval(runPurge, PURGE_EVERY_MS);
 
-  return async () => {
+  return async (timeoutMs = STOP_WAIT_MS) => {
     clearInterval(tick);
     clearInterval(purge);
-    if (inflight) await inflight;
+    if (!inflight) return;
+    let timer: NodeJS.Timeout | undefined;
+    const bound = new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, timeoutMs);
+      timer.unref();
+    });
+    try {
+      await Promise.race([inflight, bound]);
+    } finally {
+      clearTimeout(timer);
+    }
   };
 }

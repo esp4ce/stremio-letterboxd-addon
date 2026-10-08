@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LetterboxdApiError } from '../../../../src/modules/letterboxd/letterboxd.client.js';
 import { filmLookupCache, imdbToLetterboxdCache } from '../../../../src/lib/cache.js';
+import { externalIdLookupBreaker, EXTERNAL_ID_FAILURE_THRESHOLD } from '../../../../src/modules/stremio/meta.service.js';
 
 const getFullFilmInfoFromCinemeta = vi.fn();
 vi.mock('../../../../src/modules/stremio/meta.service.js', async (importOriginal) => {
@@ -30,6 +31,7 @@ const client = {
 describe('resolveFilmForWrite', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    externalIdLookupBreaker.reset();
     filmLookupCache.clear();
     imdbToLetterboxdCache.clear();
     client.getFilmByExternalId.mockResolvedValue(null);
@@ -39,21 +41,61 @@ describe('resolveFilmForWrite', () => {
 
   const run = () => resolveFilmForWrite(client as never, IMDB);
 
-  it('uses a catalog-derived mapping without any call', async () => {
+  it('accepts a cached mapping after one verifying read', async () => {
     imdbToLetterboxdCache.set(IMDB, 'lbCached');
+    client.getFilmByLid.mockResolvedValue(withLink('lbCached', IMDB));
     expect(await run()).toEqual({ letterboxdFilmId: 'lbCached' });
+    expect(client.getFilmByLid).toHaveBeenCalledTimes(1);
     expect(client.getFilmByExternalId).not.toHaveBeenCalled();
   });
 
-  it('ignores an unverified filmLookupCache entry', async () => {
+  it('never trusts a wrong film seeded in both caches', async () => {
+    imdbToLetterboxdCache.set(IMDB, 'lbWrong');
     filmLookupCache.set(IMDB, { letterboxdFilmId: 'lbWrong', film: noLinks('lbWrong') });
+    client.getFilmByLid.mockResolvedValue(withLink('lbWrong', 'tt999'));
     client.getFilmByExternalId.mockResolvedValue(withLink('lbRight', IMDB));
     expect(await run()).toEqual({ letterboxdFilmId: 'lbRight' });
   });
 
-  it('accepts a filmLookupCache entry verified by its links', async () => {
+  it('falls through when the mapped id is gone (404)', async () => {
+    imdbToLetterboxdCache.set(IMDB, 'lbGone');
+    client.getFilmByLid.mockRejectedValue(new LetterboxdApiError(404, 'Not Found'));
+    client.getFilmByExternalId.mockResolvedValue(withLink('lbRight', IMDB));
+    expect(await run()).toEqual({ letterboxdFilmId: 'lbRight' });
+  });
+
+  it('rethrows other errors from the verifying read', async () => {
+    imdbToLetterboxdCache.set(IMDB, 'lbCached');
+    client.getFilmByLid.mockRejectedValue(new LetterboxdApiError(503, 'Unavailable'));
+    await expect(run()).rejects.toBeInstanceOf(LetterboxdApiError);
+  });
+
+  it('skips the external id lookup while its breaker is open', async () => {
+    for (let i = 0; i < EXTERNAL_ID_FAILURE_THRESHOLD; i++) externalIdLookupBreaker.recordFailure();
+    client.searchFilms.mockResolvedValue({ items: [withLink('lbS', IMDB)] });
+    expect(await run()).toEqual({ letterboxdFilmId: 'lbS' });
+    expect(client.getFilmByExternalId).not.toHaveBeenCalled();
+  });
+
+  it('records external id failures and successes on the breaker', async () => {
+    client.getFilmByExternalId.mockRejectedValue(new LetterboxdApiError(500, 'x'));
+    await expect(run()).rejects.toBeInstanceOf(LetterboxdApiError);
+    client.getFilmByExternalId.mockResolvedValue(withLink('lbExt', IMDB));
+    expect(await run()).toEqual({ letterboxdFilmId: 'lbExt' });
+    expect(externalIdLookupBreaker.isOpen()).toBe(false);
+  });
+
+  it('ignores an unverified filmLookupCache entry', async () => {
+    filmLookupCache.set(IMDB, { letterboxdFilmId: 'lbWrong', film: noLinks('lbWrong') });
+    client.getFilmByLid.mockResolvedValue(withLink('lbWrong', 'tt999'));
+    client.getFilmByExternalId.mockResolvedValue(withLink('lbRight', IMDB));
+    expect(await run()).toEqual({ letterboxdFilmId: 'lbRight' });
+  });
+
+  it('accepts a filmLookupCache entry verified by its links, with no call', async () => {
     filmLookupCache.set(IMDB, { letterboxdFilmId: 'lbV', film: withLink('lbV', IMDB) });
     expect(await run()).toEqual({ letterboxdFilmId: 'lbV' });
+    expect(client.getFilmByLid).not.toHaveBeenCalled();
     expect(client.getFilmByExternalId).not.toHaveBeenCalled();
   });
 

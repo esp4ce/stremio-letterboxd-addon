@@ -2,7 +2,7 @@ import type { AuthenticatedClient, LetterboxdFilm } from '../letterboxd/letterbo
 import { LetterboxdApiError } from '../letterboxd/letterboxd.client.js';
 import { filmLookupCache, imdbToLetterboxdCache } from '../../lib/cache.js';
 import { createChildLogger } from '../../lib/logger.js';
-import { getFullFilmInfoFromCinemeta } from '../stremio/meta.service.js';
+import { externalIdLookupBreaker, getFullFilmInfoFromCinemeta } from '../stremio/meta.service.js';
 import { getImdbId } from '../stremio/catalog.service.js';
 
 const logger = createChildLogger('native-sync-resolver');
@@ -26,8 +26,19 @@ export async function resolveFilmForWrite(
   client: AuthenticatedClient,
   imdbId: string,
 ): Promise<{ letterboxdFilmId: string } | null> {
-  const mapped = imdbToLetterboxdCache.get(imdbId);
-  if (mapped) return { letterboxdFilmId: mapped };
+  // Both caches are also filled by the fuzzy catalog lookup, so no cached mapping is trusted unverified.
+  const verifiedIds = new Set<string>();
+  const verifyById = async (id: string) => {
+    if (verifiedIds.has(id)) return null;
+    verifiedIds.add(id);
+    try {
+      const film = await client.getFilmByLid(id);
+      return getImdbId(film) === imdbId ? { letterboxdFilmId: id } : null;
+    } catch (err) {
+      if (err instanceof LetterboxdApiError && err.status === 404) return null;
+      throw err;
+    }
+  };
 
   const looked = filmLookupCache.get(imdbId);
   if (looked) {
@@ -35,21 +46,39 @@ export async function resolveFilmForWrite(
     if (getImdbId(film) === imdbId && film.id === looked.letterboxdFilmId) {
       return { letterboxdFilmId: looked.letterboxdFilmId };
     }
-    logger.debug('Ignoring unverified film lookup cache entry');
   }
+
+  const mapped = imdbToLetterboxdCache.get(imdbId);
+  if (mapped) {
+    const hit = await verifyById(mapped);
+    if (hit) return hit;
+  }
+  if (looked && getImdbId(looked.film as LetterboxdFilm) === null) {
+    const hit = await verifyById(looked.letterboxdFilmId);
+    if (hit) return hit;
+  }
+  logger.debug('No cached mapping verified');
 
   const accept = (film: LetterboxdFilm) => {
     imdbToLetterboxdCache.set(imdbId, film.id);
     return { letterboxdFilmId: film.id };
   };
 
-  let external: LetterboxdFilm | null = null;
-  try {
-    external = await client.getFilmByExternalId(imdbId, 'imdb');
-  } catch (err) {
-    if (!(err instanceof LetterboxdApiError && err.status === 404)) throw err;
+  if (!externalIdLookupBreaker.isOpen()) {
+    let external: LetterboxdFilm | null = null;
+    try {
+      external = await client.getFilmByExternalId(imdbId, 'imdb');
+    } catch (err) {
+      externalIdLookupBreaker.recordFailure();
+      if (!(err instanceof LetterboxdApiError && err.status === 404)) throw err;
+    }
+    if (external) {
+      externalIdLookupBreaker.recordSuccess();
+      if (getImdbId(external) === imdbId) return accept(external);
+    } else {
+      externalIdLookupBreaker.recordFailure();
+    }
   }
-  if (external && getImdbId(external) === imdbId) return accept(external);
 
   const cinemeta = await getFullFilmInfoFromCinemeta(imdbId);
   if (!cinemeta) throw new ResolverUnavailableError();

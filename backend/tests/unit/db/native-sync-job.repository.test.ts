@@ -7,6 +7,7 @@ import {
   markDone,
   markFailed,
   scheduleRetry,
+  scheduleRetryKeepingAttempts,
   hasDiaryJob,
   purgeJobs,
   resetStaleProcessing,
@@ -102,5 +103,15 @@ describe('native-sync-job repository', () => {
     enqueueJob(job());
     getDb().prepare('DELETE FROM users WHERE id = ?').run(userId);
     expect(getDb().prepare('SELECT COUNT(*) AS n FROM native_sync_jobs').get()).toEqual({ n: 0 });
+  });
+
+  it('reschedules without consuming an attempt', () => {
+    enqueueJob(job());
+    const claimed = claimNextJob(T0)!;
+    expect(claimed.attempts).toBe(1);
+    scheduleRetryKeepingAttempts(claimed.id, new Date(T0.getTime() + 60_000), 'entitlement_unavailable');
+    const again = claimNextJob(new Date(T0.getTime() + 60_000))!;
+    expect(again.attempts).toBe(1);
+    expect(again.lastError).toBe('entitlement_unavailable');
   });
 });

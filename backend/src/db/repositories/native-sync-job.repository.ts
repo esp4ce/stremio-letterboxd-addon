@@ -91,6 +91,15 @@ export function scheduleRetry(id: number, nextAttemptAt: Date, error: string): v
     .run(nextAttemptAt.toISOString(), error, id);
 }
 
+/** Reschedule without spending an attempt (claim incremented it), for waits that are not the job's fault. */
+export function scheduleRetryKeepingAttempts(id: number, nextAttemptAt: Date, error: string): void {
+  getDb()
+    .prepare(
+      `UPDATE native_sync_jobs SET status = 'pending', attempts = MAX(attempts - 1, 0), next_attempt_at = ?, last_error = ? WHERE id = ?`,
+    )
+    .run(nextAttemptAt.toISOString(), error, id);
+}
+
 export function deleteJob(id: number): void {
   getDb().prepare('DELETE FROM native_sync_jobs WHERE id = ?').run(id);
 }
