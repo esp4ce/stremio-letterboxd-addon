@@ -114,6 +114,17 @@ export function hasDiaryJob(userId: string, imdbId: string, localDate: string): 
   return row !== undefined;
 }
 
+/** A live or written diary job for this film that occurred at or after `since`, whatever its local day. */
+export function hasRecentDiaryJob(userId: string, imdbId: string, since: string): boolean {
+  const row = getDb()
+    .prepare(
+      `SELECT 1 FROM native_sync_jobs WHERE user_id = ? AND imdb_id = ? AND kind = 'diary'
+         AND status IN ('pending', 'processing', 'done') AND occurred_at >= ? LIMIT 1`,
+    )
+    .get(userId, imdbId, since);
+  return row !== undefined;
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Done rows: local_date at least 2 days before today (UTC) — past every timezone's day end. Failed rows: 7 days. */

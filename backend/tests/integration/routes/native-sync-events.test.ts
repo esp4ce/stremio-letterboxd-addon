@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../../../src/app.js';
 import { initDb, closeDb, getDb } from '../../../src/db/index.js';
@@ -12,6 +12,12 @@ const base = {
 
 function jobs(): Array<{ imdb_id: string; kind: string }> {
   return getDb().prepare('SELECT imdb_id, kind FROM native_sync_jobs ORDER BY id').all() as Array<{ imdb_id: string; kind: string }>;
+}
+
+function diaryDays(): string[] {
+  return (getDb().prepare("SELECT local_date FROM native_sync_jobs WHERE kind = 'diary' ORDER BY id").all() as Array<{ local_date: string }>).map(
+    (r) => r.local_date,
+  );
 }
 
 describe('native sync event routes', () => {
@@ -70,6 +76,31 @@ describe('native sync event routes', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ success: true });
     expect(jobs()).toEqual([]);
+  });
+
+  describe('one viewing, one diary job', () => {
+    afterEach(() => vi.useRealTimers());
+    const at = (iso: string) => vi.setSystemTime(new Date(iso));
+    const pause = () => get(`/stremio/${userId}/player/movie/tt0816692/action=pause&currentTime=8500&duration=10000.json`);
+    const stop = () => get(`/stremio/${userId}/player/movie/tt0816692/action=stop&currentTime=9900&duration=10000.json`);
+
+    it('queues one job for a pause before midnight and a stop after it', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      at('2026-10-08T21:55:00.000Z'); // 23:55 in Paris
+      await pause();
+      at('2026-10-08T22:10:00.000Z'); // 00:10 the next day in Paris
+      await stop();
+      expect(diaryDays()).toEqual(['2026-10-08']);
+    });
+
+    it('queues a second job for the same film seven hours later on the next day', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      at('2026-10-08T20:00:00.000Z'); // 22:00 in Paris
+      await stop();
+      at('2026-10-09T03:00:00.000Z'); // 05:00 the next day: a genuine rewatch
+      await stop();
+      expect(diaryDays()).toEqual(['2026-10-08', '2026-10-09']);
+    });
   });
 
   it('queues nothing when the member has not opted in', async () => {

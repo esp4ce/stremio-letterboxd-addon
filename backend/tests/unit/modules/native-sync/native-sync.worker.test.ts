@@ -215,10 +215,21 @@ describe('native sync worker', () => {
       getDb().prepare('UPDATE native_sync_jobs SET attempts = 1').run(); // claim makes this attempt 2
     };
 
-    it('does not read the log on a first attempt', async () => {
+    it('reads the log on a first attempt', async () => {
       enqueue('diary');
       await processNextJob(NOW);
-      expect(client.getMemberLogEntries).not.toHaveBeenCalled();
+      expect(client.getMemberLogEntries).toHaveBeenCalledWith({ perPage: 20 });
+      expect(client.createDiaryEntry).toHaveBeenCalled();
+    });
+
+    it('does not write on a first attempt when the member already logged the film that day', async () => {
+      enqueue('diary');
+      client.getMemberLogEntries.mockResolvedValue({
+        items: [{ id: 'hand', diaryDate: '2026-10-08', film: { id: 'lbFilm' } }],
+      });
+      await processNextJob(NOW);
+      expect(client.createDiaryEntry).not.toHaveBeenCalled();
+      expect(row()?.status).toBe('done');
     });
 
     it('skips the write on a retry when the entry already exists', async () => {

@@ -9,6 +9,7 @@ import {
   scheduleRetry,
   scheduleRetryKeepingAttempts,
   hasDiaryJob,
+  hasRecentDiaryJob,
   purgeJobs,
   resetStaleProcessing,
 } from '../../../src/db/repositories/native-sync-job.repository.js';
@@ -69,6 +70,23 @@ describe('native-sync-job repository', () => {
     expect(hasDiaryJob(userId, 'tt0816692', '2026-10-08')).toBe(true);
     markDone(claimed.id);
     expect(hasDiaryJob(userId, 'tt0816692', '2026-10-08')).toBe(true);
+  });
+
+  it('finds a recent diary job for the same film whatever its local day', () => {
+    enqueueJob(job({ localDate: '2026-10-07', occurredAt: '2026-10-08T11:00:00.000Z' }));
+    expect(hasRecentDiaryJob(userId, 'tt0816692', '2026-10-08T06:00:00.000Z')).toBe(true);
+    expect(hasRecentDiaryJob(userId, 'tt0816692', '2026-10-08T11:00:00.001Z')).toBe(false);
+    expect(hasRecentDiaryJob(userId, 'tt1', '2026-10-08T06:00:00.000Z')).toBe(false);
+    markDone(claimNextJob(T0)!.id);
+    expect(hasRecentDiaryJob(userId, 'tt0816692', '2026-10-08T06:00:00.000Z')).toBe(true);
+  });
+
+  it('ignores watch flags and failed jobs when looking for a recent diary job', () => {
+    enqueueJob(job({ kind: 'watch_flag' }));
+    expect(hasRecentDiaryJob(userId, 'tt0816692', '2026-10-08T06:00:00.000Z')).toBe(false);
+    enqueueJob(job());
+    getDb().prepare("UPDATE native_sync_jobs SET status = 'failed' WHERE kind = 'diary'").run();
+    expect(hasRecentDiaryJob(userId, 'tt0816692', '2026-10-08T06:00:00.000Z')).toBe(false);
   });
 
   it('ignores a failed diary job', () => {
