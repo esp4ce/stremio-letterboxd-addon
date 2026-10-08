@@ -48,6 +48,7 @@ import { parseCombinedFilter, filterUnreleasedFilms, sliceReleased } from './cat
 import { getFullPublicCatalogFromCache } from './catalog/catalog-cache-keys.js';
 import { sendHtml, buildErrorPage, buildActionSuccessPage, buildRatingPage } from './action/action-html.js';
 import { createClientForUser, SessionExpiredError } from './user-client.service.js';
+import { isNativeSyncActive } from '../native-sync/native-sync.gate.js';
 
 const logger = createChildLogger('stremio-routes');
 
@@ -424,11 +425,13 @@ export async function stremioRoutes(app: FastifyInstance) {
         const lists = await fetchUserLists(user);
         const preferences = getUserPreferences(user);
         const orphanListNames = await resolveOrphanListNames(preferences, lists);
+        const nativeSync = await isNativeSyncActive(user.id, preferences);
         const manifest = generateDynamicManifest(
           { username: user.letterboxd_username, displayName: user.letterboxd_display_name },
           lists,
           preferences,
           orphanListNames,
+          { nativeSync },
         );
         trackEvent('manifest_view', userId, { tier: 2 });
         if (markInstalled(userId)) trackEvent('install', userId);
