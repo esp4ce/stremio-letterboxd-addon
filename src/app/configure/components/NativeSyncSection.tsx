@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { UserPreferences } from "../../../types/preferences";
-import { browserTimeZone, withNativeSync } from "../../../lib/native-sync";
+import { browserTimeZone, nativeSyncControl, withNativeSync } from "../../../lib/native-sync";
 import { Toggle } from "./primitives";
 
 interface NativeSyncSectionProps {
@@ -12,7 +12,7 @@ interface NativeSyncSectionProps {
 }
 
 export function NativeSyncSection({ preferences, onPreferencesChange, entitled }: NativeSyncSectionProps) {
-  const enabled = entitled && preferences.nativeSync === true;
+  const control = nativeSyncControl(preferences, entitled);
 
   return (
     <div className="mt-7">
@@ -26,10 +26,10 @@ export function NativeSyncSection({ preferences, onPreferencesChange, entitled }
               marked watched on Letterboxd, without a date.
             </p>
           </div>
-          {entitled ? (
+          {control.kind === "toggle" ? (
             <Toggle
-              enabled={enabled}
-              onToggle={() => onPreferencesChange(withNativeSync(preferences, !enabled, browserTimeZone()))}
+              enabled={control.enabled}
+              onToggle={() => onPreferencesChange(withNativeSync(preferences, control.next, browserTimeZone()))}
             />
           ) : (
             <Link href="/pricing" className="shrink-0 text-[12px] font-medium text-white underline underline-offset-2">
