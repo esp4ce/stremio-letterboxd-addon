@@ -26,4 +26,6 @@ export interface UserPreferences {
   hideUnreleased?: boolean;
   hideNoHomeRelease?: boolean;
   search?: boolean;
+  nativeSync?: boolean;
+  timezone?: string;
 }

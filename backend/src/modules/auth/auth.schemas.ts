@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidTimeZone } from '../native-sync/job-rules.js';
 
 export const loginBodySchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -50,6 +51,8 @@ export const userPreferencesSchema = z.object({
   catalogNames: z.record(z.string(), z.string()).optional(),
   catalogOrder: z.array(z.string()).optional(),
   sortVariants: z.record(z.string(), z.array(z.string())).optional(),
+  nativeSync: z.boolean().optional(),
+  timezone: z.string().max(64).refine(isValidTimeZone).optional().catch(undefined),
 });
 
 // The session token travels in an httpOnly cookie, never in the response body.
