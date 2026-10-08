@@ -98,7 +98,8 @@ export function deleteJob(id: number): void {
 export function hasDiaryJob(userId: string, imdbId: string, localDate: string): boolean {
   const row = getDb()
     .prepare(
-      `SELECT 1 FROM native_sync_jobs WHERE user_id = ? AND imdb_id = ? AND local_date = ? AND kind = 'diary' LIMIT 1`,
+      `SELECT 1 FROM native_sync_jobs WHERE user_id = ? AND imdb_id = ? AND local_date = ? AND kind = 'diary'
+         AND status IN ('pending', 'processing', 'done') LIMIT 1`,
     )
     .get(userId, imdbId, localDate);
   return row !== undefined;

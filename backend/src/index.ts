@@ -64,8 +64,9 @@ async function main() {
   const shutdown = async (signal: string) => {
     logger.info({ signal }, 'Received shutdown signal');
     stopBackups();
-    stopNativeSync();
+    const nativeSyncStopped = stopNativeSync();
     await app.close();
+    await nativeSyncStopped;
     await shutdownPosthog();
     closeDb();
     process.exit(0);

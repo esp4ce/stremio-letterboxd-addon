@@ -60,10 +60,20 @@ describe('native-sync-job repository', () => {
     expect(claimNextJob(new Date(T0.getTime() + 60_000))?.attempts).toBe(2);
   });
 
-  it('reports an existing diary job in any status', () => {
+  it('reports a pending, processing or done diary job', () => {
     enqueueJob(job());
     expect(hasDiaryJob(userId, 'tt0816692', '2026-10-08')).toBe(true);
     expect(hasDiaryJob(userId, 'tt0816692', '2026-10-09')).toBe(false);
+    const claimed = claimNextJob(T0)!;
+    expect(hasDiaryJob(userId, 'tt0816692', '2026-10-08')).toBe(true);
+    markDone(claimed.id);
+    expect(hasDiaryJob(userId, 'tt0816692', '2026-10-08')).toBe(true);
+  });
+
+  it('ignores a failed diary job', () => {
+    enqueueJob(job());
+    markFailed(claimNextJob(T0)!.id, 'film_not_found');
+    expect(hasDiaryJob(userId, 'tt0816692', '2026-10-08')).toBe(false);
   });
 
   it('purges done rows two days after their local day and failed rows after 7 days', () => {
