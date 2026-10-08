@@ -1,15 +1,29 @@
 import pino from 'pino';
 import { config } from '../config/index.js';
 
-const redactPaths = [
+// fast-redact paths are matched exactly, and `*` spans a single level only — so each
+// secret needs both its top-level and one-level-nested form. Payloads are hand-built
+// everywhere, so these cover whole objects passed as a single field (`{ result }`).
+export const redactPaths = [
   'password',
+  '*.password',
   'client_secret',
+  '*.client_secret',
   'access_token',
+  '*.access_token',
   'refresh_token',
+  '*.refresh_token',
   'encrypted_refresh_token',
-  'req.headers.authorization',
-  'req.body.password',
-  'req.body.client_secret',
+  '*.encrypted_refresh_token',
+  'totp',
+  '*.totp',
+  'emailAddress',
+  '*.emailAddress',
+  '*.*.emailAddress',
+  'err.body',
+  'error.body',
+  'headers.authorization',
+  'headers.cookie',
 ];
 
 export const logger = pino({

@@ -26,7 +26,10 @@ async function fetchEmailBestEffort(user: User): Promise<string | undefined> {
     const profile = await getCurrentUser(tokens.access_token);
     return profile.emailAddress;
   } catch (err) {
-    logger.warn({ err, userId: user.id }, 'Could not fetch email for checkout prefill, continuing without it');
+    logger.warn(
+      { userId: user.id, reason: err instanceof Error ? err.message : 'unknown' },
+      'Could not fetch email for checkout prefill, continuing without it',
+    );
     return undefined;
   }
 }

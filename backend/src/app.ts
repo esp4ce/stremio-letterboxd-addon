@@ -6,6 +6,7 @@ import compress from '@fastify/compress';
 import sharp from 'sharp';
 import { config, corsOrigins } from './config/index.js';
 import { logger } from './lib/logger.js';
+import { sanitizeUrlForLog } from './lib/log-sanitize.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { setupRateLimit } from './middleware/rate-limit.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
@@ -151,7 +152,7 @@ export async function buildApp(httpsOptions?: ServerOptions) {
     logger.debug(
       {
         method: request.method,
-        url: request.url,
+        url: sanitizeUrlForLog(request.url),
       },
       'Incoming request'
     );
@@ -162,7 +163,7 @@ export async function buildApp(httpsOptions?: ServerOptions) {
     logger.info(
       {
         method: request.method,
-        url: request.url,
+        url: sanitizeUrlForLog(request.url),
         statusCode: reply.statusCode,
         responseTime: reply.elapsedTime,
       },

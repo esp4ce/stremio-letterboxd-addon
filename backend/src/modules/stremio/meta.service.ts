@@ -5,6 +5,7 @@ import type { CachedRating, CinemetaFilmData } from '../../lib/cache.js';
 import { serverConfig } from '../../config/index.js';
 import { signAction } from '../../lib/action-sign.js';
 import { assertAllowedUrl, CINEMETA_ALLOWED_HOSTS } from '../../lib/url-allowlist.js';
+import { createCircuitBreaker } from '../../lib/circuit-breaker.js';
 
 const logger = createChildLogger('meta-service');
 
@@ -15,6 +16,20 @@ const logger = createChildLogger('meta-service');
 const cinemetaCoalescer = new Coalescer<Record<string, unknown> | null>();
 const filmLookupCoalescer = new Coalescer<FilmLookupResult | null>();
 const ratingCoalescer = new Coalescer<CachedRating>();
+
+// ============================================================================
+// External ID lookup breaker
+// ============================================================================
+
+/** Consecutive unresolved external-ID lookups before they are skipped altogether. */
+export const EXTERNAL_ID_FAILURE_THRESHOLD = 5;
+/** How long they stay skipped before one lookup is allowed through again. */
+export const EXTERNAL_ID_BREAKER_COOLDOWN_MS = 10 * 60 * 1000;
+
+export const externalIdLookupBreaker = createCircuitBreaker({
+  threshold: EXTERNAL_ID_FAILURE_THRESHOLD,
+  cooldownMs: EXTERNAL_ID_BREAKER_COOLDOWN_MS,
+});
 
 // ============================================================================
 // Interfaces
@@ -221,23 +236,34 @@ export async function findFilmByImdb(
       }
     }
 
-    // Try the external ID endpoint first (most reliable)
-    try {
-      logger.info({ imdbId }, 'Calling getFilmByExternalId...');
-      const film = await client.getFilmByExternalId(imdbId, 'imdb');
+    // Try the external ID endpoint first: one call, exact mapping. It is skipped while the
+    // breaker is open, because a failing lookup still spends the shared upstream budget and
+    // the search path below has to run anyway.
+    if (!externalIdLookupBreaker.isOpen()) {
+      try {
+        const film = await client.getFilmByExternalId(imdbId, 'imdb');
 
-      if (film) {
-        imdbToLetterboxdCache.set(imdbId, film.id);
-        filmLookupCache.set(imdbId, { letterboxdFilmId: film.id, film });
-        logger.info({ imdbId, letterboxdFilmId: film.id, filmName: film.name }, 'Found Letterboxd film via external ID');
-        return { letterboxdFilmId: film.id, film };
+        if (film) {
+          externalIdLookupBreaker.recordSuccess();
+          imdbToLetterboxdCache.set(imdbId, film.id);
+          filmLookupCache.set(imdbId, { letterboxdFilmId: film.id, film });
+          logger.debug({ imdbId, letterboxdFilmId: film.id }, 'Resolved film via external ID');
+          return { letterboxdFilmId: film.id, film };
+        }
+        if (externalIdLookupBreaker.recordFailure()) {
+          logger.warn(
+            { threshold: EXTERNAL_ID_FAILURE_THRESHOLD, cooldownMs: EXTERNAL_ID_BREAKER_COOLDOWN_MS },
+            'External ID lookups keep failing — skipping them until the cooldown elapses',
+          );
+        }
+      } catch (error) {
+        logger.debug({ error, imdbId }, 'External ID lookup failed');
+        externalIdLookupBreaker.recordFailure();
       }
-    } catch (error) {
-      logger.debug({ error, imdbId }, 'External ID lookup failed');
     }
 
-    // Fallback: Get info from Cinemeta and search Letterboxd
-    logger.info({ imdbId }, 'External ID returned 404, trying Cinemeta + search fallback');
+    // Fallback: Get info from Cinemeta and search by name + year
+    logger.debug({ imdbId }, 'Trying Cinemeta + search fallback');
 
     const cinemetaData = await getFullFilmInfoFromCinemeta(imdbId);
     if (!cinemetaData) {

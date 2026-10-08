@@ -1,5 +1,6 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { createChildLogger } from '../lib/logger.js';
+import { sanitizeUrlForLog } from '../lib/log-sanitize.js';
 import { sendHtml, buildErrorPage } from '../modules/stremio/action/action-html.js';
 
 const logger = createChildLogger('error-handler');
@@ -20,7 +21,7 @@ export function errorHandler(
   logger.error(
     {
       err: error,
-      url: request.url,
+      url: sanitizeUrlForLog(request.url),
       method: request.method,
     },
     'Request error'
