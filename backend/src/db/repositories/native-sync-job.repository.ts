@@ -125,6 +125,13 @@ export function hasRecentDiaryJob(userId: string, imdbId: string, since: string)
   return row !== undefined;
 }
 
+export function countDiaryJobsForDay(userId: string, localDate: string): number {
+  const row = getDb()
+    .prepare(`SELECT COUNT(*) AS n FROM native_sync_jobs WHERE user_id = ? AND local_date = ? AND kind = 'diary'`)
+    .get(userId, localDate) as { n: number };
+  return row.n;
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Done rows: local_date at least 2 days before today (UTC) — past every timezone's day end. Failed rows: 7 days. */

@@ -103,6 +103,23 @@ describe('native sync event routes', () => {
     });
   });
 
+  it('drops diary jobs past ten for the same day', async () => {
+    for (let i = 1; i <= 11; i++) {
+      const res = await get(`/stremio/${userId}/player/movie/tt${i}/action=stop&currentTime=9900&duration=10000.json`);
+      expect(res.json()).toEqual({ success: true });
+    }
+    expect(jobs()).toHaveLength(10);
+    expect(jobs().map((j) => j.imdb_id)).not.toContain('tt11');
+  });
+
+  it('rate limits each member on their own, not by address', async () => {
+    const other = createUser({ letterboxdId: `lb-${Math.random()}`, letterboxdUsername: 'nse2', refreshToken: 'fake' }).id;
+    const path = (u: string) => `/stremio/${u}/library/movie/tt1/action=libraryAdd.json`;
+    for (let i = 0; i < 120; i++) expect((await get(path(userId))).statusCode).toBe(200);
+    expect((await get(path(userId))).statusCode).toBe(429);
+    expect((await get(path(other))).statusCode).toBe(200);
+  });
+
   it('queues nothing when the member has not opted in', async () => {
     updateUserPreferences(userId, { ...base });
     await get(`/stremio/${userId}/player/movie/tt1/action=stop&currentTime=9999&duration=10000.json`);

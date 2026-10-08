@@ -10,6 +10,7 @@ import {
   scheduleRetryKeepingAttempts,
   hasDiaryJob,
   hasRecentDiaryJob,
+  countDiaryJobsForDay,
   purgeJobs,
   resetStaleProcessing,
 } from '../../../src/db/repositories/native-sync-job.repository.js';
@@ -87,6 +88,16 @@ describe('native-sync-job repository', () => {
     enqueueJob(job());
     getDb().prepare("UPDATE native_sync_jobs SET status = 'failed' WHERE kind = 'diary'").run();
     expect(hasRecentDiaryJob(userId, 'tt0816692', '2026-10-08T06:00:00.000Z')).toBe(false);
+  });
+
+  it('counts diary jobs of any status for a member and local day', () => {
+    enqueueJob(job({ imdbId: 'tt1' }));
+    enqueueJob(job({ imdbId: 'tt2' }));
+    enqueueJob(job({ imdbId: 'tt3', kind: 'watch_flag' }));
+    enqueueJob(job({ imdbId: 'tt4', localDate: '2026-10-09' }));
+    markFailed(claimNextJob(T0)!.id, 'rejected');
+    expect(countDiaryJobsForDay(userId, '2026-10-08')).toBe(2);
+    expect(countDiaryJobsForDay(userId, '2026-10-09')).toBe(1);
   });
 
   it('ignores a failed diary job', () => {

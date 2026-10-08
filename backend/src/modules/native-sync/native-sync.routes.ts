@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { findUserById, getUserPreferences } from '../../db/repositories/user.repository.js';
-import { enqueueJob, hasRecentDiaryJob } from '../../db/repositories/native-sync-job.repository.js';
+import { countDiaryJobsForDay, enqueueJob, hasRecentDiaryJob } from '../../db/repositories/native-sync-job.repository.js';
 import { createChildLogger } from '../../lib/logger.js';
 import { parseLibraryExtra, parsePlayerExtra } from './event-parser.js';
 import { draftFromLibraryEvent, draftFromPlayerEvent, type JobDraft } from './job-rules.js';
@@ -9,7 +9,16 @@ const logger = createChildLogger('native-sync-routes');
 
 const IMDB_ID = /^tt\d{1,10}$/;
 const OK = { success: true } as const;
-const RATE_LIMIT = { rateLimit: { max: 120, timeWindow: '1 minute' } };
+// Keyed by member, not address: a leaked manifest URL must not let one source flood a member's queue.
+const RATE_LIMIT = {
+  rateLimit: {
+    max: 120,
+    timeWindow: '1 minute',
+    keyGenerator: (request: FastifyRequest) => `native-sync:${(request.params as { userId?: string }).userId ?? request.ip}`,
+  },
+};
+/** No one finishes more films in a day; anything beyond is forged traffic. */
+const MAX_DIARY_JOBS_PER_DAY = 10;
 /** One viewing can straddle midnight: a diary job this recent for the same film is the same viewing. */
 const SAME_VIEWING_MS = 6 * 60 * 60 * 1000;
 
@@ -44,6 +53,7 @@ function handler(resource: 'player' | 'library') {
       if (draft.kind === 'diary') {
         const since = new Date(now.getTime() - SAME_VIEWING_MS).toISOString();
         if (hasRecentDiaryJob(userId, id, since)) return OK;
+        if (countDiaryJobsForDay(userId, draft.localDate) >= MAX_DIARY_JOBS_PER_DAY) return OK;
       }
       if (enqueueJob({ userId, imdbId: id, ...draft })) {
         logger.info({ userId, kind: draft.kind }, 'Native sync job queued');
