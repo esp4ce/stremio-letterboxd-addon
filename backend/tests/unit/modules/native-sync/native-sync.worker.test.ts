@@ -167,13 +167,50 @@ describe('native sync worker', () => {
   it.each([
     [401, 'failed', 'token_revoked'],
     [403, 'failed', 'forbidden'],
-    [404, 'failed', 'film_not_found'],
+    [400, 'failed', 'rejected'],
+    [404, 'failed', 'rejected'],
+    [422, 'failed', 'rejected'],
     [429, 'pending', 'upstream_error'],
-  ])('classifies a %i from upstream', async (status, expectedStatus, reason) => {
+    [500, 'pending', 'upstream_error'],
+  ])('classifies a %i on the diary write', async (status, expectedStatus, reason) => {
     client.createDiaryEntry.mockRejectedValue(new LetterboxdApiError(status, 'x'));
     enqueue('diary');
     await processNextJob(NOW);
     expect(row()).toMatchObject({ status: expectedStatus, last_error: reason });
+  });
+
+  it('rejects, not film_not_found, on a 404 from the relationship read', async () => {
+    client.getFilmRelationship.mockRejectedValue(new LetterboxdApiError(404, 'x'));
+    enqueue('diary');
+    await processNextJob(NOW);
+    expect(row()).toMatchObject({ status: 'failed', last_error: 'rejected' });
+  });
+
+  it('rejects a 400 on the log read and on the watch flag update', async () => {
+    client.getMemberLogEntries.mockRejectedValue(new LetterboxdApiError(400, 'x'));
+    enqueue('diary');
+    await processNextJob(NOW);
+    expect(row()).toMatchObject({ status: 'failed', last_error: 'rejected' });
+
+    getDb().prepare('DELETE FROM native_sync_jobs').run();
+    client.updateFilmRelationship.mockRejectedValue(new LetterboxdApiError(400, 'x'));
+    enqueue('watch_flag');
+    await processNextJob(NOW);
+    expect(row()).toMatchObject({ status: 'failed', last_error: 'rejected' });
+  });
+
+  it('reads a 404 during film resolution as film_not_found', async () => {
+    resolveFilmForWrite.mockRejectedValue(new LetterboxdApiError(404, 'x'));
+    enqueue('diary');
+    await processNextJob(NOW);
+    expect(row()).toMatchObject({ status: 'failed', last_error: 'film_not_found' });
+  });
+
+  it('retries a network error', async () => {
+    client.createDiaryEntry.mockRejectedValue(new TypeError('fetch failed'));
+    enqueue('diary');
+    await processNextJob(NOW);
+    expect(row()).toMatchObject({ status: 'pending', last_error: 'upstream_error' });
   });
 
   it('retries when the resolver is unavailable', async () => {

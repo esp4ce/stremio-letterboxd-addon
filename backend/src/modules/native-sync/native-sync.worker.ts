@@ -46,7 +46,8 @@ function classify(err: unknown): TerminalError | RetryableError {
   if (err instanceof LetterboxdApiError) {
     if (err.status === 401) return new TerminalError('token_revoked');
     if (err.status === 403) return new TerminalError('forbidden');
-    if (err.status === 404) return new TerminalError('film_not_found');
+    // Any other client error will fail the same way again; film_not_found is decided at resolution only.
+    if (err.status >= 400 && err.status < 500 && err.status !== 429) return new TerminalError('rejected');
   }
   return new RetryableError('upstream_error');
 }
@@ -65,7 +66,13 @@ async function runJob(job: NativeSyncJob): Promise<'done' | 'dropped'> {
   if (job.kind === 'watch_flag' && hasDiaryJob(job.userId, job.imdbId, job.localDate)) return 'done';
 
   const client = await createClientForUser(user);
-  const film = await resolveFilmForWrite(client, job.imdbId);
+  let film: { letterboxdFilmId: string } | null;
+  try {
+    film = await resolveFilmForWrite(client, job.imdbId);
+  } catch (err) {
+    if (err instanceof LetterboxdApiError && err.status === 404) throw new TerminalError('film_not_found');
+    throw err;
+  }
   if (!film) throw new TerminalError('film_not_found');
   const filmId = film.letterboxdFilmId;
 
