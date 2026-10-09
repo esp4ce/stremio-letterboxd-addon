@@ -532,7 +532,8 @@ export function generateDynamicManifest(
   },
   lists: UserList[],
   preferences?: UserPreferences | null,
-  orphanListNames?: Map<string, string>
+  orphanListNames?: Map<string, string>,
+  options: { nativeSync?: boolean } = {},
 ): StremioManifest {
   const displayName = user.displayName || user.username;
   const baseCatalogs = getBaseCatalogs(displayName);
@@ -661,6 +662,10 @@ export function generateDynamicManifest(
     resources.push({ name: 'stream', types: ['movie'] });
   }
   resources.push({ name: 'meta', types: ['movie'], idPrefixes: ['tt'] });
+  if (options.nativeSync) {
+    resources.push({ name: 'player', types: ['movie'], idPrefixes: ['tt'] });
+    resources.push({ name: 'library', types: ['movie'], idPrefixes: ['tt'] });
+  }
 
   return {
     id: 'community.stremboxd',

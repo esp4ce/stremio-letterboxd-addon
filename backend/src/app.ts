@@ -14,6 +14,7 @@ import { letterboxdRoutes } from './modules/letterboxd/letterboxd.routes.js';
 import { stremioRoutes } from './modules/stremio/stremio.routes.js';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes.js';
 import { billingRoutes } from './modules/billing/billing.routes.js';
+import { nativeSyncRoutes } from './modules/native-sync/native-sync.routes.js';
 import { generateBaseManifest } from './modules/stremio/stremio.service.js';
 import { startMemoryGuard } from './lib/memory-guard.js';
 
@@ -147,6 +148,7 @@ export async function buildApp(httpsOptions?: ServerOptions) {
   await app.register(stremioRoutes);
   await app.register(dashboardRoutes);
   await app.register(billingRoutes);
+  await app.register(nativeSyncRoutes);
 
   app.addHook('onRequest', async (request) => {
     logger.debug(

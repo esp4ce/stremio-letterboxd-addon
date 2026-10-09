@@ -63,6 +63,9 @@ export type EventType =
   | 'action_liked'
   | 'action_watchlist'
   | 'action_rate'
+  | 'native_sync_logged'
+  | 'native_sync_flagged'
+  | 'native_sync_failed'
   | 'login'
   | 'manifest_view'
   | 'validate_username';

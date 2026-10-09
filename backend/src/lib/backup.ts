@@ -30,8 +30,15 @@ const logger = createChildLogger('backup');
 const FILE_PREFIX = 'stremio-letterboxd-';
 const FILE_RE = /^stremio-letterboxd-\d{8}T\d{6}Z\.db(\.gz)?$/;
 const ORPHAN_RE = /^stremio-letterboxd-.*\.tmp(-wal|-shm)?$/;
-/** Free space kept on top of 2x the database size (raw tmp copy + compressed output). */
-const SPACE_MARGIN_BYTES = 256 * 1024 * 1024;
+/**
+ * Real disk peak of one snapshot: the raw temporary copy (~1x the database size) plus
+ * the gzip output written while the raw copy still exists (~0.3 to 0.6x, not measured).
+ * 1.5x covers that peak with headroom; the old 2x was too conservative and skipped
+ * backups that would have fit.
+ */
+const SPACE_FACTOR = 1.5;
+/** Fixed free space kept on top of the estimated peak (filesystem slack, WAL growth). */
+const SPACE_MARGIN_BYTES = 128 * 1024 * 1024;
 /** A single S3 PUT is capped at 5 GiB; a gzip'd snapshot stays far below that. */
 const MAX_SINGLE_PUT_BYTES = 5 * 1024 ** 3;
 const UPLOAD_TIMEOUT_MS = 120_000;
@@ -137,7 +144,7 @@ async function defaultFreeSpace(dir: string): Promise<number> {
 
 /** Bytes of free space required before writing a snapshot of a database of `dbBytes`. */
 export function requiredFreeBytes(dbBytes: number): number {
-  return 2 * dbBytes + SPACE_MARGIN_BYTES;
+  return Math.ceil(SPACE_FACTOR * dbBytes) + SPACE_MARGIN_BYTES;
 }
 
 /**

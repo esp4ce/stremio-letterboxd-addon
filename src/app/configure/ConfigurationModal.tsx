@@ -24,6 +24,7 @@ import { DisplayOptionsSection } from "./components/DisplayOptionsSection";
 import { ExternalCatalogsSection } from "./components/ExternalCatalogsSection";
 import { UserListsSection } from "./components/UserListsSection";
 import { AccountLinkSection } from "./components/AccountLinkSection";
+import { NativeSyncRow } from "./components/NativeSyncRow";
 
 interface BaseProps {
   user?: { username: string; displayName: string | null };
@@ -742,7 +743,13 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
               mode="full"
               preferences={(props as FullModeProps).preferences}
               onPreferencesChange={(props as FullModeProps).onPreferencesChange}
-            />
+            >
+              <NativeSyncRow
+                preferences={(props as FullModeProps).preferences}
+                onPreferencesChange={(props as FullModeProps).onPreferencesChange}
+                entitled={(props as FullModeProps).entitled}
+              />
+            </DisplayOptionsSection>
           )}
 
           <ExternalCatalogsSection

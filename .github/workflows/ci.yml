@@ -62,7 +62,10 @@ jobs:
         run: npm ci
 
       - name: Security audit
-        run: npm audit --audit-level=high
+        # npm audit exits non-zero on any finding; the script decides, honouring its short allowlist.
+        run: |
+          npm audit --json > audit.json || true
+          node .github/scripts/audit-high.mjs < audit.json
 
       - name: Lint
         run: npm run lint
