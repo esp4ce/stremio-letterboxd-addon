@@ -1,9 +1,15 @@
+import { getHeapStatistics } from 'node:v8';
 import { heavyCaches } from './cache.js';
 import { createChildLogger } from './logger.js';
 
 const log = createChildLogger('memory-guard');
 
-const HEAP_LIMIT_MB = 512;
+/** The real V8 heap limit, set by --max-old-space-size (NODE_OPTIONS), not a guess. */
+export function getHeapLimitMB(): number {
+  return getHeapStatistics().heap_size_limit / 1024 / 1024;
+}
+
+const HEAP_LIMIT_MB = getHeapLimitMB();
 const CHECK_INTERVAL_MS = 30_000;
 
 const enum Tier {
@@ -23,8 +29,8 @@ function getHeapMB(): number {
   return process.memoryUsage().heapUsed / 1024 / 1024;
 }
 
-function getTier(heapMB: number): Tier {
-  const pct = (heapMB / HEAP_LIMIT_MB) * 100;
+export function getTier(heapMB: number, limitMB: number = HEAP_LIMIT_MB): Tier {
+  const pct = (heapMB / limitMB) * 100;
   if (pct > 85) return Tier.CRITICAL;
   if (pct > 75) return Tier.HIGH;
   if (pct > 60) return Tier.ELEVATED;
@@ -99,7 +105,7 @@ export function startMemoryGuard(): void {
   if (intervalId) return;
   intervalId = setInterval(checkMemoryPressure, CHECK_INTERVAL_MS);
   intervalId.unref();
-  log.info({ intervalMs: CHECK_INTERVAL_MS, heapLimitMB: HEAP_LIMIT_MB }, 'Memory guard started');
+  log.info({ intervalMs: CHECK_INTERVAL_MS, heapLimitMB: Math.round(HEAP_LIMIT_MB) }, 'Memory guard started');
 }
 
 export function stopMemoryGuard(): void {
