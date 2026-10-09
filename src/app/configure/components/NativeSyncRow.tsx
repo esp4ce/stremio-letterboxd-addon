@@ -1,21 +1,34 @@
 "use client";
 
-import TransitionLink from "../../components/TransitionLink";
 import type { UserPreferences } from "../../../types/preferences";
-import { browserTimeZone, nativeSyncControl, withNativeSync } from "../../../lib/native-sync";
+import { browserTimeZone, nativeSyncBlockedMessage, nativeSyncControl, withNativeSync } from "../../../lib/native-sync";
 import { Toggle } from "./primitives";
 
 interface NativeSyncRowProps {
-  preferences: UserPreferences;
-  onPreferencesChange: (prefs: UserPreferences) => void;
+  /** null in public mode, where there is no account to write with */
+  preferences: UserPreferences | null;
+  onPreferencesChange?: (prefs: UserPreferences) => void;
+  signedIn: boolean;
   entitled: boolean;
+  /** Called with an explanation when the member cannot turn it on */
+  onBlocked: (message: string) => void;
 }
 
 const DETAILS =
   "Films you watch past 80% are added to your Letterboxd diary, dated today. Films you mark as watched in Stremio are marked watched, without a diary entry. Your diary is public. Works on Stremio Web and Desktop. Android: coming once Stremio updates its app.";
 
-export function NativeSyncRow({ preferences, onPreferencesChange, entitled }: NativeSyncRowProps) {
-  const control = nativeSyncControl(preferences, entitled);
+export function NativeSyncRow({ preferences, onPreferencesChange, signedIn, entitled, onBlocked }: NativeSyncRowProps) {
+  const control = nativeSyncControl(preferences, { signedIn, entitled });
+
+  const onToggle = () => {
+    if (control.kind === "blocked") {
+      onBlocked(nativeSyncBlockedMessage(control.reason));
+      return;
+    }
+    if (preferences && onPreferencesChange) {
+      onPreferencesChange(withNativeSync(preferences, control.next, browserTimeZone()));
+    }
+  };
 
   return (
     <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
@@ -35,20 +48,7 @@ export function NativeSyncRow({ preferences, onPreferencesChange, entitled }: Na
         </div>
         <p className="mt-0.5 text-[11px] text-zinc-500">Films watched in Stremio land in your public diary</p>
       </div>
-      {control.kind === "toggle" ? (
-        <Toggle
-          enabled={control.enabled}
-          onToggle={() => onPreferencesChange(withNativeSync(preferences, control.next, browserTimeZone()))}
-        />
-      ) : (
-        <TransitionLink
-          href="/pricing"
-          direction="up"
-          className="flex-shrink-0 whitespace-nowrap rounded-full border border-zinc-700 px-2.5 py-1 text-[10.5px] font-semibold text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
-        >
-          Supporters
-        </TransitionLink>
-      )}
+      <Toggle enabled={control.kind === "toggle" && control.enabled} onToggle={onToggle} />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { nativeSyncControl, withNativeSync } from '../../src/lib/native-sync';
+import { nativeSyncBlockedMessage, nativeSyncControl, withNativeSync } from '../../src/lib/native-sync';
 import type { UserPreferences } from '../../src/types/preferences';
 
 const prefs: UserPreferences = {
@@ -27,16 +27,27 @@ describe('withNativeSync', () => {
 
 describe('nativeSyncControl', () => {
   it('lets a supporter switch it on and off', () => {
-    expect(nativeSyncControl(prefs, true)).toEqual({ kind: 'toggle', enabled: false, next: true });
-    expect(nativeSyncControl({ ...prefs, nativeSync: true }, true)).toEqual({ kind: 'toggle', enabled: true, next: false });
+    expect(nativeSyncControl(prefs, { signedIn: true, entitled: true })).toEqual({ kind: 'toggle', enabled: false, next: true });
+    expect(nativeSyncControl({ ...prefs, nativeSync: true }, { signedIn: true, entitled: true })).toEqual({ kind: 'toggle', enabled: true, next: false });
   });
 
   it('lets a lapsed member who left it on only switch it off', () => {
-    expect(nativeSyncControl({ ...prefs, nativeSync: true }, false)).toEqual({ kind: 'toggle', enabled: true, next: false });
+    expect(nativeSyncControl({ ...prefs, nativeSync: true }, { signedIn: true, entitled: false })).toEqual({ kind: 'toggle', enabled: true, next: false });
   });
 
-  it('points a member who is not a supporter to pricing', () => {
-    expect(nativeSyncControl(prefs, false)).toEqual({ kind: 'upsell' });
-    expect(nativeSyncControl({ ...prefs, nativeSync: false }, false)).toEqual({ kind: 'upsell' });
+  it('shows a signed-in member who is not a supporter an off toggle that is blocked', () => {
+    expect(nativeSyncControl(prefs, { signedIn: true, entitled: false })).toEqual({ kind: 'blocked', reason: 'supporter' });
+    expect(nativeSyncControl({ ...prefs, nativeSync: false }, { signedIn: true, entitled: false })).toEqual({ kind: 'blocked', reason: 'supporter' });
+  });
+
+  it('blocks it in public mode, where there is no account to write with', () => {
+    expect(nativeSyncControl(null, { signedIn: false, entitled: false })).toEqual({ kind: 'blocked', reason: 'signin' });
+  });
+});
+
+describe('nativeSyncBlockedMessage', () => {
+  it('explains what is missing', () => {
+    expect(nativeSyncBlockedMessage('supporter')).toBe('Auto-log to Diary needs a supporter subscription.');
+    expect(nativeSyncBlockedMessage('signin')).toBe('Auto-log to Diary needs you to sign in with your Letterboxd password and a supporter subscription.');
   });
 });
