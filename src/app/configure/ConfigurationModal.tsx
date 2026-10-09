@@ -24,7 +24,7 @@ import { DisplayOptionsSection } from "./components/DisplayOptionsSection";
 import { ExternalCatalogsSection } from "./components/ExternalCatalogsSection";
 import { UserListsSection } from "./components/UserListsSection";
 import { AccountLinkSection } from "./components/AccountLinkSection";
-import { NativeSyncSection } from "./components/NativeSyncSection";
+import { NativeSyncRow } from "./components/NativeSyncRow";
 
 interface BaseProps {
   user?: { username: string; displayName: string | null };
@@ -743,7 +743,13 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
               mode="full"
               preferences={(props as FullModeProps).preferences}
               onPreferencesChange={(props as FullModeProps).onPreferencesChange}
-            />
+            >
+              <NativeSyncRow
+                preferences={(props as FullModeProps).preferences}
+                onPreferencesChange={(props as FullModeProps).onPreferencesChange}
+                entitled={(props as FullModeProps).entitled}
+              />
+            </DisplayOptionsSection>
           )}
 
           <ExternalCatalogsSection
@@ -778,14 +784,6 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
               onStremioLinkedChange={(props as FullModeProps).onStremioLinkedChange}
               nuvioLinked={(props as FullModeProps).isNuvioLinked}
               onNuvioLinkedChange={(props as FullModeProps).onNuvioLinkedChange}
-              entitled={(props as FullModeProps).entitled}
-            />
-          )}
-
-          {!isPublic && (
-            <NativeSyncSection
-              preferences={(props as FullModeProps).preferences}
-              onPreferencesChange={(props as FullModeProps).onPreferencesChange}
               entitled={(props as FullModeProps).entitled}
             />
           )}

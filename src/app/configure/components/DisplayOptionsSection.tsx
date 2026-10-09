@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { UserPreferences } from "../../../types/preferences";
 import { Toggle } from "./primitives";
 
@@ -19,6 +20,8 @@ type DisplayOptionsProps =
       mode: "full";
       preferences: UserPreferences;
       onPreferencesChange: (prefs: UserPreferences) => void;
+      /** Extra rows rendered at the end of the list, styled like the others */
+      children?: ReactNode;
     };
 
 export function DisplayOptionsSection(props: DisplayOptionsProps) {
@@ -72,7 +75,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
     );
   }
 
-  const { preferences, onPreferencesChange } = props;
+  const { preferences, onPreferencesChange, children } = props;
   const items = [
     { key: "showRatings" as const, label: "Show Letterboxd Ratings", description: "On posters and in stream info", defaultOn: true },
     { key: "showActions" as const, label: "Letterboxd Actions", description: "Show rate, watched, liked and watchlist buttons in Stremio", defaultOn: true },
@@ -101,6 +104,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
             </div>
           );
         })}
+        {children}
       </div>
     </div>
   );
