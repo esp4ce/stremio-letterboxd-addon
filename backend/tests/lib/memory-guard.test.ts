@@ -44,7 +44,7 @@ vi.mock('../../src/lib/logger.js', () => ({
   }),
 }));
 
-import { checkMemoryPressure } from '../../src/lib/memory-guard.js';
+import { checkMemoryPressure, getHeapLimitMB, getTier } from '../../src/lib/memory-guard.js';
 
 describe('checkMemoryPressure', () => {
   let memoryMock: ReturnType<typeof vi.spyOn>;
@@ -60,10 +60,12 @@ describe('checkMemoryPressure', () => {
     memoryMock.mockRestore();
   });
 
-  const heapAt = (mb: number) => {
+  // Heap usage as a share of the real V8 limit, whatever NODE_OPTIONS sets it to.
+  const heapAt = (pct: number) => {
+    const limitMB = getHeapLimitMB();
     memoryMock.mockReturnValue({
-      heapUsed: mb * 1024 * 1024,
-      heapTotal: 512 * 1024 * 1024,
+      heapUsed: (pct / 100) * limitMB * 1024 * 1024,
+      heapTotal: limitMB * 1024 * 1024,
       rss: 600 * 1024 * 1024,
       external: 0,
       arrayBuffers: 0,
@@ -71,12 +73,12 @@ describe('checkMemoryPressure', () => {
   };
 
   it('returns null when heap is under 60%', () => {
-    heapAt(200);
+    heapAt(40);
     expect(checkMemoryPressure()).toBeNull();
   });
 
   it('returns ELEVATED and purges 25% of top 3 when heap is 60-75%', () => {
-    heapAt(350);
+    heapAt(68);
     const result = checkMemoryPressure();
     expect(result).not.toBeNull();
     expect(result!.tier).toBe('ELEVATED');
@@ -84,7 +86,7 @@ describe('checkMemoryPressure', () => {
   });
 
   it('returns HIGH and purges 50% of heavy caches when heap is 75-85%', () => {
-    heapAt(410);
+    heapAt(80);
     const result = checkMemoryPressure();
     expect(result).not.toBeNull();
     expect(result!.tier).toBe('HIGH');
@@ -92,10 +94,23 @@ describe('checkMemoryPressure', () => {
   });
 
   it('returns CRITICAL and clears all heavy caches when heap > 85%', () => {
-    heapAt(450);
+    heapAt(88);
     const result = checkMemoryPressure();
     expect(result).not.toBeNull();
     expect(result!.tier).toBe('CRITICAL');
     expect(result!.purged).toBe(150); // 20 + 50 + 80
+  });
+
+  it('reads the heap limit from V8 instead of assuming 512 MB', async () => {
+    const v8 = await import('node:v8');
+    expect(getHeapLimitMB()).toBeCloseTo(v8.getHeapStatistics().heap_size_limit / 1024 / 1024, 5);
+  });
+
+  it('grades pressure against the limit it is given', () => {
+    expect(getTier(600, 2048)).toBe('NORMAL');
+    expect(getTier(1300, 2048)).toBe('ELEVATED');
+    expect(getTier(1600, 2048)).toBe('HIGH');
+    expect(getTier(1800, 2048)).toBe('CRITICAL');
+    expect(getTier(450, 512)).toBe('CRITICAL');
   });
 });
