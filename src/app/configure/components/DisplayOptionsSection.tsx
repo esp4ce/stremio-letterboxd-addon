@@ -15,6 +15,8 @@ type DisplayOptionsProps =
       onHideNoHomeReleaseChange: (v: boolean) => void;
       publicSearch: boolean;
       onPublicSearchChange: (v: boolean) => void;
+      /** Extra rows rendered at the end of the list, styled like the others */
+      children?: ReactNode;
     }
   | {
       mode: "full";
@@ -70,6 +72,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
               onToggle={() => props.onPublicSearchChange(!props.publicSearch)}
             />
           </div>
+          {props.children}
         </div>
       </div>
     );

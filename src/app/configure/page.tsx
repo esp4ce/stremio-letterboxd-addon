@@ -1147,6 +1147,7 @@ function ConfigureInner() {
           onExternalListUrlChange={setExternalListUrl}
           onAddExternalList={handleResolveExternalList}
           isResolvingList={isResolvingList}
+          onUpsell={(message) => showUpsellToast(message, 6000)}
         />
         <ErrorToastStack />
       </>
@@ -1196,6 +1197,7 @@ function ConfigureInner() {
           isResolvingList={isResolvingList}
           onSave={handleInstallPublic}
           isSaving={false}
+          onUpsell={(message) => showUpsellToast(message, 6000)}
         />
         <ErrorToastStack />
       </>

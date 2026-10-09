@@ -36,6 +36,8 @@ interface BaseProps {
   onExternalListUrlChange: (url: string) => void;
   onAddExternalList: () => void;
   isResolvingList: boolean;
+  /** Shows a supporter upsell notice */
+  onUpsell: (message: string) => void;
 }
 
 interface FullModeProps extends BaseProps {
@@ -737,7 +739,9 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
               onHideNoHomeReleaseChange={(props as PublicModeProps).onHideNoHomeReleaseChange}
               publicSearch={(props as PublicModeProps).publicSearch}
               onPublicSearchChange={(props as PublicModeProps).onPublicSearchChange}
-            />
+            >
+              <NativeSyncRow preferences={null} signedIn={false} entitled={false} onBlocked={props.onUpsell} />
+            </DisplayOptionsSection>
           ) : (
             <DisplayOptionsSection
               mode="full"
@@ -747,7 +751,9 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
               <NativeSyncRow
                 preferences={(props as FullModeProps).preferences}
                 onPreferencesChange={(props as FullModeProps).onPreferencesChange}
+                signedIn
                 entitled={(props as FullModeProps).entitled}
+                onBlocked={props.onUpsell}
               />
             </DisplayOptionsSection>
           )}
