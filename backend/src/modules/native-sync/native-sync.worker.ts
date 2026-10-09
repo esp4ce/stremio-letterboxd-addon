@@ -84,7 +84,7 @@ async function runJob(job: NativeSyncJob): Promise<'done' | 'dropped'> {
     // The member may have logged it by hand, or a previous attempt may have written before failing
     // to report back: never log the same film twice on the same day.
     const recent = await client.getMemberLogEntries({ perPage: 20 });
-    if (recent.items.some((e) => e.film.id === filmId && e.diaryDate === job.localDate)) return 'done';
+    if (recent.items.some((e) => e.film.id === filmId && e.diaryDetails?.diaryDate === job.localDate)) return 'done';
     const relationship = await client.getFilmRelationship(filmId);
     await client.createDiaryEntry({ filmId, diaryDate: job.localDate, rewatch: relationship.watched });
     trackEvent('native_sync_logged', job.userId);

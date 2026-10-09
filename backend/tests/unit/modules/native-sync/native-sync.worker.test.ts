@@ -262,7 +262,7 @@ describe('native sync worker', () => {
     it('does not write on a first attempt when the member already logged the film that day', async () => {
       enqueue('diary');
       client.getMemberLogEntries.mockResolvedValue({
-        items: [{ id: 'hand', diaryDate: '2026-10-08', film: { id: 'lbFilm' } }],
+        items: [{ id: 'hand', diaryDetails: { diaryDate: '2026-10-08', rewatch: false }, film: { id: 'lbFilm' } }],
       });
       await processNextJob(NOW);
       expect(client.createDiaryEntry).not.toHaveBeenCalled();
@@ -272,7 +272,7 @@ describe('native sync worker', () => {
     it('skips the write on a retry when the entry already exists', async () => {
       retryAttempt();
       client.getMemberLogEntries.mockResolvedValue({
-        items: [{ id: 'e1', diaryDate: '2026-10-08', film: { id: 'lbFilm' } }],
+        items: [{ id: 'e1', diaryDetails: { diaryDate: '2026-10-08', rewatch: false }, film: { id: 'lbFilm' } }],
       });
       await processNextJob(NOW);
       expect(client.getMemberLogEntries).toHaveBeenCalledWith({ perPage: 20 });
@@ -284,8 +284,8 @@ describe('native sync worker', () => {
       retryAttempt();
       client.getMemberLogEntries.mockResolvedValue({
         items: [
-          { id: 'e1', diaryDate: '2026-10-07', film: { id: 'lbFilm' } },
-          { id: 'e2', diaryDate: '2026-10-08', film: { id: 'other' } },
+          { id: 'e1', diaryDetails: { diaryDate: '2026-10-07', rewatch: false }, film: { id: 'lbFilm' } },
+          { id: 'e2', diaryDetails: { diaryDate: '2026-10-08', rewatch: false }, film: { id: 'other' } },
         ],
       });
       await processNextJob(NOW);
