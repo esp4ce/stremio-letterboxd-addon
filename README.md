@@ -56,8 +56,6 @@ Everything above is free and stays free. A supporter subscription adds three thi
 | **Auto-log to Diary** | Mark films watched with quick actions | Films you finish in Stremio land in your diary |
 | **Session** | Log in again, every time | Persistent, stays signed in |
 
-**Auto-log to Diary** is opt-in and needs Full mode. A film watched past 80% is added to your Letterboxd diary, dated that day. A film you mark as watched in Stremio is marked watched, without a diary entry. It works on Stremio Web and Desktop today; Android follows once Stremio updates its app.
-
 9,99&nbsp;€ / year, or 3&nbsp;€ / month. Covers hosting. [**See pricing →**](https://stremboxd.com/pricing)
 
 ## Get started
