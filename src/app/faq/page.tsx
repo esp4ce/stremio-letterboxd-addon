@@ -99,8 +99,8 @@ export default function FAQ() {
   }
 
   return (
-    <>
     <div className="fixed inset-0 overflow-y-auto bg-[#0a0a0a] text-white">
+      <div className="relative flex min-h-full flex-col">
       <Link
         href="/"
         onClick={goBack}
@@ -117,7 +117,7 @@ export default function FAQ() {
         Back
       </Link>
 
-      <div className="mx-auto max-w-4xl px-4 pt-16 pb-12 sm:pt-24 sm:pb-20">
+      <div className="mx-auto w-full max-w-4xl flex-1 px-4 pt-16 pb-12 sm:pt-24 sm:pb-20">
         <h1 className="mb-10 text-3xl font-semibold tracking-tight sm:text-4xl">FAQ</h1>
 
         {/* Tabs */}
@@ -161,7 +161,7 @@ export default function FAQ() {
         </div>
       </div>
 
-      <div className="mt-6 text-center text-sm font-light text-zinc-600">
+      <div className="px-4 text-center text-sm font-light text-zinc-600">
         Still have questions?{" "}
         <a
           href="https://github.com/esp4ce/stremio-letterboxd-addons/issues"
@@ -172,9 +172,9 @@ export default function FAQ() {
           Open an issue on GitHub
         </a>
       </div>
-    </div>
 
       <Footer absolute={false} />
-    </>
+      </div>
+    </div>
   );
 }

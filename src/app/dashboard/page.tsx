@@ -204,14 +204,14 @@ export default function Dashboard() {
 
       <div className="relative z-10 mx-auto max-w-7xl space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-3xl font-semibold">Monitoring Dashboard</h1>
+            <h1 className="text-2xl font-semibold sm:text-3xl">Monitoring Dashboard</h1>
             <p className="text-sm text-zinc-400">
               Auto-refresh every 10 seconds
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {/* Time range filter */}
             <div className="flex gap-1 rounded-lg bg-zinc-900/50 p-1 ring-1 ring-zinc-800">
               {TIME_RANGES.map((range) => (

@@ -319,7 +319,7 @@ function LinkButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-[13px] text-zinc-300 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex-1 whitespace-nowrap rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-[13px] text-zinc-300 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
     >
       {children}
     </button>

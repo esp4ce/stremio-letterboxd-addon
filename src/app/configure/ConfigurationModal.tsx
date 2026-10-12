@@ -678,15 +678,16 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 flex h-screen w-screen items-center justify-center bg-[#0a0a0a] px-4 py-5 text-white sm:px-6">
+    <div className="fixed inset-0 flex items-center justify-center bg-[#0a0a0a] px-3 py-3 text-white sm:px-6 sm:py-5">
       <div className="w-full max-w-3xl 2xl:max-w-4xl">
-        <div className="film-grain animate-fade-in modal-scroll relative max-h-[88vh] overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl sm:p-6 lg:p-7">
+        {/* dvh, not vh: on mobile vh counts the area hidden behind the browser toolbar. */}
+        <div className="film-grain animate-fade-in modal-scroll relative max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl border border-zinc-800 bg-zinc-900 p-4 shadow-2xl sm:max-h-[88dvh] sm:p-6 lg:p-7">
           {/* Header */}
           <div className="flex items-center justify-between gap-4">
             <button
               type="button"
               onClick={onBack}
-              className="group inline-flex items-center gap-2 text-[12px] text-zinc-400 transition-colors hover:text-zinc-200"
+              className="group inline-flex flex-shrink-0 items-center gap-2 text-[12px] text-zinc-400 transition-colors hover:text-zinc-200"
             >
               <svg className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -694,7 +695,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
               Back
             </button>
 
-            <p className="text-[12px] text-zinc-500">
+            <p className="min-w-0 truncate text-[12px] text-zinc-500">
               {user ? (
                 <span className="text-zinc-300">{user.displayName || user.username}</span>
               ) : (
@@ -794,8 +795,8 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
             />
           )}
 
-          {/* Save Button */}
-          <div className="mt-8">
+          {/* Save Button: pinned to the bottom of the scroll area on mobile, where the modal is several screens long. The negative margins cancel the card padding so the fade covers rows scrolling underneath. */}
+          <div className="sticky -bottom-4 z-10 -mx-4 -mb-4 mt-4 bg-gradient-to-t from-zinc-900 from-75% to-transparent px-4 pb-4 pt-6 sm:static sm:m-0 sm:mt-8 sm:bg-none sm:p-0">
             <button
               type="button"
               onClick={onSave}

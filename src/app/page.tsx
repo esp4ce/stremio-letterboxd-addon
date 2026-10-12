@@ -19,27 +19,29 @@ const FEATURES = [
 
 export default function Home() {
   return (
-    <div className="fixed inset-0 flex h-[100dvh] w-screen cursor-default flex-col bg-[#0a0a0a] text-white sm:h-screen sm:items-center sm:justify-center">
-      <div className="flex min-h-0 w-full max-w-7xl flex-1 flex-col items-center justify-center overflow-y-auto px-4 sm:mx-auto sm:-mt-16 sm:h-full sm:flex-none sm:overflow-visible">
-        <h1 className="mt-10 text-center text-2xl font-semibold tracking-tight text-white sm:mt-0 sm:text-5xl lg:text-6xl xl:text-7xl">
+    <div className="fixed inset-0 flex cursor-default flex-col bg-[#0a0a0a] text-white sm:items-center sm:justify-center">
+      <div className="min-h-0 w-full max-w-7xl flex-1 overflow-y-auto px-4 sm:mx-auto sm:-mt-16 sm:flex sm:h-full sm:flex-none sm:flex-col sm:items-center sm:justify-center sm:overflow-visible">
+        {/* min-h-full centers the block yet lets it scroll from the top on short screens, where centering the scroller itself would clip it. */}
+        <div className="flex min-h-full w-full flex-col items-center justify-center py-8 sm:min-h-0 sm:py-0">
+        <h1 className="text-center text-3xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl xl:text-7xl">
           Your Letterboxd. Inside Stremio.
         </h1>
 
-        <p className="mt-4 text-center text-xl font-light text-zinc-400 sm:mt-6 sm:text-2xl">
+        <p className="mt-3 text-center text-lg font-light text-zinc-400 sm:mt-6 sm:text-2xl">
           Free unofficial addon for all platforms.
         </p>
 
-        <div className="mx-auto mt-6 w-full max-w-5xl max-h-[28vh] overflow-y-auto sm:mt-12 sm:max-h-none sm:overflow-visible config-scroll">
-          <ul className="mx-auto grid w-full gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto mt-7 w-full max-w-5xl sm:mt-12">
+          <ul className="mx-auto flex w-full flex-wrap justify-center gap-2 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
             {FEATURES.map((feature) => (
               <li
                 key={feature}
-                className="flex items-center gap-3 rounded-xl bg-zinc-900/50 p-3 sm:p-4"
+                className="flex items-center gap-2 rounded-full bg-zinc-900/50 py-1.5 pl-1.5 pr-3.5 sm:gap-3 sm:rounded-xl sm:p-4"
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm text-zinc-300">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs text-zinc-300 sm:h-8 sm:w-8 sm:text-sm">
                   ✓
                 </span>
-                <span className="text-base font-light text-zinc-200">
+                <span className="text-sm font-light text-zinc-200 sm:text-base">
                   {feature}
                 </span>
               </li>
@@ -47,7 +49,7 @@ export default function Home() {
           </ul>
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-sm font-light text-zinc-500 sm:mt-10">
+        <div className="mt-7 flex flex-col items-center justify-center gap-x-2 gap-y-1 text-center text-sm font-light text-zinc-500 sm:mt-10 sm:flex-row sm:flex-wrap">
           <span>
             <TransitionLink
               href="/pricing"
@@ -59,7 +61,7 @@ export default function Home() {
             </TransitionLink>
             {" "} for auto-sync & a persistent session.
           </span>
-          <span className="text-zinc-700">·</span>
+          <span className="hidden text-zinc-700 sm:inline">·</span>
           <span>
             <TransitionLink
               href="/faq"
@@ -72,9 +74,10 @@ export default function Home() {
             {" "} for common questions.
           </span>
         </div>
+        </div>
       </div>
 
-      <div className="flex shrink-0 justify-center py-6 sm:absolute sm:bottom-12">
+      <div className="flex shrink-0 justify-center py-5 sm:absolute sm:bottom-12 sm:py-6">
         <TransitionLink
           href="/configure"
           direction="up"

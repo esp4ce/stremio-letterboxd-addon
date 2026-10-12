@@ -113,7 +113,8 @@ export default function PricingPage() {
         Back
       </Link>
 
-      <div className="mx-auto flex min-h-screen w-full max-w-[980px] flex-col justify-center gap-12 px-6 py-16 sm:px-10">
+      <div className="flex min-h-full flex-col">
+      <div className="mx-auto flex w-full max-w-[980px] flex-1 flex-col justify-center gap-10 px-5 pb-8 pt-16 sm:gap-12 sm:px-10 sm:py-16">
         <section>
           <h1 className="text-2xl font-semibold leading-tight tracking-tight sm:whitespace-nowrap sm:text-4xl">
             Auto-sync and a persistent session.
@@ -141,7 +142,7 @@ export default function PricingPage() {
         </section>
 
         <section
-          className="film-grain relative flex flex-wrap items-center justify-between gap-7 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 px-8 py-8"
+          className="film-grain relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5 py-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-7 sm:px-8 sm:py-8"
           aria-live="polite"
         >
           <p className="flex items-baseline gap-x-2 gap-y-1 flex-wrap">
@@ -153,7 +154,7 @@ export default function PricingPage() {
             type="button"
             onClick={subscribe}
             disabled={opening}
-            className="flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-5 py-3 text-sm font-semibold sm:py-2.5 text-black transition-colors hover:bg-zinc-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {opening ? "Opening checkout..." : "Become a supporter"}
           </button>
@@ -172,7 +173,8 @@ export default function PricingPage() {
         </p>
       </div>
 
-      <Footer />
+      <Footer absolute={false} />
+      </div>
 
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
@@ -183,7 +185,7 @@ function ToastStack({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id
   if (toasts.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed right-6 top-6 z-[90] flex w-[min(92vw,360px)] flex-col gap-2.5">
+    <div className="pointer-events-none fixed inset-x-4 top-4 z-[90] flex flex-col gap-2.5 sm:left-auto sm:right-6 sm:top-6 sm:w-[360px]">
       {toasts.map((toast) => (
         <div
           key={toast.id}

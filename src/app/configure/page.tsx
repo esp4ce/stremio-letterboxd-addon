@@ -252,46 +252,12 @@ function ConfigureInner() {
 
   const usernameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
-  const mainModalRef = useRef<HTMLDivElement>(null);
-  const arrowShellRef = useRef<HTMLDivElement>(null);
-  const mainFormScrollRef = useRef<HTMLDivElement>(null);
   const toastIdRef = useRef(0);
   const [passwordPreview, setPasswordPreview] = useState("");
-  const [arrowTopPx, setArrowTopPx] = useState(24);
   const hasPassword = passwordPreview.trim().length > 0;
   // Default on: matches the pre-existing always-persist behavior for
   // supporters. Has no effect for non-supporters (no cookie either way).
   const [rememberMe, setRememberMe] = useState(true);
-
-  useEffect(() => {
-    const updateArrowPosition = () => {
-      const modalEl = mainModalRef.current;
-      const arrowEl = arrowShellRef.current;
-      if (!modalEl || !arrowEl) return;
-
-      const modalTop = modalEl.getBoundingClientRect().top;
-      const arrowHeight = arrowEl.getBoundingClientRect().height;
-      // Keep equal spacing above and below the arrow: top gap == gap to modal.
-      const nextTop = Math.max(12, (modalTop - arrowHeight) / 2);
-      setArrowTopPx(nextTop);
-    };
-
-    updateArrowPosition();
-
-    const resizeObserver = new ResizeObserver(updateArrowPosition);
-    if (mainModalRef.current) resizeObserver.observe(mainModalRef.current);
-    if (arrowShellRef.current) resizeObserver.observe(arrowShellRef.current);
-
-    const scrollEl = mainFormScrollRef.current;
-    window.addEventListener("resize", updateArrowPosition);
-    scrollEl?.addEventListener("scroll", updateArrowPosition, { passive: true });
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", updateArrowPosition);
-      scrollEl?.removeEventListener("scroll", updateArrowPosition);
-    };
-  }, []);
 
   const dismissToast = (id: number) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
@@ -386,7 +352,7 @@ function ConfigureInner() {
     if (toasts.length === 0) return null;
 
     return (
-      <div className="pointer-events-none fixed right-6 top-6 z-[90] flex w-[min(92vw,360px)] flex-col gap-2.5">
+      <div className="pointer-events-none fixed inset-x-4 top-4 z-[90] flex flex-col gap-2.5 sm:left-auto sm:right-6 sm:top-6 sm:w-[360px]">
         {toasts.map((toast) => (
           <div
             key={toast.id}
@@ -1089,7 +1055,7 @@ function ConfigureInner() {
   // entitlement is confirmed (or the 20s deadline passes), then fall through as normal.
   if (confirmingCheckout) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-6 text-center">
+      <div className="flex min-h-dvh items-center justify-center bg-zinc-950 px-6 text-center">
         <div className="max-w-sm">
           {checkoutNeedsLogin ? (
             <>
@@ -1208,9 +1174,12 @@ function ConfigureInner() {
   const manifestUrl = result?.manifestUrl || generatedManifestUrl;
   if (manifestUrl && !showConfig && !showPublicConfig && !forceMainForm) {
     return (
-      <div className="fixed inset-0 flex h-screen w-screen items-center justify-center bg-[#0a0a0a] text-white">
-        <div className="w-full max-w-md px-6 sm:px-8">
-          <div className="film-grain animate-fade-in relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 p-7 shadow-2xl sm:p-8">
+      <div className="fixed inset-0 overflow-y-auto bg-[#0a0a0a] text-white">
+        {/* Equal 1fr rows keep the card centered; they collapse on short screens so the page scrolls instead of clipping. */}
+        <div className="grid min-h-full grid-rows-[1fr_auto_1fr]">
+        <div />
+        <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-8">
+          <div className="film-grain animate-fade-in relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl sm:p-8">
             <div className="mb-5 flex justify-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-500/15 ring-1 ring-green-500/25">
                 <svg className="h-7 w-7 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1275,7 +1244,7 @@ function ConfigureInner() {
                     type="text"
                     readOnly
                     value={manifestUrl}
-                    className="block h-10 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 text-[12px] text-zinc-300 focus:outline-none"
+                    className="block h-10 w-full min-w-0 rounded-lg border border-zinc-700 bg-zinc-800 px-3 text-base text-zinc-300 focus:outline-none sm:text-[12px]"
                   />
                   <button
                     type="button"
@@ -1297,7 +1266,7 @@ function ConfigureInner() {
                       type="text"
                       readOnly
                       value={resumeLink}
-                      className="block h-10 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 text-[12px] text-zinc-300 focus:outline-none"
+                      className="block h-10 w-full min-w-0 rounded-lg border border-zinc-700 bg-zinc-800 px-3 text-base text-zinc-300 focus:outline-none sm:text-[12px]"
                     />
                     <button
                       type="button"
@@ -1350,7 +1319,10 @@ function ConfigureInner() {
           </div>
         </div>
 
-        <Footer />
+        <div className="flex items-end justify-center">
+          <Footer absolute={false} />
+        </div>
+        </div>
         <ErrorToastStack />
       </div>
     );
@@ -1358,13 +1330,10 @@ function ConfigureInner() {
 
   // Main form
   return (
-    <div ref={mainFormScrollRef} className="fixed inset-0 overflow-y-auto bg-[#0a0a0a] text-white">
-      <div className="flex min-h-screen w-full flex-col items-center justify-center px-6 py-10 sm:px-8 sm:py-12">
-        <div
-          ref={arrowShellRef}
-          className="fixed left-1/2 z-20 -translate-x-1/2"
-          style={{ top: `${arrowTopPx}px` }}
-        >
+    <div className="fixed inset-0 overflow-y-auto bg-[#0a0a0a] text-white">
+      {/* Equal 1fr rows keep the card centered with the arrow mid-gap above it; they collapse on short screens so everything scrolls together. */}
+      <div className="grid min-h-full grid-rows-[1fr_auto_1fr]">
+        <div className="flex items-center justify-center py-3">
           <TransitionLink
             href="/"
             direction="down"
@@ -1377,8 +1346,8 @@ function ConfigureInner() {
           </TransitionLink>
         </div>
 
-        <div className="w-full max-w-lg">
-          <div ref={mainModalRef} className="film-grain animate-fade-in relative w-full overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 p-7 shadow-2xl sm:p-8">
+        <div className="mx-auto w-full max-w-lg px-4 sm:px-8">
+          <div className="film-grain animate-fade-in relative w-full overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl sm:p-8">
             <h2
               className="text-center text-2xl font-semibold text-white sm:text-3xl"
             >
@@ -1408,7 +1377,7 @@ function ConfigureInner() {
                   autoComplete="username"
                   placeholder="your-username"
                   disabled={isLoading}
-                  className="mt-2 block w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-2 block w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-base text-white sm:text-sm placeholder-zinc-500 transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 
@@ -1427,13 +1396,13 @@ function ConfigureInner() {
                   onChange={(e) => setPasswordPreview(e.target.value)}
                   placeholder="**************"
                   disabled={isLoading}
-                  className="mt-2 block w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-2 block w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-base text-white sm:text-sm placeholder-zinc-500 transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 
               {hasPassword && (
-                <div className="flex items-center justify-between rounded-lg bg-zinc-800/35 px-3.5 py-3">
-                  <div>
+                <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
+                  <div className="min-w-0">
                     <p className="text-[13px] font-medium text-white">Stay Signed In</p>
                     <p className="mt-0.5 text-[11px] text-zinc-500">
                       Supporters only. Skips the Letterboxd login next visit.
@@ -1475,15 +1444,19 @@ function ConfigureInner() {
 
               <p className="cursor-default text-center text-xs text-zinc-500">
                 Your password is only used to authenticate with Letterboxd.
-                <br />
+                <br className="hidden sm:inline" />{" "}
                 We store an encrypted refresh token, not your raw password.
               </p>
             </form>
           </div>
         </div>
+
+        <div className="flex items-end justify-center">
+          <Footer absolute={false} />
+        </div>
       </div>
       {show2FA && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="film-grain animate-fade-in w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-7 shadow-2xl">
             <h3 className="text-center text-lg font-semibold text-white">Two-Factor Authentication</h3>
             <p className="mt-2 text-center text-xs text-zinc-400">
@@ -1539,7 +1512,6 @@ function ConfigureInner() {
           </div>
         </div>
       )}
-      <Footer />
       <ErrorToastStack />
     </div>
   );
