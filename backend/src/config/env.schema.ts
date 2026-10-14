@@ -27,6 +27,9 @@ export const envSchema = z.object({
   POLAR_ACCESS_TOKEN: z.string().min(1).optional(),
   POLAR_PRODUCT_ID_YEARLY: z.string().min(1).optional(),
   POLAR_PRODUCT_ID_MONTHLY: z.string().min(1).optional(),
+  // Optional pair: both set = the Founder offer exists (see isFounderConfigured).
+  POLAR_PRODUCT_ID_FOUNDER: z.string().min(1).optional(),
+  POLAR_FOUNDER_BENEFIT_ID: z.string().min(1).optional(),
   POLAR_SERVER: z.enum(['production', 'sandbox']).default('production'),
   FRONTEND_URL: z.string().url().default('https://stremboxd.com'),
 

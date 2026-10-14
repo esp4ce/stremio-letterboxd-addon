@@ -9,8 +9,8 @@ import { getCustomerState, PolarApiError } from '../../../src/lib/polar.js';
 import { getEntitlementStatus, clearEntitlementCache } from '../../../src/modules/billing/billing.service.js';
 
 const mockedState = vi.mocked(getCustomerState);
-const ACTIVE = { active_subscriptions: [{ status: 'active' }] };
-const NONE = { active_subscriptions: [] };
+const ACTIVE = { active_subscriptions: [{ status: 'active' }], granted_benefits: [] };
+const NONE = { active_subscriptions: [], granted_benefits: [] };
 
 describe('getEntitlementStatus', () => {
   beforeEach(() => {

@@ -13,7 +13,10 @@ const checkoutResponseSchema = z.object({ url: z.string().url() });
 const customerSessionResponseSchema = z.object({ customer_portal_url: z.string().url() });
 const customerStateResponseSchema = z.object({
   active_subscriptions: z.array(z.object({ status: z.string() })),
+  // Founder access arrives as a benefit grant (ADR 0003); older or partial payloads may omit it.
+  granted_benefits: z.array(z.object({ benefit_id: z.string() })).default([]),
 });
+const countResponseSchema = z.object({ pagination: z.object({ total_count: z.number().int().nonnegative() }) });
 
 export type CustomerState = z.infer<typeof customerStateResponseSchema>;
 
@@ -83,4 +86,30 @@ export async function getCustomerState(userId: string): Promise<CustomerState | 
     throw new PolarApiError('customer state lookup', response.status);
   }
   return customerStateResponseSchema.parse(await response.json());
+}
+
+async function polarCount(operation: string, path: string, params: [string, string][]): Promise<number> {
+  const query = new URLSearchParams([...params, ['limit', '1']]);
+  const response = await polarRequest('GET', `${path}?${query.toString()}`);
+  if (!response.ok) {
+    throw new PolarApiError(operation, response.status);
+  }
+  return countResponseSchema.parse(await response.json()).pagination.total_count;
+}
+
+export function countActiveSubscriptions(): Promise<number> {
+  return polarCount('subscription count', '/v1/subscriptions/', [
+    ['status', 'active'],
+    ['status', 'trialing'],
+  ]);
+}
+
+/** Paid seats; a fully refunded order frees its seat. Callers must check isFounderConfigured first. */
+export function countFounderSeatsSold(): Promise<number> {
+  const { productIdFounder } = requirePolarConfig();
+  return polarCount('founder order count', '/v1/orders/', [
+    ['product_id', productIdFounder!],
+    ['status', 'paid'],
+    ['status', 'partially_refunded'],
+  ]);
 }

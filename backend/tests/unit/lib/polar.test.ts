@@ -1,7 +1,14 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { mswServer } from '../../helpers/msw-server.js';
-import { createCheckout, createPortalUrl, getCustomerState, PolarApiError } from '../../../src/lib/polar.js';
+import {
+  countActiveSubscriptions,
+  countFounderSeatsSold,
+  createCheckout,
+  createPortalUrl,
+  getCustomerState,
+  PolarApiError,
+} from '../../../src/lib/polar.js';
 
 const POLAR = 'https://sandbox-api.polar.sh';
 
@@ -96,7 +103,7 @@ describe('polar client', () => {
         ),
       );
 
-      expect(await getCustomerState('user-1')).toEqual({ active_subscriptions: [{ status: 'active' }] });
+      expect(await getCustomerState('user-1')).toEqual({ active_subscriptions: [{ status: 'active' }], granted_benefits: [] });
     });
 
     it('returns null on 404', async () => {
@@ -127,6 +134,58 @@ describe('polar client', () => {
       );
 
       await expect(getCustomerState('user-1')).rejects.toBeInstanceOf(PolarApiError);
+    });
+  
+    it('keeps only benefit_id from each grant', async () => {
+      mswServer.use(
+        http.get(`${POLAR}/v1/customers/external/user-1/state`, () =>
+          HttpResponse.json({
+            email: 'never@kept.example',
+            active_subscriptions: [],
+            granted_benefits: [{ id: 'g1', benefit_id: 'benefit-founder', benefit_type: 'feature_flag', properties: {} }],
+          }),
+        ),
+      );
+      expect(await getCustomerState('user-1')).toEqual({
+        active_subscriptions: [],
+        granted_benefits: [{ benefit_id: 'benefit-founder' }],
+      });
+    });
+  });
+
+  describe('countActiveSubscriptions', () => {
+    it('asks for active and trialing subscriptions and returns total_count', async () => {
+      let query: URLSearchParams | undefined;
+      mswServer.use(
+        http.get(`${POLAR}/v1/subscriptions/`, ({ request }) => {
+          query = new URL(request.url).searchParams;
+          return HttpResponse.json({ items: [], pagination: { total_count: 18, max_page: 18 } });
+        }),
+      );
+      expect(await countActiveSubscriptions()).toBe(18);
+      expect(query?.getAll('status')).toEqual(['active', 'trialing']);
+      expect(query?.get('limit')).toBe('1');
+    });
+
+    it('throws PolarApiError on 403 (missing scope)', async () => {
+      mswServer.use(http.get(`${POLAR}/v1/subscriptions/`, () => HttpResponse.json({}, { status: 403 })));
+      await expect(countActiveSubscriptions()).rejects.toBeInstanceOf(PolarApiError);
+    });
+  });
+
+  describe('countFounderSeatsSold', () => {
+    it('counts paid and partially refunded orders of the Founder product', async () => {
+      let query: URLSearchParams | undefined;
+      mswServer.use(
+        http.get(`${POLAR}/v1/orders/`, ({ request }) => {
+          query = new URL(request.url).searchParams;
+          return HttpResponse.json({ items: [], pagination: { total_count: 7, max_page: 7 } });
+        }),
+      );
+      expect(await countFounderSeatsSold()).toBe(7);
+      expect(query?.get('product_id')).toBe('prod-founder');
+      expect(query?.getAll('status')).toEqual(['paid', 'partially_refunded']);
+      expect(query?.get('limit')).toBe('1');
     });
   });
 });
