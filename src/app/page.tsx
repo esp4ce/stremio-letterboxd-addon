@@ -12,7 +12,7 @@ const FEATURES = [
   "Any public list by URL",
   "Popular & Top 250",
   "Ratings on posters",
-  "Rate, like & manage from Stremio",
+  "Rate, like & manage",
   "Sort, shuffle & filter",
   "Stremio & Nuvio",
 ];
