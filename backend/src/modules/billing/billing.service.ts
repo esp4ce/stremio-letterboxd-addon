@@ -1,8 +1,14 @@
 import { createChildLogger } from '../../lib/logger.js';
 import { refreshAccessToken, getCurrentUser } from '../letterboxd/letterboxd.client.js';
 import { getDecryptedRefreshToken, updateUser, type User } from '../../db/repositories/user.repository.js';
-import { isPolarConfigured } from '../../config/index.js';
-import { createCheckout, createPortalUrl, getCustomerState } from '../../lib/polar.js';
+import { isFounderConfigured, isPolarConfigured } from '../../config/index.js';
+import {
+  countActiveSubscriptions,
+  countFounderSeatsSold,
+  createCheckout,
+  createPortalUrl,
+  getCustomerState,
+} from '../../lib/polar.js';
 import { isSupporter } from '../../lib/entitlement.js';
 import { createCache } from '../../lib/cache.js';
 
@@ -120,4 +126,50 @@ export async function getEntitlementStatus(
 /** Simple boolean check for callers that just gate a feature (fail-closed is fine there). */
 export async function getEntitlement(userId: string, options: { fresh?: boolean } = {}): Promise<boolean> {
   return (await getEntitlementStatus(userId, options)).entitled;
+}
+
+// ─── Public offer ──────────────────────────────────────────────────────────
+
+export const FOUNDER_SEATS = 20;
+export const MIN_SOCIAL_PROOF = 10;
+const OFFER_TTL_MS = 5 * 60 * 1000;
+
+export interface Offer {
+  supporters: number | null;
+  founder: { seatsLeft: number } | null;
+}
+
+let offerCache: { value: Offer; at: number } | null = null;
+
+export function clearOfferCache(): void {
+  offerCache = null;
+}
+
+async function settle<T>(promise: Promise<T>): Promise<T | null> {
+  try {
+    return await promise;
+  } catch (err) {
+    logger.warn({ reason: err instanceof Error ? err.message : 'unknown' }, 'Polar count failed, hiding that part of the offer');
+    return null;
+  }
+}
+
+export async function getOffer(): Promise<Offer> {
+  if (!isPolarConfigured) return { supporters: null, founder: null };
+  const now = Date.now();
+  if (offerCache && now - offerCache.at < OFFER_TTL_MS) return offerCache.value;
+
+  const [subscriptions, seatsSold] = await Promise.all([
+    settle(countActiveSubscriptions()),
+    isFounderConfigured ? settle(countFounderSeatsSold()) : Promise.resolve(0),
+  ]);
+
+  const total = subscriptions === null || seatsSold === null ? null : subscriptions + seatsSold;
+  const seatsLeft = seatsSold === null ? 0 : Math.max(0, FOUNDER_SEATS - seatsSold);
+  const value: Offer = {
+    supporters: total !== null && total >= MIN_SOCIAL_PROOF ? total : null,
+    founder: isFounderConfigured && seatsLeft > 0 ? { seatsLeft } : null,
+  };
+  offerCache = { value, at: now };
+  return value;
 }

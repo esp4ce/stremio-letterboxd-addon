@@ -2,11 +2,21 @@ import type { FastifyInstance } from 'fastify';
 import { isPolarConfigured } from '../../config/index.js';
 import { sessionMiddleware } from '../../middleware/auth.middleware.js';
 import { createChildLogger } from '../../lib/logger.js';
-import { startCheckout, getPortalUrl } from './billing.service.js';
+import { startCheckout, getPortalUrl, getOffer } from './billing.service.js';
 
 const logger = createChildLogger('billing-routes');
 
 export async function billingRoutes(app: FastifyInstance) {
+  // Public: what /pricing shows. Never fails — a Polar outage just hides the numbers.
+  app.get(
+    '/billing/offer',
+    { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } },
+    async (_request, reply) => {
+      reply.header('Cache-Control', 'public, max-age=300');
+      return getOffer();
+    }
+  );
+
   app.post(
     '/billing/checkout',
     {
