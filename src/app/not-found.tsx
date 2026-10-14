@@ -12,12 +12,10 @@ export default function NotFound() {
           ★½. Didn&apos;t finish it.
         </p>
         <a
-          href="https://buymeacoffee.com/esp4ce"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="/pricing"
           className="mt-4 text-sm font-light text-zinc-600 transition-colors hover:text-zinc-400"
         >
-          buy me a coffee ☕
+          support Stremboxd
         </a>
       </div>
       <Footer />
