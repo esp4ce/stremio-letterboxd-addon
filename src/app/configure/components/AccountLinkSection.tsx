@@ -17,6 +17,7 @@ import {
   readSession,
   type LinkCode as NuvioLinkCode,
 } from "../../../lib/nuvio-sync";
+import { dismissSupporterBanner, isSupporterBannerDismissed } from "../../../lib/supporter-storage";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
@@ -41,12 +42,18 @@ export function AccountLinkSection({
   const [stremioCode, setStremioCode] = useState<StremioLinkCode | null>(null);
   const [nuvioCode, setNuvioCode] = useState<NuvioLinkCode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Client-only component (rendered after login), so storage is safe to read here.
+  const [bannerDismissed, setBannerDismissed] = useState(() => isSupporterBannerDismissed());
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
   const onStremioLinkedChangeRef = useRef(onStremioLinkedChange);
-  onStremioLinkedChangeRef.current = onStremioLinkedChange;
   const onNuvioLinkedChangeRef = useRef(onNuvioLinkedChange);
-  onNuvioLinkedChangeRef.current = onNuvioLinkedChange;
+  // Keep the latest callbacks without writing refs during render; declared first so it runs
+  // before the effects below read them.
+  useEffect(() => {
+    onStremioLinkedChangeRef.current = onStremioLinkedChange;
+    onNuvioLinkedChangeRef.current = onNuvioLinkedChange;
+  });
 
   useEffect(() => {
     mountedRef.current = true;
@@ -135,19 +142,25 @@ export function AccountLinkSection({
         )}
       </div>
 
-      {(stremioLinked || nuvioLinked) && !entitled && (
+      {!entitled && !bannerDismissed && (
         <div className="relative mt-2 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60 px-3.5 py-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-300">
+            <div className="hidden h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-300 sm:flex">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <rect x="5" y="11" width="14" height="9" rx="2" strokeWidth={2} />
                 <path d="M8 11V7a4 4 0 018 0v4" strokeWidth={2} strokeLinecap="round" />
               </svg>
             </div>
             <p className="min-w-0 flex-1 text-[12.5px] leading-snug text-zinc-300">
-              Auto-sync is off. Changes won&apos;t reach{" "}
-              {stremioLinked && nuvioLinked ? "Stremio or Nuvio" : stremioLinked ? "Stremio" : "Nuvio"} until you
-              upgrade.
+              {stremioLinked || nuvioLinked ? (
+                <>
+                  Auto-sync is off. Changes won&apos;t reach{" "}
+                  {stremioLinked && nuvioLinked ? "Stremio or Nuvio" : stremioLinked ? "Stremio" : "Nuvio"} until you
+                  upgrade.
+                </>
+              ) : (
+                "Supporters get auto-log to diary, auto-sync and a persistent session."
+              )}
             </p>
             <TransitionLink
               href="/pricing"
@@ -156,6 +169,19 @@ export function AccountLinkSection({
             >
               Upgrade
             </TransitionLink>
+            <button
+              type="button"
+              onClick={() => {
+                dismissSupporterBanner();
+                setBannerDismissed(true);
+              }}
+              aria-label="Dismiss supporter banner"
+              className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-zinc-500 transition-colors hover:text-zinc-200"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
       )}

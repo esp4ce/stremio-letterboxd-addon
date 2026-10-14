@@ -76,9 +76,9 @@ Everything above is free and stays free. A supporter subscription adds three thi
 
 ## Support
 
-If you find this useful, consider buying me a coffee.
+Everything here stays free. Supporting pays the hosting and adds automatic diary logging, changes without reinstalling, and staying signed in.
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-yellow?style=flat-square&logo=buy-me-a-coffee&logoColor=white)](https://buymeacoffee.com/esp4ce)
+[![Become a supporter](https://img.shields.io/badge/Stremboxd-become%20a%20supporter-white?style=flat-square)](https://stremboxd.com/pricing)
 
 ## License
 

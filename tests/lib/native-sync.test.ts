@@ -31,8 +31,10 @@ describe('nativeSyncControl', () => {
     expect(nativeSyncControl({ ...prefs, nativeSync: true }, { signedIn: true, entitled: true })).toEqual({ kind: 'toggle', enabled: true, next: false });
   });
 
-  it('lets a lapsed member who left it on only switch it off', () => {
-    expect(nativeSyncControl({ ...prefs, nativeSync: true }, { signedIn: true, entitled: false })).toEqual({ kind: 'toggle', enabled: true, next: false });
+  it('shows it off and blocked to a non-supporter even when an old preference says on', () => {
+    // Nothing is ever logged without supporter access (the backend gate drops it), so showing
+    // "on" to a non-supporter would be a lie.
+    expect(nativeSyncControl({ ...prefs, nativeSync: true }, { signedIn: true, entitled: false })).toEqual({ kind: 'blocked', reason: 'supporter' });
   });
 
   it('shows a signed-in member who is not a supporter an off toggle that is blocked', () => {

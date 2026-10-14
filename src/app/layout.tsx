@@ -73,11 +73,22 @@ const jsonLd = {
   operatingSystem: "All",
   description: SITE_DESCRIPTION,
   url: "https://stremboxd.com",
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD",
-  },
+  offers: [
+    { "@type": "Offer", name: "Free", price: "0", priceCurrency: "EUR" },
+    {
+      "@type": "Offer",
+      name: "Supporter",
+      price: "9.99",
+      priceCurrency: "EUR",
+      url: "https://stremboxd.com/pricing",
+      priceSpecification: {
+        "@type": "UnitPriceSpecification",
+        price: "9.99",
+        priceCurrency: "EUR",
+        referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitCode: "ANN" },
+      },
+    },
+  ],
   author: {
     "@type": "Person",
     name: "esp4ce",

@@ -12,18 +12,18 @@ export type NativeSyncControl =
   | { kind: "blocked"; reason: NativeSyncBlockReason };
 
 /**
- * Everyone sees the toggle. Only a signed-in Supporter can switch it on; a member whose
- * support lapsed while it was on can still switch it off, never back on.
+ * Everyone sees the toggle, but only a signed-in Supporter sees its real state and can
+ * switch it. Anyone else sees it off: without supporter access nothing is ever logged,
+ * whatever an old stored preference says.
  */
 export function nativeSyncControl(
   prefs: UserPreferences | null,
   access: { signedIn: boolean; entitled: boolean },
 ): NativeSyncControl {
   if (!access.signedIn || !prefs) return { kind: "blocked", reason: "signin" };
+  if (!access.entitled) return { kind: "blocked", reason: "supporter" };
   const stored = prefs.nativeSync === true;
-  if (access.entitled) return { kind: "toggle", enabled: stored, next: !stored };
-  if (stored) return { kind: "toggle", enabled: true, next: false };
-  return { kind: "blocked", reason: "supporter" };
+  return { kind: "toggle", enabled: stored, next: !stored };
 }
 
 export function nativeSyncBlockedMessage(reason: NativeSyncBlockReason): string {

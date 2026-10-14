@@ -68,7 +68,8 @@ export type EventType =
   | 'native_sync_failed'
   | 'login'
   | 'manifest_view'
-  | 'validate_username';
+  | 'validate_username'
+  | 'supporter_reason';
 
 export function trackEvent(event: EventType, userId?: string, metadata?: Record<string, unknown>, anonymousId?: string): void {
   try {

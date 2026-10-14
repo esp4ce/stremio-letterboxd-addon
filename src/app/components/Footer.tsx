@@ -1,7 +1,7 @@
 const LINKS = [
   { href: "https://github.com/esp4ce", label: "esp4ce" },
   { href: "https://www.reddit.com/r/stremboxd/", label: "reddit" },
-  { href: "https://buymeacoffee.com/esp4ce", label: "support me" },
+  { href: "/pricing", label: "support" },
 ];
 
 export default function Footer({ absolute = true }: { absolute?: boolean }) {
@@ -12,8 +12,7 @@ export default function Footer({ absolute = true }: { absolute?: boolean }) {
           <span key={link.href}>
             <a
               href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
               className="transition-colors hover:text-zinc-400"
             >
               {link.label}

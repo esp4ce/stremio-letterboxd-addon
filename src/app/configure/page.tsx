@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import TransitionLink from "../components/TransitionLink";
 import Footer from "../components/Footer";
 import ConfigurationModal from "./ConfigurationModal";
@@ -11,8 +11,21 @@ import { readAuthKey, syncAddon, type SyncResult } from "../../lib/stremio-sync"
 import { readSession as readNuvioSession, syncAddon as syncNuvioAddon } from "../../lib/nuvio-sync";
 import { track } from "../../lib/analytics";
 import { authHeaders, getInMemorySessionToken, setInMemorySessionToken } from "../../lib/session-token";
+import { sendSupporterReason, type CheckoutOffer, type SupporterReason } from "../../lib/billing";
+import { browserTimeZone, withNativeSync } from "../../lib/native-sync";
+import { clearPurchasedOffer, peekCheckoutIntent, readPurchasedOffer } from "../../lib/supporter-storage";
 
 const TOAST_DURATION = 3000;
+// Subscriptions usually confirm within seconds; a Founder grant can land slower.
+const CHECKOUT_POLL_DEADLINE_MS: Record<CheckoutOffer, number> = { supporter: 20_000, founder: 60_000 };
+
+const SUPPORTER_REASONS: Array<{ value: SupporterReason; label: string }> = [
+  { value: "auto_log", label: "Auto-log to Diary" },
+  { value: "auto_sync", label: "Auto-sync" },
+  { value: "stay_signed_in", label: "Staying signed in" },
+  { value: "support_project", label: "Supporting the project" },
+  { value: "other", label: "Something else" },
+];
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
 interface LoginResponse {
@@ -62,7 +75,7 @@ interface PublicConfig {
 
 interface ToastItem {
   id: number;
-  message: string;
+  message: ReactNode;
   tone: "error" | "upsell" | "success";
 }
 
@@ -199,8 +212,15 @@ export default function Configure() {
 // shell — the actual read never suspends at runtime, this is build-time only.
 function ConfigureInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [confirmingCheckout, setConfirmingCheckout] = useState(searchParams.get("checkout") === "success");
   const [checkoutNeedsLogin, setCheckoutNeedsLogin] = useState(false);
+  // Founder poll ran out: payment went through, the grant is just slow.
+  const [checkoutSlow, setCheckoutSlow] = useState(false);
+  // Set once the poll confirms entitlement: shows the one-time thank-you screen.
+  const [checkoutWelcome, setCheckoutWelcome] = useState<CheckoutOffer | null>(null);
+  const [autoLogState, setAutoLogState] = useState<"idle" | "saving" | "done" | "error">("idle");
+  const [reasonAnswered, setReasonAnswered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [copied, setCopied] = useState(false);
@@ -269,17 +289,24 @@ function ConfigureInner() {
     setTimeout(() => dismissToast(id), TOAST_DURATION);
   };
 
-  const showUpsellToast = (message: string, durationMs = TOAST_DURATION) => {
+  const showUpsellToast = (message: ReactNode, durationMs = TOAST_DURATION) => {
     const id = ++toastIdRef.current;
-    setToasts((prev) => [...prev, { id, message, tone: "upsell" }]);
+    const withLink = (
+      <>
+        {message}{" "}
+        <TransitionLink
+          href="/pricing"
+          direction="up"
+          className="whitespace-nowrap text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition-colors hover:text-zinc-200"
+        >
+          See supporter plan →
+        </TransitionLink>
+      </>
+    );
+    setToasts((prev) => [...prev, { id, message: withLink, tone: "upsell" }]);
     setTimeout(() => dismissToast(id), durationMs);
   };
 
-  const showSuccessToast = (message: string) => {
-    const id = ++toastIdRef.current;
-    setToasts((prev) => [...prev, { id, message, tone: "success" }]);
-    setTimeout(() => dismissToast(id), TOAST_DURATION);
-  };
 
   const formatListResolveError = (message: string) => {
     const normalized = message.replace(/\s+/g, " ").trim();
@@ -348,7 +375,8 @@ function ConfigureInner() {
     return data as ResolvedList;
   };
 
-  const ErrorToastStack = () => {
+  // A render helper, not a component: a component declared here would be a new type on every render.
+  const renderErrorToastStack = () => {
     if (toasts.length === 0) return null;
 
     return (
@@ -513,12 +541,15 @@ function ConfigureInner() {
   }, []);
 
   // After a checkout (?checkout=success), poll until Polar reports the
-  // subscription instead of showing a stale unpaid UI.
+  // entitlement (subscription or Founder grant) instead of showing a stale
+  // unpaid UI.
   useEffect(() => {
     if (!confirmingCheckout) return;
 
     let cancelled = false;
-    const deadline = Date.now() + 20_000;
+    // Peeked, not consumed: a reload mid-poll must still know the offer.
+    const boughtOffer = readPurchasedOffer() ?? "supporter";
+    const deadline = Date.now() + CHECKOUT_POLL_DEADLINE_MS[boughtOffer];
     // The overlay checkout keeps this JS context (and its in-memory token).
     // A redirect fallback lands in a brand-new one with no token and, for a
     // user who was not a supporter yet, no cookie: the poll can never
@@ -545,8 +576,11 @@ function ConfigureInner() {
               if (!cancelled) {
                 applyLoginResult(data);
                 track("checkout_confirmed", { entitled: true });
+                clearPurchasedOffer();
+                // A reload must not replay the thank-you screen.
+                window.history.replaceState(null, "", window.location.pathname);
+                setCheckoutWelcome(boughtOffer);
                 setConfirmingCheckout(false);
-                showSuccessToast("Payment confirmed - thanks for your support!");
               }
               return;
             }
@@ -567,13 +601,24 @@ function ConfigureInner() {
         if (Date.now() >= deadline) break;
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
-      if (!cancelled) setConfirmingCheckout(false);
+      if (cancelled) return;
+      // The offer is kept on purpose: a later reload of ?checkout=success polls
+      // again with the right deadline and thank-you screen.
+      if (boughtOffer === "founder") {
+        // Paid, grant still on its way: say so calmly rather than drop the user
+        // on an unpaid-looking settings page.
+        setCheckoutSlow(true);
+      } else {
+        setConfirmingCheckout(false);
+      }
     };
 
     void poll();
     return () => {
       cancelled = true;
     };
+    // applyLoginResult is recreated every render; re-running the poll for it would restart the deadline.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirmingCheckout]);
 
   const handleSubmit = async () => {
@@ -613,8 +658,10 @@ function ConfigureInner() {
           throw new Error(errorData.error || "Authentication failed");
         }
 
-        applyLoginResult(data as LoginResponse, true);
+        const resuming = peekCheckoutIntent() !== null;
+        applyLoginResult(data as LoginResponse, !resuming);
         track("login_succeeded", { method: "password", entitled: (data as LoginResponse).entitled, remember_me: rememberMe });
+        if (resuming) router.push("/pricing?resume=1");
       } else {
         // Public flow (username only)
         const response = await fetch(`${BACKEND_URL}/auth/validate-username`, {
@@ -675,13 +722,47 @@ function ConfigureInner() {
 
       setShow2FA(false);
       setTotpCode("");
-      applyLoginResult(data as LoginResponse, true);
+      const resuming = peekCheckoutIntent() !== null;
+      applyLoginResult(data as LoginResponse, !resuming);
       track("login_succeeded", { method: "totp", entitled: (data as LoginResponse).entitled, remember_me: rememberMe });
+      // Logged in because /pricing asked for it: send them back to their checkout.
+      if (resuming) router.push("/pricing?resume=1");
     } catch (err) {
       showErrorToast(err instanceof Error ? err.message : "Invalid code");
     } finally {
       setIs2FALoading(false);
     }
+  };
+
+  const postPreferences = async (prefs: UserPreferences) => {
+    const response = await fetch(`${BACKEND_URL}/auth/preferences`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ preferences: prefs }),
+    });
+    if (!response.ok) throw new Error("Failed to save preferences");
+  };
+
+  // Explicit opt-in from the thank-you screen: nothing is enabled without this click.
+  const handleEnableAutoLog = async () => {
+    if (!preferences) return;
+    const next = withNativeSync(preferences, true, browserTimeZone());
+    setAutoLogState("saving");
+    try {
+      await postPreferences(next);
+      setPreferences(next);
+      setAutoLogState("done");
+      track("native_sync_enabled_from_checkout");
+    } catch {
+      setAutoLogState("error");
+    }
+  };
+
+  const handleReason = (reason: SupporterReason) => {
+    setReasonAnswered(true);
+    track("supporter_reason_answered", { reason });
+    void sendSupporterReason(reason);
   };
 
   const handleSavePreferences = async () => {
@@ -690,14 +771,7 @@ function ConfigureInner() {
     setIsSavingPrefs(true);
     setSyncOutcome(null);
     try {
-      const response = await fetch(`${BACKEND_URL}/auth/preferences`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ preferences }),
-      });
-
-      if (!response.ok) throw new Error("Failed to save preferences");
+      await postPreferences(preferences);
 
       const authKey = readAuthKey();
       const nuvioSession = readNuvioSession();
@@ -710,7 +784,8 @@ function ConfigureInner() {
         setSyncOutcome(null);
         setShowConfig(false);
         showUpsellToast(
-          "Preferences saved. Auto-sync to Stremio/Nuvio requires a Stremboxd supporter subscription — reinstall the addon manually to pick up changes, or subscribe for automatic sync."
+          "Preferences saved. Auto-sync to Stremio/Nuvio requires a Stremboxd supporter subscription — reinstall the addon manually to pick up changes, or subscribe for automatic sync.",
+          6000
         );
         return;
       }
@@ -1051,13 +1126,27 @@ function ConfigureInner() {
     handleReset();
   };
 
-  // Just returned from a checkout: hold here until the supporter
-  // entitlement is confirmed (or the 20s deadline passes), then fall through as normal.
+  // Just returned from a checkout: hold here until the supporter entitlement is
+  // confirmed (or the deadline passes: 20s, 60s for Founder), then fall through.
   if (confirmingCheckout) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-zinc-950 px-6 text-center">
         <div className="max-w-sm">
-          {checkoutNeedsLogin ? (
+          {checkoutSlow ? (
+            <>
+              <p className="text-sm text-zinc-300">Payment received. Thanks for supporting Stremboxd.</p>
+              <p className="mt-2 text-[12px] text-zinc-500">
+                Founder access can take a minute to show up. Nothing else to do: reload this page in a little while.
+              </p>
+              <button
+                type="button"
+                onClick={() => setConfirmingCheckout(false)}
+                className="mt-5 w-full cursor-pointer rounded-xl border border-zinc-700 px-4 py-3 text-[14px] font-medium text-zinc-200 transition-colors hover:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-950"
+              >
+                Continue for now
+              </button>
+            </>
+          ) : checkoutNeedsLogin ? (
             <>
               <p className="text-sm text-zinc-300">Payment received. Thanks for supporting Stremboxd.</p>
               <p className="mt-2 text-[12px] text-zinc-500">
@@ -1089,6 +1178,94 @@ function ConfigureInner() {
     return <div className="fixed inset-0 bg-[#0a0a0a]" />;
   }
 
+  // One-time thank-you right after a confirmed checkout. Leaving it drops it for good.
+  if (checkoutWelcome && result && preferences) {
+    const autoLogAlreadyOn = preferences.nativeSync === true && autoLogState !== "done";
+    return (
+      <div className="fixed inset-0 overflow-y-auto bg-[#0a0a0a] text-white">
+        <div className="grid min-h-full grid-rows-[1fr_auto_1fr]">
+          <div />
+          <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-8">
+            <div className="film-grain animate-fade-in relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl sm:p-8">
+              <h2 className="text-center text-2xl font-semibold text-white">
+                {checkoutWelcome === "founder" ? "You're a Founder." : "You're a supporter."}
+              </h2>
+              <p className="mt-2 text-center text-[13px] text-zinc-400">
+                Thank you. Your support pays the hosting.
+              </p>
+
+              {!autoLogAlreadyOn && (
+                <div className="mt-6">
+                  {autoLogState === "done" ? (
+                    <div className="flex items-center justify-center gap-2 rounded-lg bg-zinc-800/35 px-4 py-3">
+                      <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" />
+                      <p className="text-[13px] text-zinc-300">Auto-log to Diary is on.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleEnableAutoLog}
+                        disabled={autoLogState === "saving"}
+                        className="flex w-full cursor-pointer items-center justify-center rounded-lg bg-white px-4 py-3 text-[15px] font-semibold text-black transition-all hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {autoLogState === "saving" ? "Turning on..." : "Turn on Auto-log to Diary"}
+                      </button>
+                      <p className="mt-2 text-center text-[11px] text-zinc-500">
+                        {autoLogState === "error"
+                          ? "Couldn't turn it on right now. Try again, or later from your settings."
+                          : "Films you finish in Stremio land in your diary, dated."}
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-6 border-t border-zinc-800 pt-4">
+                {reasonAnswered ? (
+                  <p className="text-center text-[12px] text-zinc-400">Thanks!</p>
+                ) : (
+                  <>
+                    <p className="text-center text-[12px] text-zinc-400">
+                      What made you decide? <span className="text-zinc-600">(optional)</span>
+                    </p>
+                    <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+                      {SUPPORTER_REASONS.map((reason) => (
+                        <button
+                          key={reason.value}
+                          type="button"
+                          onClick={() => handleReason(reason.value)}
+                          className="rounded-full border border-zinc-700 px-3 py-1.5 text-[11.5px] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
+                        >
+                          {reason.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {checkoutWelcome === "founder" && (
+                <p className="mt-4 text-center text-[11px] text-zinc-500">
+                  If you also have a subscription, it keeps renewing until you cancel it from the portal.
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setCheckoutWelcome(null)}
+                className="mt-5 w-full cursor-pointer rounded-lg border border-zinc-700 px-4 py-2.5 text-[13px] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
+              >
+                Continue to settings
+              </button>
+            </div>
+          </div>
+          <div />
+        </div>
+      </div>
+    );
+  }
+
   // Full auth configuration modal
   if (result && showConfig && preferences && !forceMainForm) {
     return (
@@ -1115,7 +1292,7 @@ function ConfigureInner() {
           isResolvingList={isResolvingList}
           onUpsell={(message) => showUpsellToast(message, 6000)}
         />
-        <ErrorToastStack />
+        {renderErrorToastStack()}
       </>
     );
   }
@@ -1165,7 +1342,7 @@ function ConfigureInner() {
           isSaving={false}
           onUpsell={(message) => showUpsellToast(message, 6000)}
         />
-        <ErrorToastStack />
+        {renderErrorToastStack()}
       </>
     );
   }
@@ -1323,7 +1500,7 @@ function ConfigureInner() {
           <Footer absolute={false} />
         </div>
         </div>
-        <ErrorToastStack />
+        {renderErrorToastStack()}
       </div>
     );
   }
@@ -1512,7 +1689,7 @@ function ConfigureInner() {
           </div>
         </div>
       )}
-      <ErrorToastStack />
+      {renderErrorToastStack()}
     </div>
   );
 }

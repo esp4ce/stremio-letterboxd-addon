@@ -1,8 +1,14 @@
 import { createChildLogger } from '../../lib/logger.js';
 import { refreshAccessToken, getCurrentUser } from '../letterboxd/letterboxd.client.js';
 import { getDecryptedRefreshToken, updateUser, type User } from '../../db/repositories/user.repository.js';
-import { isPolarConfigured } from '../../config/index.js';
-import { createCheckout, createPortalUrl, getCustomerState } from '../../lib/polar.js';
+import { isFounderConfigured, isPolarConfigured } from '../../config/index.js';
+import {
+  countFounderSeatsSold,
+  createCheckout,
+  createPortalUrl,
+  getCustomerState,
+  type CheckoutOffer,
+} from '../../lib/polar.js';
 import { isSupporter } from '../../lib/entitlement.js';
 import { createCache } from '../../lib/cache.js';
 
@@ -36,9 +42,29 @@ async function fetchEmailBestEffort(user: User): Promise<string | undefined> {
 
 // ─── Checkout ──────────────────────────────────────────────────────────────
 
-export async function startCheckout(user: User): Promise<string> {
+// ─── Founder ───────────────────────────────────────────────────────────────
+
+export const FOUNDER_SEATS = 20;
+
+export class FounderUnavailableError extends Error {
+  readonly reason: 'not_configured' | 'sold_out';
+
+  constructor(reason: 'not_configured' | 'sold_out') {
+    super(`Founder offer unavailable: ${reason}`);
+    this.name = 'FounderUnavailableError';
+    this.reason = reason;
+  }
+}
+
+export async function startCheckout(user: User, offer: CheckoutOffer = 'supporter'): Promise<string> {
+  if (offer === 'founder') {
+    if (!isFounderConfigured) throw new FounderUnavailableError('not_configured');
+    // Checked here, not reserved: two checkouts opened at seat 19 can both complete,
+    // and the extra seat is honoured (ADR 0003).
+    if ((await countFounderSeatsSold()) >= FOUNDER_SEATS) throw new FounderUnavailableError('sold_out');
+  }
   const email = await fetchEmailBestEffort(user);
-  return createCheckout({ userId: user.id, email });
+  return createCheckout({ userId: user.id, email, offer });
 }
 
 // ─── Portal ────────────────────────────────────────────────────────────────
@@ -120,4 +146,39 @@ export async function getEntitlementStatus(
 /** Simple boolean check for callers that just gate a feature (fail-closed is fine there). */
 export async function getEntitlement(userId: string, options: { fresh?: boolean } = {}): Promise<boolean> {
   return (await getEntitlementStatus(userId, options)).entitled;
+}
+
+// ─── Public offer ──────────────────────────────────────────────────────────
+
+const OFFER_TTL_MS = 5 * 60 * 1000;
+
+export interface Offer {
+  /** Only whether seats remain: the count itself is never published. */
+  founderAvailable: boolean;
+}
+
+let offerCache: { value: Offer; at: number } | null = null;
+
+export function clearOfferCache(): void {
+  offerCache = null;
+}
+
+async function countSeatsSoldOrNull(): Promise<number | null> {
+  try {
+    return await countFounderSeatsSold();
+  } catch (err) {
+    logger.warn({ reason: err instanceof Error ? err.message : 'unknown' }, 'Founder seat count failed, hiding the Founder offer');
+    return null;
+  }
+}
+
+export async function getOffer(): Promise<Offer> {
+  if (!isFounderConfigured) return { founderAvailable: false };
+  const now = Date.now();
+  if (offerCache && now - offerCache.at < OFFER_TTL_MS) return offerCache.value;
+
+  const seatsSold = await countSeatsSoldOrNull();
+  const value: Offer = { founderAvailable: seatsSold !== null && seatsSold < FOUNDER_SEATS };
+  offerCache = { value, at: now };
+  return value;
 }

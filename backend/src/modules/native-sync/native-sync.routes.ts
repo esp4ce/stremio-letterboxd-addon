@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { findUserById, getUserPreferences } from '../../db/repositories/user.repository.js';
 import { countDiaryJobsForDay, enqueueJob, hasRecentDiaryJob } from '../../db/repositories/native-sync-job.repository.js';
+import { clientIp } from '../../lib/client-ip.js';
 import { createChildLogger } from '../../lib/logger.js';
 import { parseLibraryExtra, parsePlayerExtra } from './event-parser.js';
 import { draftFromLibraryEvent, draftFromPlayerEvent, type JobDraft } from './job-rules.js';
@@ -14,7 +15,7 @@ const RATE_LIMIT = {
   rateLimit: {
     max: 120,
     timeWindow: '1 minute',
-    keyGenerator: (request: FastifyRequest) => `native-sync:${(request.params as { userId?: string }).userId ?? request.ip}`,
+    keyGenerator: (request: FastifyRequest) => `native-sync:${(request.params as { userId?: string }).userId ?? clientIp(request)}`,
   },
 };
 /** No one finishes more films in a day; anything beyond is forged traffic. */

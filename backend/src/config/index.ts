@@ -32,6 +32,8 @@ export const polarConfig = {
   accessToken: config.POLAR_ACCESS_TOKEN,
   productIdYearly: config.POLAR_PRODUCT_ID_YEARLY,
   productIdMonthly: config.POLAR_PRODUCT_ID_MONTHLY,
+  productIdFounder: config.POLAR_PRODUCT_ID_FOUNDER,
+  founderBenefitId: config.POLAR_FOUNDER_BENEFIT_ID,
   server: config.POLAR_SERVER,
   frontendUrl: config.FRONTEND_URL,
 } as const;
@@ -42,10 +44,20 @@ export const isPolarConfigured =
   Boolean(config.POLAR_PRODUCT_ID_YEARLY) &&
   Boolean(config.POLAR_PRODUCT_ID_MONTHLY);
 
+/**
+ * The Founder offer is shown and sold only when both ids are set. To stop selling, unset the
+ * product id only: the benefit id also grants existing Founders their access (isSupporter), so it
+ * must stay set for the lifetime of the service.
+ */
+export const isFounderConfigured =
+  isPolarConfigured && Boolean(config.POLAR_PRODUCT_ID_FOUNDER) && Boolean(config.POLAR_FOUNDER_BENEFIT_ID);
+
 export interface ResolvedPolarConfig {
   accessToken: string;
   productIdYearly: string;
   productIdMonthly: string;
+  productIdFounder?: string;
+  founderBenefitId?: string;
   server: 'production' | 'sandbox';
   frontendUrl: string;
 }
