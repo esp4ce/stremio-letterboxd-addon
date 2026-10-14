@@ -14,7 +14,7 @@ const FEATURES = [
   "Ratings on posters",
   "Rate, like & manage from Stremio",
   "Sort, shuffle & filter",
-  "All platforms",
+  "Stremio & Nuvio",
 ];
 
 export default function Home() {
@@ -49,19 +49,17 @@ export default function Home() {
           </ul>
         </div>
 
-        <div className="mt-7 flex flex-col items-center justify-center gap-x-2 gap-y-1 text-center text-sm font-light text-zinc-500 sm:mt-10 sm:flex-row sm:flex-wrap">
-          <span>
-            <TransitionLink
-              href="/pricing"
-              direction="up"
-              trackTarget="pricing"
-              className="text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition-colors hover:text-zinc-200"
-            >
-              Pricing
-            </TransitionLink>
-            {" "} for auto-sync & a persistent session.
-          </span>
-          <span className="hidden text-zinc-700 sm:inline">·</span>
+        <TransitionLink
+          href="/pricing"
+          direction="up"
+          trackTarget="pricing"
+          className="mt-7 block max-w-full rounded-2xl border border-zinc-800 px-4 py-2.5 text-center text-sm font-light text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200 sm:mt-10 sm:rounded-full sm:px-5"
+        >
+          <span className="text-zinc-200">Supporters</span> get auto-log to diary, auto-sync & more{" "}
+          <span aria-hidden="true">→</span>
+        </TransitionLink>
+
+        <div className="mt-4 text-center text-sm font-light text-zinc-500">
           <span>
             <TransitionLink
               href="/faq"
