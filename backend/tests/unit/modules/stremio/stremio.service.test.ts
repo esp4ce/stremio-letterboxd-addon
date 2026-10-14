@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
+  generateBaseManifest,
   generatePublicManifest,
   generateDynamicManifest,
+  PUBLIC_MANIFEST_DESCRIPTION,
 } from '../../../../src/modules/stremio/stremio.service.js';
 import type { PublicConfig } from '../../../../src/lib/config-encoding.js';
 import type { UserPreferences } from '../../../../src/db/repositories/user.repository.js';
@@ -272,5 +274,15 @@ describe('generateDynamicManifest — custom names with sort variants', () => {
     expect(parent).toBeUndefined();
     expect(variant).toBeDefined();
     expect(variant?.name).toBe('Renamed Parent (Shuffle)');
+  });
+});
+
+describe('public manifest description', () => {
+  it('points to the supporter page instead of a donation link', () => {
+    for (const manifest of [generateBaseManifest(), generatePublicManifest(basePublicCfg({}))]) {
+      expect(manifest.description).toBe(PUBLIC_MANIFEST_DESCRIPTION);
+      expect(manifest.description).toContain('https://stremboxd.com/pricing');
+      expect(manifest.description).not.toMatch(/buymeacoffee|Free forever/i);
+    }
   });
 });

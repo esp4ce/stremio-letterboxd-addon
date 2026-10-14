@@ -277,15 +277,19 @@ function listsToStremioCatalogs(lists: UserList[]): StremioCatalog[] {
 }
 
 /**
- * Generate base manifest for stremio-addons.net submission (Tier 1)
+ * Generate base manifest for public addon catalogs (Tier 1)
  * Only includes generic catalogs: Popular + Top 250
  */
+export const PUBLIC_MANIFEST_DESCRIPTION =
+  'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com. ' +
+  'Everything here stays free. Supporting pays the hosting and adds automatic diary logging, changes without reinstalling, and staying signed in: https://stremboxd.com/pricing';
+
 export function generateBaseManifest(): StremioManifest {
   return {
     id: 'community.stremboxd',
     version: '2.0.0',
     name: 'Stremboxd',
-    description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com. Free forever — donations welcome: https://buymeacoffee.com/esp4ce',
+    description: PUBLIC_MANIFEST_DESCRIPTION,
     logo: `${config.PUBLIC_URL}/logo.png`,
     background: `${config.PUBLIC_URL}/background.jpg`,
     resources: [
@@ -464,7 +468,7 @@ export function generatePublicManifest(
     id: 'community.stremboxd',
     version: '2.0.0',
     name: `Stremboxd${namePart}`,
-    description: 'Letterboxd for Stremio: popular films, Top 250, watchlist, custom lists, genre & decade filters, and search. Configure at https://stremboxd.com. Free forever — donations welcome: https://buymeacoffee.com/esp4ce',
+    description: PUBLIC_MANIFEST_DESCRIPTION,
     logo: `${config.PUBLIC_URL}/logo.png`,
     background: `${config.PUBLIC_URL}/background.jpg`,
     resources: [
