@@ -110,9 +110,10 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
         q: "What does the Stremboxd Supporter subscription do?",
         a: (
           <>
-            It unlocks auto-sync (your Stremio/Nuvio addon updates itself whenever you save preferences, no
-            reinstall needed) and a persistent session (no need to log back in every visit). Everything else stays
-            free.{" "}
+            It unlocks auto-log to diary (every film you finish in Stremio lands in your Letterboxd diary, dated —
+            Stremio Desktop and Web for now), auto-sync (your Stremio/Nuvio addon updates itself whenever you save
+            preferences, no reinstall needed) and a persistent session (no need to log back in every visit).
+            Everything else stays free.{" "}
             <TransitionLink
               href="/pricing"
               direction="up"
@@ -124,7 +125,28 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
           </>
         ),
         aText:
-          "It unlocks auto-sync (your Stremio/Nuvio addon updates itself whenever you save preferences, no reinstall needed) and a persistent session (no need to log back in every visit). Everything else stays free. See pricing and subscribe at stremboxd.com/pricing.",
+          "It unlocks auto-log to diary (every film you finish in Stremio lands in your Letterboxd diary, dated — Stremio Desktop and Web for now), auto-sync (your Stremio/Nuvio addon updates itself whenever you save preferences, no reinstall needed) and a persistent session (no need to log back in every visit). Everything else stays free. See pricing and subscribe at stremboxd.com/pricing.",
+      },
+      {
+        q: "What is a Founder?",
+        a: (
+          <>
+            A one-time payment of 49 € for supporter access (auto-log to diary, auto-sync, persistent session) for the
+            lifetime of the service. Only 20 Founder seats exist; once they are gone, the offer closes for good.
+            Stremboxd depends on access to Letterboxd and Stremio, so if it shuts down, Founder access ends with it. If
+            you already have a subscription, it keeps renewing until you cancel it from the portal.{" "}
+            <TransitionLink
+              href="/pricing"
+              direction="up"
+              className="text-zinc-300 underline underline-offset-2 hover:text-white"
+            >
+              See the Founder offer
+            </TransitionLink>
+            .
+          </>
+        ),
+        aText:
+          "A one-time payment of 49 € for supporter access (auto-log to diary, auto-sync, persistent session) for the lifetime of the service. Only 20 Founder seats exist; once they are gone, the offer closes for good. Stremboxd depends on access to Letterboxd and Stremio, so if it shuts down, Founder access ends with it. If you already have a subscription, it keeps renewing until you cancel it from the portal. See the Founder offer at stremboxd.com/pricing.",
       },
       {
         q: "Do I need an account to subscribe?",
@@ -200,7 +222,7 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
       },
       {
         q: "Is it free?",
-        a: "The addon is free and open-source: catalogs, lists, ratings and actions cost nothing. Two extra features, auto-sync and a persistent session, need a supporter subscription.",
+        a: "The addon is free and open-source: catalogs, lists, ratings and actions cost nothing. Three extra features, auto-log to diary, auto-sync and a persistent session, need a supporter subscription.",
       },
     ],
   },
