@@ -8,6 +8,7 @@ import {
   createCheckout,
   createPortalUrl,
   getCustomerState,
+  type CheckoutOffer,
 } from '../../lib/polar.js';
 import { isSupporter } from '../../lib/entitlement.js';
 import { createCache } from '../../lib/cache.js';
@@ -42,9 +43,29 @@ async function fetchEmailBestEffort(user: User): Promise<string | undefined> {
 
 // ─── Checkout ──────────────────────────────────────────────────────────────
 
-export async function startCheckout(user: User): Promise<string> {
+// ─── Founder ───────────────────────────────────────────────────────────────
+
+export const FOUNDER_SEATS = 20;
+
+export class FounderUnavailableError extends Error {
+  readonly reason: 'not_configured' | 'sold_out';
+
+  constructor(reason: 'not_configured' | 'sold_out') {
+    super(`Founder offer unavailable: ${reason}`);
+    this.name = 'FounderUnavailableError';
+    this.reason = reason;
+  }
+}
+
+export async function startCheckout(user: User, offer: CheckoutOffer = 'supporter'): Promise<string> {
+  if (offer === 'founder') {
+    if (!isFounderConfigured) throw new FounderUnavailableError('not_configured');
+    // Checked here, not reserved: two checkouts opened at seat 19 can both complete,
+    // and the extra seat is honoured (ADR 0003).
+    if ((await countFounderSeatsSold()) >= FOUNDER_SEATS) throw new FounderUnavailableError('sold_out');
+  }
   const email = await fetchEmailBestEffort(user);
-  return createCheckout({ userId: user.id, email });
+  return createCheckout({ userId: user.id, email, offer });
 }
 
 // ─── Portal ────────────────────────────────────────────────────────────────
@@ -130,7 +151,6 @@ export async function getEntitlement(userId: string, options: { fresh?: boolean 
 
 // ─── Public offer ──────────────────────────────────────────────────────────
 
-export const FOUNDER_SEATS = 20;
 export const MIN_SOCIAL_PROOF = 10;
 const OFFER_TTL_MS = 5 * 60 * 1000;
 

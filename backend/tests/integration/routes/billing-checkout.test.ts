@@ -84,4 +84,57 @@ describe('POST /billing/checkout', () => {
 
     expect(res.statusCode).toBe(502);
   });
+
+  it('keeps the subscription checkout when no offer is sent', async () => {
+    let sentBody: Record<string, unknown> | undefined;
+    mswServer.use(
+      http.post(`${POLAR}/v1/checkouts/`, async ({ request }) => {
+        sentBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ url: 'https://sandbox.polar.sh/checkout/s' }, { status: 201 });
+      }),
+    );
+    const { headers } = await bearerFor('checkout-offer-default');
+    const res = await app.inject({ method: 'POST', url: '/billing/checkout', headers });
+    expect(res.statusCode).toBe(200);
+    expect(sentBody?.['products']).toEqual(['prod-yearly', 'prod-monthly']);
+  });
+
+  it('opens a Founder checkout while seats remain', async () => {
+    mswServer.use(
+      http.get(`${POLAR}/v1/orders/`, () => HttpResponse.json({ items: [], pagination: { total_count: 19, max_page: 19 } })),
+      http.post(`${POLAR}/v1/checkouts/`, () => HttpResponse.json({ url: 'https://sandbox.polar.sh/checkout/f' }, { status: 201 })),
+    );
+    const { headers } = await bearerFor('checkout-founder-ok');
+    const res = await app.inject({ method: 'POST', url: '/billing/checkout', headers, payload: { offer: 'founder' } });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ url: 'https://sandbox.polar.sh/checkout/f' });
+  });
+
+  it('refuses a Founder checkout once 20 seats are sold, without creating one', async () => {
+    let checkoutCalled = false;
+    mswServer.use(
+      http.get(`${POLAR}/v1/orders/`, () => HttpResponse.json({ items: [], pagination: { total_count: 20, max_page: 20 } })),
+      http.post(`${POLAR}/v1/checkouts/`, () => {
+        checkoutCalled = true;
+        return HttpResponse.json({ url: 'https://x' }, { status: 201 });
+      }),
+    );
+    const { headers } = await bearerFor('checkout-founder-full');
+    const res = await app.inject({ method: 'POST', url: '/billing/checkout', headers, payload: { offer: 'founder' } });
+    expect(res.statusCode).toBe(410);
+    expect(checkoutCalled).toBe(false);
+  });
+
+  it('rejects an unknown offer', async () => {
+    const { headers } = await bearerFor('checkout-offer-bad');
+    const res = await app.inject({ method: 'POST', url: '/billing/checkout', headers, payload: { offer: 'lifetime' } });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('returns 502 when the seat count fails', async () => {
+    mswServer.use(http.get(`${POLAR}/v1/orders/`, () => HttpResponse.json({}, { status: 500 })));
+    const { headers } = await bearerFor('checkout-founder-err');
+    const res = await app.inject({ method: 'POST', url: '/billing/checkout', headers, payload: { offer: 'founder' } });
+    expect(res.statusCode).toBe(502);
+  });
 });

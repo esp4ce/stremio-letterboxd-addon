@@ -62,6 +62,18 @@ describe('polar client', () => {
       await expect(createCheckout({ userId: 'user-1' })).rejects.toBeInstanceOf(PolarApiError);
     });
 
+    it('sells only the Founder product for the founder offer', async () => {
+      let sentBody: Record<string, unknown> | undefined;
+      mswServer.use(
+        http.post(`${POLAR}/v1/checkouts/`, async ({ request }) => {
+          sentBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({ url: 'https://sandbox.polar.sh/checkout/f' }, { status: 201 });
+        }),
+      );
+      await createCheckout({ userId: 'user-1', offer: 'founder' });
+      expect(sentBody?.['products']).toEqual(['prod-founder']);
+    });
+
     it('throws when the response does not match the expected shape', async () => {
       mswServer.use(http.post(`${POLAR}/v1/checkouts/`, () => HttpResponse.json({ nope: true }, { status: 201 })));
 

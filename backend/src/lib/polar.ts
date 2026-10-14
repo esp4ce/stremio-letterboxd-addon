@@ -45,12 +45,15 @@ async function polarRequest(method: 'GET' | 'POST', path: string, body?: unknown
   });
 }
 
-export async function createCheckout(params: { userId: string; email?: string }): Promise<string> {
+export type CheckoutOffer = 'supporter' | 'founder';
+
+export async function createCheckout(params: { userId: string; email?: string; offer?: CheckoutOffer }): Promise<string> {
   const polar = requirePolarConfig();
   const frontend = new URL(polar.frontendUrl);
+  const products = params.offer === 'founder' ? [polar.productIdFounder!] : [polar.productIdYearly, polar.productIdMonthly];
 
   const response = await polarRequest('POST', '/v1/checkouts/', {
-    products: [polar.productIdYearly, polar.productIdMonthly],
+    products,
     external_customer_id: params.userId,
     ...(params.email ? { customer_email: params.email } : {}),
     success_url: new URL('/configure?checkout=success', frontend).toString(),
