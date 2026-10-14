@@ -19,11 +19,11 @@ export function sendHtml(reply: FastifyReply, html: string, statusCode = 200): v
 const BASE_BODY_STYLE =
   'font-family: system-ui, -apple-system, sans-serif; background: #18181b; color: #fafafa; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;';
 
-const AUTO_REDIRECT_SCRIPT = (url: string) => `
+const AUTO_REDIRECT_SCRIPT = (url: string, delayMs = 800) => `
 <script>
   setTimeout(function() {
     window.location.href = "${url}";
-  }, 800);
+  }, ${delayMs});
 </script>`;
 
 // ─── Generic error page ───────────────────────────────────────────────────────
@@ -48,11 +48,30 @@ export interface ActionSuccessOptions {
   message: string;
   statusLine?: string;
   stremioDeepLink: string | null;
+  /** Optional grey line under the status, with an external "Learn more" link. */
+  upsell?: { text: string; href: string };
+  /** Delay of the meta refresh back to Stremio; longer when there is something to read. */
+  redirectDelaySeconds?: number;
 }
 
-export function buildActionSuccessPage({ message, statusLine, stremioDeepLink }: ActionSuccessOptions): string {
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function buildActionSuccessPage({
+  message,
+  statusLine,
+  stremioDeepLink,
+  upsell,
+  redirectDelaySeconds = 1,
+}: ActionSuccessOptions): string {
   const redirectMeta = stremioDeepLink
-    ? `<meta http-equiv="refresh" content="1;url=${stremioDeepLink}">`
+    ? `<meta http-equiv="refresh" content="${redirectDelaySeconds};url=${stremioDeepLink}">`
     : '';
   const clickLink = stremioDeepLink
     ? `<p style="margin-top: 1.5rem;">
@@ -63,6 +82,11 @@ export function buildActionSuccessPage({ message, statusLine, stremioDeepLink }:
     : '';
   const statusEl = statusLine
     ? `<p style="color: #52525b; font-size: 0.75rem; margin-top: 1.5rem;">${statusLine}</p>`
+    : '';
+  const upsellEl = upsell
+    ? `<p style="color: #52525b; font-size: 0.75rem; margin-top: 0.75rem;">${escapeHtml(upsell.text)}
+         <a href="${escapeHtml(upsell.href)}" target="_blank" rel="noopener noreferrer" style="color: #71717a; text-decoration: underline;">Learn more</a>
+       </p>`
     : '';
 
   return `
@@ -79,11 +103,13 @@ export function buildActionSuccessPage({ message, statusLine, stremioDeepLink }:
           <p style="font-size: 2rem; margin: 0 0 1rem 0; color: #22c55e;">&#10003;</p>
           <h1 style="color: #fafafa; margin: 0 0 0.5rem 0; font-size: 1.25rem; font-weight: 500;">${message}</h1>
           <p style="color: #71717a; margin: 0; font-size: 0.875rem;">Returning to Stremio...</p>
-          ${statusEl}
+          ${statusEl}${upsellEl}
           ${clickLink}
         </div>
       </body>
-      ${stremioDeepLink ? AUTO_REDIRECT_SCRIPT(stremioDeepLink) : ''}
+      ${stremioDeepLink
+        ? AUTO_REDIRECT_SCRIPT(stremioDeepLink, redirectDelaySeconds === 1 ? undefined : redirectDelaySeconds * 1000)
+        : ''}
     </html>
   `;
 }

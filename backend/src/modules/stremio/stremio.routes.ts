@@ -37,7 +37,8 @@ import { trackEvent, type EventType } from '../../lib/metrics.js';
 import { generateAnonId } from '../../lib/anonymous-id.js';
 import { callWithAppToken } from '../../lib/app-client.js';
 import { decodeConfig, type PublicConfig } from '../../lib/config-encoding.js';
-import { serverConfig } from '../../config/index.js';
+import { serverConfig, polarConfig } from '../../config/index.js';
+import { getEntitlement } from '../billing/billing.service.js';
 import { verifyAction } from '../../lib/action-sign.js';
 
 // ─── Sub-modules ──────────────────────────────────────────────────────────────
@@ -688,9 +689,25 @@ export async function stremioRoutes(app: FastifyInstance) {
         if (result.data.inWatchlist) statusParts.push('In Watchlist');
         const statusLine = statusParts.join(' · ');
 
+        // One quiet mention, only when marking watched and not already a supporter.
+        // getEntitlement fails closed (false), so a lookup failure just shows the line.
+        const showUpsell = action === 'watched' && setValue && !(await getEntitlement(userId).catch(() => false));
+        const upsell = showUpsell
+          ? {
+              text: 'Auto-log to Diary adds every film you finish to your Letterboxd diary, automatically.',
+              href: new URL('/pricing', polarConfig.frontendUrl).toString(),
+            }
+          : undefined;
+
         return sendHtml(
           reply,
-          buildActionSuccessPage({ message, statusLine: statusLine || undefined, stremioDeepLink }),
+          buildActionSuccessPage({
+            message,
+            statusLine: statusLine || undefined,
+            stremioDeepLink,
+            upsell,
+            redirectDelaySeconds: upsell ? 3 : undefined,
+          }),
         );
       } catch (error) {
         logger.error({ error, userId, action, filmId }, 'Failed to perform action');
