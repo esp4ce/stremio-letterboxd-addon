@@ -44,7 +44,11 @@ export const isPolarConfigured =
   Boolean(config.POLAR_PRODUCT_ID_YEARLY) &&
   Boolean(config.POLAR_PRODUCT_ID_MONTHLY);
 
-/** The Founder offer is shown and sold only when both ids are set — that pair is its on/off switch. */
+/**
+ * The Founder offer is shown and sold only when both ids are set. To stop selling, unset the
+ * product id only: the benefit id also grants existing Founders their access (isSupporter), so it
+ * must stay set for the lifetime of the service.
+ */
 export const isFounderConfigured =
   isPolarConfigured && Boolean(config.POLAR_PRODUCT_ID_FOUNDER) && Boolean(config.POLAR_FOUNDER_BENEFIT_ID);
 
