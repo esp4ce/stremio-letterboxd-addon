@@ -375,7 +375,8 @@ function ConfigureInner() {
     return data as ResolvedList;
   };
 
-  const ErrorToastStack = () => {
+  // A render helper, not a component: a component declared here would be a new type on every render.
+  const renderErrorToastStack = () => {
     if (toasts.length === 0) return null;
 
     return (
@@ -1291,7 +1292,7 @@ function ConfigureInner() {
           isResolvingList={isResolvingList}
           onUpsell={(message) => showUpsellToast(message, 6000)}
         />
-        <ErrorToastStack />
+        {renderErrorToastStack()}
       </>
     );
   }
@@ -1341,7 +1342,7 @@ function ConfigureInner() {
           isSaving={false}
           onUpsell={(message) => showUpsellToast(message, 6000)}
         />
-        <ErrorToastStack />
+        {renderErrorToastStack()}
       </>
     );
   }
@@ -1499,7 +1500,7 @@ function ConfigureInner() {
           <Footer absolute={false} />
         </div>
         </div>
-        <ErrorToastStack />
+        {renderErrorToastStack()}
       </div>
     );
   }
@@ -1688,7 +1689,7 @@ function ConfigureInner() {
           </div>
         </div>
       )}
-      <ErrorToastStack />
+      {renderErrorToastStack()}
     </div>
   );
 }

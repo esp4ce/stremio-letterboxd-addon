@@ -135,7 +135,8 @@ export default function PricingPage() {
     if (new URLSearchParams(window.location.search).get("resume") !== "1") return;
     window.history.replaceState(null, "", window.location.pathname);
     const intent = takeCheckoutIntent();
-    if (intent) void subscribe(intent);
+    // Deferred: subscribe() sets state, which must not happen synchronously inside an effect.
+    if (intent) window.setTimeout(() => void subscribe(intent), 0);
     // Mount-only: resuming again on a re-render would reopen the checkout.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

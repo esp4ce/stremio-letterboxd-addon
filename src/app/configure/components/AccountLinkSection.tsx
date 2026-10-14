@@ -47,9 +47,13 @@ export function AccountLinkSection({
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
   const onStremioLinkedChangeRef = useRef(onStremioLinkedChange);
-  onStremioLinkedChangeRef.current = onStremioLinkedChange;
   const onNuvioLinkedChangeRef = useRef(onNuvioLinkedChange);
-  onNuvioLinkedChangeRef.current = onNuvioLinkedChange;
+  // Keep the latest callbacks without writing refs during render; declared first so it runs
+  // before the effects below read them.
+  useEffect(() => {
+    onStremioLinkedChangeRef.current = onStremioLinkedChange;
+    onNuvioLinkedChangeRef.current = onNuvioLinkedChange;
+  });
 
   useEffect(() => {
     mountedRef.current = true;

@@ -158,13 +158,17 @@ export default function Dashboard() {
       return;
     }
 
-    fetchDashboardData();
+    // Deferred: the fetch sets state, which must not happen synchronously inside an effect.
+    const firstLoad = setTimeout(fetchDashboardData, 0);
 
     const interval = setInterval(() => {
       fetchDashboardData();
     }, 10000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(firstLoad);
+      clearInterval(interval);
+    };
   }, [router, fetchDashboardData]);
 
   const handleLogout = () => {
