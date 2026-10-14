@@ -12,12 +12,14 @@ export interface AnalyticsEvents {
   configure_mode_chosen: { mode: "public" | "full" };
   login_succeeded: { method: "password" | "totp"; entitled: boolean; remember_me: boolean };
   install_clicked: { mode: "public" | "full"; reinstall: boolean };
-  pricing_subscribe_clicked: Record<never, never>;
+  pricing_subscribe_clicked: { offer: "supporter" | "founder" };
   checkout_opened: Record<never, never>;
-  checkout_failed: { reason: "not_logged_in" | "error" };
+  checkout_failed: { reason: "not_logged_in" | "sold_out" | "error" };
   checkout_completed: Record<never, never>;
   checkout_returned: Record<never, never>;
   checkout_confirmed: { entitled: boolean };
+  supporter_reason_answered: { reason: "auto_log" | "auto_sync" | "stay_signed_in" | "support_project" | "other" };
+  native_sync_enabled_from_checkout: Record<never, never>;
 }
 
 export type AnalyticsEventName = keyof AnalyticsEvents;

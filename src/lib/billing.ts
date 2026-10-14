@@ -1,7 +1,40 @@
 import { authHeaders } from "./session-token";
-import { track } from "./analytics";
+import { track, type AnalyticsEvents } from "./analytics";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.stremboxd.com";
+
+export type CheckoutOffer = "supporter" | "founder";
+
+export type SupporterReason = AnalyticsEvents["supporter_reason_answered"]["reason"];
+
+/** Never throws: the answer is optional, losing it must not surface to the user. */
+export async function sendSupporterReason(reason: SupporterReason): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/billing/reason`, {
+      method: "POST",
+      credentials: "include",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    });
+  } catch {
+    // swallow: best effort
+  }
+}
+
+export interface Offer {
+  founderAvailable: boolean;
+}
+
+/** Never throws: without the offer, /pricing simply shows no Founder block. */
+export async function fetchOffer(): Promise<Offer | null> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/billing/offer`);
+    if (!response.ok) return null;
+    return (await response.json()) as Offer;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Thrown by openCheckout() when the backend refuses to create a checkout.
@@ -45,11 +78,12 @@ function cleanupStuckCheckoutEmbed(checkoutOrigin: string): void {
  * is kept, so the in-memory session token survives the payment. `onSuccess`
  * runs instead of Polar's own redirect.
  */
-export async function openCheckout(onSuccess: () => void): Promise<void> {
+export async function openCheckout(onSuccess: () => void, offer: CheckoutOffer = "supporter"): Promise<void> {
   const response = await fetch(`${BACKEND_URL}/billing/checkout`, {
     method: "POST",
     credentials: "include",
-    headers: authHeaders(),
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ offer }),
   });
 
   if (!response.ok) {

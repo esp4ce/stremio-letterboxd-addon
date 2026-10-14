@@ -1,18 +1,25 @@
 "use client";
 
-import { useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import TransitionLink from "../components/TransitionLink";
 import Footer from "../components/Footer";
-import { openCheckout, CheckoutError } from "../../lib/billing";
+import { openCheckout, fetchOffer, CheckoutError, type CheckoutOffer, type Offer } from "../../lib/billing";
 import { track } from "../../lib/analytics";
+import { rememberPurchasedOffer, saveCheckoutIntent, takeCheckoutIntent } from "../../lib/supporter-storage";
 
-const COMPARISON = [
+const COMPARISON: { feature: string; free: string; supporter: string; info?: string }[] = [
   {
     feature: "Auto-sync",
-    free: "Reinstall the addon after changes",
-    supporter: "Already in Stremio and Nuvio",
+    free: "Reinstall the addon after every change",
+    supporter: "The addon updates itself, nothing to do",
+  },
+  {
+    feature: "Auto-log to Diary",
+    free: "Click \"watched\" yourself",
+    supporter: "Logged when you finish, dated",
+    info: "Works on Stremio Desktop and Web for now.",
   },
   {
     feature: "Persistent session",
@@ -34,6 +41,17 @@ export default function PricingPage() {
   const [opening, setOpening] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const toastIdRef = useRef(0);
+  const [offer, setOffer] = useState<Offer | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchOffer().then((value) => {
+      if (!cancelled) setOffer(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Send Back to wherever the user came from, not a hardcoded page.
   // document.referrer doesn't work here since TransitionLink navigates via
@@ -67,17 +85,25 @@ export default function PricingPage() {
     setTimeout(() => dismissToast(id), TOAST_DURATION);
   };
 
-  const subscribe = async () => {
-    track("pricing_subscribe_clicked");
+  const subscribe = async (offerKind: CheckoutOffer) => {
+    track("pricing_subscribe_clicked", { offer: offerKind });
     setOpening(true);
     try {
       // Same tab, same JS context: /configure's poll picks up the in-memory
       // session and applies the supporter session once Polar confirms.
-      await openCheckout(() => router.push("/configure?checkout=success"));
+      await openCheckout(() => {
+        rememberPurchasedOffer(offerKind);
+        router.push("/configure?checkout=success");
+      }, offerKind);
     } catch (err) {
       const notLoggedIn = err instanceof CheckoutError && err.status === 401;
-      track("checkout_failed", { reason: notLoggedIn ? "not_logged_in" : "error" });
-      if (notLoggedIn) {
+      const soldOut = err instanceof CheckoutError && err.status === 410;
+      track("checkout_failed", { reason: notLoggedIn ? "not_logged_in" : soldOut ? "sold_out" : "error" });
+      if (soldOut) {
+        showToast("All Founder seats are gone. The yearly plan is still here.", "info");
+        setOffer((current) => (current ? { ...current, founderAvailable: false } : current));
+      } else if (notLoggedIn) {
+        saveCheckoutIntent(offerKind);
         showToast(
           <>
             You&apos;re not logged in.{" "}
@@ -87,8 +113,8 @@ export default function PricingPage() {
               className="text-white underline underline-offset-2 hover:text-zinc-300"
             >
               Log in
-            </TransitionLink>
-            , then come back here.
+            </TransitionLink>{" "}
+            with your Letterboxd password and you&apos;ll come back here automatically.
           </>,
           "info"
         );
@@ -99,6 +125,20 @@ export default function PricingPage() {
       setOpening(false);
     }
   };
+
+  // Back from /configure after a login that a 401 asked for: reopen the
+  // checkout the user had picked, once. The ref guards the dev double-mount.
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (resumedRef.current) return;
+    resumedRef.current = true;
+    if (new URLSearchParams(window.location.search).get("resume") !== "1") return;
+    window.history.replaceState(null, "", window.location.pathname);
+    const intent = takeCheckoutIntent();
+    if (intent) void subscribe(intent);
+    // Mount-only: resuming again on a re-render would reopen the checkout.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="fixed inset-0 overflow-y-auto bg-[#0a0a0a] text-white">
@@ -116,12 +156,11 @@ export default function PricingPage() {
       <div className="flex min-h-full flex-col">
       <div className="mx-auto flex w-full max-w-[980px] flex-1 flex-col justify-center gap-10 px-5 pb-8 pt-16 sm:gap-12 sm:px-10 sm:py-16">
         <section>
-          <h1 className="text-2xl font-semibold leading-tight tracking-tight sm:whitespace-nowrap sm:text-4xl">
-            Auto-sync and a persistent session.
+          <h1 className="text-2xl font-semibold leading-tight tracking-tight sm:text-4xl">
+            Support Stremboxd.
           </h1>
-          <p className="mt-3 max-w-2xl text-base font-light leading-relaxed text-zinc-400 sm:text-lg">
-            Everything else in Stremboxd stays free and open source. This covers hosting.{" "}
-            <span className="text-white">Think of it as a tip, not a subscription.</span>
+          <p className="mt-3 text-base font-light leading-relaxed text-zinc-400 lg:whitespace-nowrap sm:text-lg">
+            Everything else in Stremboxd stays free and open source. Supporting pays the hosting.
           </p>
         </section>
 
@@ -129,7 +168,7 @@ export default function PricingPage() {
           <h2 id="compare-heading" className="sr-only">
             Free compared to supporter
           </h2>
-          <div className="hidden grid-cols-[200px_1fr_1fr] gap-x-8 border-b border-zinc-800 pb-3 text-xs text-zinc-500 sm:grid">
+          <div className="hidden grid-cols-[150px_1fr_1fr] gap-x-6 lg:grid-cols-[200px_1fr_1fr] lg:gap-x-8 border-b border-zinc-800 pb-3 text-xs text-zinc-500 sm:grid">
             <span>Feature</span>
             <span>Free</span>
             <span className="text-white">Supporter</span>
@@ -139,25 +178,33 @@ export default function PricingPage() {
               <FeatureRow key={row.feature} row={row} first={index === 0} />
             ))}
           </div>
+          <p className="mt-4 text-sm font-light text-zinc-400">
+            More supporter features are on the way, included at no extra cost.
+          </p>
         </section>
 
-        <section
-          className="film-grain relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5 py-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-7 sm:px-8 sm:py-8"
-          aria-live="polite"
-        >
-          <p className="flex items-baseline gap-x-2 gap-y-1 flex-wrap">
-            <span className="text-3xl font-semibold tracking-tight">9,99&nbsp;€</span>
-            <span className="text-sm font-light text-zinc-500">/ year, or 3&nbsp;€ / month</span>
-          </p>
-
-          <button
-            type="button"
-            onClick={subscribe}
-            disabled={opening}
-            className="flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-5 py-3 text-sm font-semibold sm:py-2.5 text-black transition-colors hover:bg-zinc-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {opening ? "Opening checkout..." : "Become a supporter"}
-          </button>
+        <section aria-live="polite" className="flex flex-col gap-3">
+          <div className={`grid gap-3 ${offer?.founderAvailable ? "sm:grid-cols-2" : ""}`}>
+            <PlanCard
+              price={"9,99 €"}
+              period="/ year"
+              detail={"or 3 € / month"}
+              cta={opening ? "Opening checkout..." : "Become a supporter"}
+              disabled={opening}
+              onClick={() => subscribe("supporter")}
+            />
+            {offer?.founderAvailable && (
+              <PlanCard
+                price={"49 €"}
+                period="once"
+                detail="Lifetime access · Limited to 20 seats"
+                info="Founder access lasts as long as Stremboxd runs, which depends on Letterboxd and Stremio."
+                cta="Become a Founder"
+                disabled={opening}
+                onClick={() => subscribe("founder")}
+              />
+            )}
+          </div>
         </section>
 
         <p className="text-center text-sm font-light text-zinc-500">
@@ -219,24 +266,121 @@ function ToastStack({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id
 function FeatureRow({ row, first }: { row: (typeof COMPARISON)[number]; first: boolean }) {
   return (
     <div
-      className={`grid grid-cols-1 gap-2.5 py-5 sm:grid-cols-[200px_1fr_1fr] sm:items-center sm:gap-x-8 sm:gap-y-0 sm:border-b sm:border-zinc-900 sm:py-6 ${
+      className={`grid grid-cols-1 gap-2.5 py-5 sm:grid-cols-[150px_1fr_1fr] sm:items-center sm:gap-x-6 lg:grid-cols-[200px_1fr_1fr] lg:gap-x-8 sm:gap-y-0 sm:border-b sm:border-zinc-900 sm:py-6 ${
         first ? "" : "border-t border-zinc-900 sm:border-t-0"
       }`}
     >
-      <h3 className="text-base font-medium text-zinc-200">{row.feature}</h3>
+      <InfoLabel info={row.info}>
+        <h3 className="text-base font-medium text-zinc-200">{row.feature}</h3>
+      </InfoLabel>
 
-      <div className="flex items-start gap-3 text-sm font-light text-zinc-500 sm:block sm:whitespace-nowrap">
+      <div className="flex items-start gap-3 text-sm font-light text-zinc-500 sm:block lg:whitespace-nowrap">
         <span className="w-20 shrink-0 text-xs text-zinc-600 sm:hidden">Free</span>
         <span>{row.free}</span>
       </div>
 
-      <div className="flex items-start gap-3 text-sm font-medium text-white sm:flex sm:items-center sm:gap-1.5 sm:whitespace-nowrap">
+      <div className="flex items-start gap-3 text-sm font-medium text-white sm:flex sm:items-center sm:gap-1.5 lg:whitespace-nowrap">
         <span className="w-20 shrink-0 text-xs font-light text-zinc-600 sm:hidden">Supporter</span>
         <svg className="hidden h-3.5 w-3.5 shrink-0 text-zinc-400 sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
         </svg>
         <span>{row.supporter}</span>
       </div>
+    </div>
+  );
+}
+
+function PlanCard({
+  price,
+  period,
+  detail,
+  info,
+  cta,
+  disabled,
+  onClick,
+}: {
+  price: string;
+  period: string;
+  detail: string;
+  /** Optional fine print, opened from a small "i" button (tap-friendly, unlike a title tooltip). */
+  info?: string;
+  cta: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className="film-grain relative flex min-w-0 flex-col gap-5 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5 py-6 sm:px-7 sm:py-7">
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span className="text-3xl font-semibold tracking-tight">{price}</span>
+          <span className="text-sm font-light text-zinc-400">{period}</span>
+        </p>
+        <InfoLabel info={info}>
+          <p className="min-w-0 text-xs font-light text-zinc-500">{detail}</p>
+        </InfoLabel>
+      </div>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className="mt-auto flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 sm:py-2.5"
+      >
+        {cta}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * A label with an optional small "i" button. The fine print opens inline under the label
+ * (tap-friendly, unlike a title tooltip, and never clipped by a card or the screen edge);
+ * tapping anywhere else or pressing Escape closes it.
+ */
+function InfoLabel({ info, children }: { info?: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsidePress = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePress);
+  }, [open]);
+
+  if (!info) return <>{children}</>;
+
+  return (
+    <div ref={ref} className="min-w-0">
+      <div className="flex items-center gap-1.5">
+        {children}
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+          }}
+          aria-expanded={open}
+          aria-controls={id}
+          aria-label="More information"
+          className={`-m-2 flex flex-shrink-0 cursor-help items-center justify-center rounded-full p-2 transition-colors hover:text-zinc-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 ${open ? "text-zinc-300" : "text-zinc-600"}`}
+        >
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" strokeWidth={2} />
+            <path d="M12 16v-4.5M12 8h.01" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+      <p
+        id={id}
+        role="status"
+        hidden={!open}
+        className="mt-2 max-w-xs rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-[11px] font-light leading-relaxed text-zinc-300"
+      >
+        {info}
+      </p>
     </div>
   );
 }

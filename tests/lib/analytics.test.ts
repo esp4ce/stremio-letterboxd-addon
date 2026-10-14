@@ -27,8 +27,8 @@ describe("track", () => {
   });
 
   it("captures property-less events without properties", () => {
-    track("pricing_subscribe_clicked");
-    expect(capture).toHaveBeenCalledWith("pricing_subscribe_clicked", undefined);
+    track("checkout_completed");
+    expect(capture).toHaveBeenCalledWith("checkout_completed", undefined);
   });
 
   it("is a no-op when PostHog is not initialised", () => {
