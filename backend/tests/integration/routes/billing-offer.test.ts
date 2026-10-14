@@ -30,53 +30,42 @@ describe('GET /billing/offer', () => {
     mswServer.close();
   });
 
-  it('returns supporters (subscriptions + Founder seats) and seats left, without a session', async () => {
+  it('says the Founder offer is open without revealing how many seats are left', async () => {
+    let subscriptionsRead = false;
     mswServer.use(
-      http.get(`${POLAR}/v1/subscriptions/`, () => count(18)),
+      http.get(`${POLAR}/v1/subscriptions/`, () => {
+        subscriptionsRead = true;
+        return count(18);
+      }),
       http.get(`${POLAR}/v1/orders/`, () => count(3)),
     );
     const res = await app.inject({ method: 'GET', url: '/billing/offer' });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ supporters: 21, founder: { seatsLeft: 17 } });
+    expect(res.json()).toEqual({ founderAvailable: true });
     expect(res.headers['cache-control']).toBe('public, max-age=300');
-  });
-
-  it('hides the supporter count below 10', async () => {
-    mswServer.use(
-      http.get(`${POLAR}/v1/subscriptions/`, () => count(8)),
-      http.get(`${POLAR}/v1/orders/`, () => count(1)),
-    );
-    const res = await app.inject({ method: 'GET', url: '/billing/offer' });
-    expect(res.json()).toEqual({ supporters: null, founder: { seatsLeft: 19 } });
+    expect(subscriptionsRead).toBe(false);
   });
 
   it('hides the Founder offer once all 20 seats are sold', async () => {
-    mswServer.use(
-      http.get(`${POLAR}/v1/subscriptions/`, () => count(18)),
-      http.get(`${POLAR}/v1/orders/`, () => count(21)),
-    );
+    mswServer.use(http.get(`${POLAR}/v1/orders/`, () => count(21)));
     const res = await app.inject({ method: 'GET', url: '/billing/offer' });
-    expect(res.json()).toEqual({ supporters: 39, founder: null });
+    expect(res.json()).toEqual({ founderAvailable: false });
   });
 
-  it('degrades to nulls, not a 500, when Polar refuses (e.g. missing scope)', async () => {
-    mswServer.use(
-      http.get(`${POLAR}/v1/subscriptions/`, () => HttpResponse.json({}, { status: 403 })),
-      http.get(`${POLAR}/v1/orders/`, () => HttpResponse.json({}, { status: 403 })),
-    );
+  it('degrades to closed, not a 500, when Polar refuses (e.g. missing scope)', async () => {
+    mswServer.use(http.get(`${POLAR}/v1/orders/`, () => HttpResponse.json({}, { status: 403 })));
     const res = await app.inject({ method: 'GET', url: '/billing/offer' });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ supporters: null, founder: null });
+    expect(res.json()).toEqual({ founderAvailable: false });
   });
 
   it('caches the answer instead of calling Polar on every request', async () => {
     let calls = 0;
     mswServer.use(
-      http.get(`${POLAR}/v1/subscriptions/`, () => {
+      http.get(`${POLAR}/v1/orders/`, () => {
         calls++;
-        return count(18);
+        return count(0);
       }),
-      http.get(`${POLAR}/v1/orders/`, () => count(0)),
     );
     await app.inject({ method: 'GET', url: '/billing/offer' });
     await app.inject({ method: 'GET', url: '/billing/offer' });

@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { mswServer } from '../../helpers/msw-server.js';
 import {
-  countActiveSubscriptions,
   countFounderSeatsSold,
   createCheckout,
   createPortalUrl,
@@ -162,26 +161,6 @@ describe('polar client', () => {
         active_subscriptions: [],
         granted_benefits: [{ benefit_id: 'benefit-founder' }],
       });
-    });
-  });
-
-  describe('countActiveSubscriptions', () => {
-    it('asks for active and trialing subscriptions and returns total_count', async () => {
-      let query: URLSearchParams | undefined;
-      mswServer.use(
-        http.get(`${POLAR}/v1/subscriptions/`, ({ request }) => {
-          query = new URL(request.url).searchParams;
-          return HttpResponse.json({ items: [], pagination: { total_count: 18, max_page: 18 } });
-        }),
-      );
-      expect(await countActiveSubscriptions()).toBe(18);
-      expect(query?.getAll('status')).toEqual(['active', 'trialing']);
-      expect(query?.get('limit')).toBe('1');
-    });
-
-    it('throws PolarApiError on 403 (missing scope)', async () => {
-      mswServer.use(http.get(`${POLAR}/v1/subscriptions/`, () => HttpResponse.json({}, { status: 403 })));
-      await expect(countActiveSubscriptions()).rejects.toBeInstanceOf(PolarApiError);
     });
   });
 

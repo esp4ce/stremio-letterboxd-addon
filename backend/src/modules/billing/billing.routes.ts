@@ -11,7 +11,7 @@ const logger = createChildLogger('billing-routes');
 const checkoutBodySchema = z.object({ offer: z.enum(['supporter', 'founder']).optional() }).nullish();
 
 export async function billingRoutes(app: FastifyInstance) {
-  // Public: what /pricing shows. Never fails — a Polar outage just hides the numbers.
+  // Public: what /pricing shows. Never fails — a Polar outage just hides the Founder block.
   app.get(
     '/billing/offer',
     { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } },

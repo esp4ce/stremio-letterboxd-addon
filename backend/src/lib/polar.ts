@@ -100,13 +100,6 @@ async function polarCount(operation: string, path: string, params: [string, stri
   return countResponseSchema.parse(await response.json()).pagination.total_count;
 }
 
-export function countActiveSubscriptions(): Promise<number> {
-  return polarCount('subscription count', '/v1/subscriptions/', [
-    ['status', 'active'],
-    ['status', 'trialing'],
-  ]);
-}
-
 /** Paid seats; a fully refunded order frees its seat. Callers must check isFounderConfigured first. */
 export function countFounderSeatsSold(): Promise<number> {
   const { productIdFounder } = requirePolarConfig();

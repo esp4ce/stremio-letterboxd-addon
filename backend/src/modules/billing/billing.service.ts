@@ -3,7 +3,6 @@ import { refreshAccessToken, getCurrentUser } from '../letterboxd/letterboxd.cli
 import { getDecryptedRefreshToken, updateUser, type User } from '../../db/repositories/user.repository.js';
 import { isFounderConfigured, isPolarConfigured } from '../../config/index.js';
 import {
-  countActiveSubscriptions,
   countFounderSeatsSold,
   createCheckout,
   createPortalUrl,
@@ -151,12 +150,11 @@ export async function getEntitlement(userId: string, options: { fresh?: boolean 
 
 // ─── Public offer ──────────────────────────────────────────────────────────
 
-export const MIN_SOCIAL_PROOF = 10;
 const OFFER_TTL_MS = 5 * 60 * 1000;
 
 export interface Offer {
-  supporters: number | null;
-  founder: { seatsLeft: number } | null;
+  /** Only whether seats remain: the count itself is never published. */
+  founderAvailable: boolean;
 }
 
 let offerCache: { value: Offer; at: number } | null = null;
@@ -165,31 +163,22 @@ export function clearOfferCache(): void {
   offerCache = null;
 }
 
-async function settle<T>(promise: Promise<T>): Promise<T | null> {
+async function countSeatsSoldOrNull(): Promise<number | null> {
   try {
-    return await promise;
+    return await countFounderSeatsSold();
   } catch (err) {
-    logger.warn({ reason: err instanceof Error ? err.message : 'unknown' }, 'Polar count failed, hiding that part of the offer');
+    logger.warn({ reason: err instanceof Error ? err.message : 'unknown' }, 'Founder seat count failed, hiding the Founder offer');
     return null;
   }
 }
 
 export async function getOffer(): Promise<Offer> {
-  if (!isPolarConfigured) return { supporters: null, founder: null };
+  if (!isFounderConfigured) return { founderAvailable: false };
   const now = Date.now();
   if (offerCache && now - offerCache.at < OFFER_TTL_MS) return offerCache.value;
 
-  const [subscriptions, seatsSold] = await Promise.all([
-    settle(countActiveSubscriptions()),
-    isFounderConfigured ? settle(countFounderSeatsSold()) : Promise.resolve(0),
-  ]);
-
-  const total = subscriptions === null || seatsSold === null ? null : subscriptions + seatsSold;
-  const seatsLeft = seatsSold === null ? 0 : Math.max(0, FOUNDER_SEATS - seatsSold);
-  const value: Offer = {
-    supporters: total !== null && total >= MIN_SOCIAL_PROOF ? total : null,
-    founder: isFounderConfigured && seatsLeft > 0 ? { seatsLeft } : null,
-  };
+  const seatsSold = await countSeatsSoldOrNull();
+  const value: Offer = { founderAvailable: seatsSold !== null && seatsSold < FOUNDER_SEATS };
   offerCache = { value, at: now };
   return value;
 }
