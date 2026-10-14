@@ -14,7 +14,7 @@ const inter = Inter({
 
 const SITE_TITLE = "Stremboxd – Sync Letterboxd with Stremio";
 const SITE_DESCRIPTION =
-  "Sync your Letterboxd watchlist, ratings, diary and lists with Stremio. Free unofficial addon for all platforms.";
+  "Sync your Letterboxd watchlist, ratings, diary and lists with Stremio and Nuvio. Free unofficial addon for all platforms.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://stremboxd.com"),

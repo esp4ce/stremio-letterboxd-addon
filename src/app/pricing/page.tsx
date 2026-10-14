@@ -196,7 +196,7 @@ export default function PricingPage() {
             />
             {offer?.founderAvailable && (
               <PlanCard
-                price={"49 €"}
+                price={"59 €"}
                 period="once"
                 detail="Lifetime access · Limited to 20 seats"
                 info="Founder access lasts as long as Stremboxd runs, which depends on Letterboxd and Stremio."

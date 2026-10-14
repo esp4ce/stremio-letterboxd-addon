@@ -131,7 +131,7 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
         q: "What is a Founder?",
         a: (
           <>
-            A one-time payment of 49 € for supporter access (auto-log to diary, auto-sync, persistent session) for the
+            A one-time payment of 59 € for supporter access (auto-log to diary, auto-sync, persistent session) for the
             lifetime of the service. Only 20 Founder seats exist; once they are gone, the offer closes for good.
             Stremboxd depends on access to Letterboxd and Stremio, so if it shuts down, Founder access ends with it. If
             you already have a subscription, it keeps renewing until you cancel it from the portal.{" "}
@@ -146,7 +146,7 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
           </>
         ),
         aText:
-          "A one-time payment of 49 € for supporter access (auto-log to diary, auto-sync, persistent session) for the lifetime of the service. Only 20 Founder seats exist; once they are gone, the offer closes for good. Stremboxd depends on access to Letterboxd and Stremio, so if it shuts down, Founder access ends with it. If you already have a subscription, it keeps renewing until you cancel it from the portal. See the Founder offer at stremboxd.com/pricing.",
+          "A one-time payment of 59 € for supporter access (auto-log to diary, auto-sync, persistent session) for the lifetime of the service. Only 20 Founder seats exist; once they are gone, the offer closes for good. Stremboxd depends on access to Letterboxd and Stremio, so if it shuts down, Founder access ends with it. If you already have a subscription, it keeps renewing until you cancel it from the portal. See the Founder offer at stremboxd.com/pricing.",
       },
       {
         q: "Do I need an account to subscribe?",
