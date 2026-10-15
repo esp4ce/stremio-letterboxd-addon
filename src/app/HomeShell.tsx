@@ -74,8 +74,7 @@ export default function HomeShell() {
                 inside Stremio.
               </h1>
               <p className="mt-4 max-w-[40ch] text-base leading-relaxed text-muted sm:text-[18px]">
-                Watchlist, diary, friends and lists as catalogs in Stremio and Nuvio. Free, unofficial, and
-                staying that way.
+                Watchlist, diary, friends and lists in Stremio and Nuvio.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
                 <TransitionLink
