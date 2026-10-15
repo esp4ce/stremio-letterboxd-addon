@@ -15,8 +15,6 @@ Watchlist, diary, friends, lists, ratings — all in one addon.
 
 ![Stremboxd — set up in 30 seconds](docs/preview.gif)
 
-<sub>Username → catalogs → drag to reorder → install.</sub>
-
 </div>
 
 ---
