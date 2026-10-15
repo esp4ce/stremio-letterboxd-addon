@@ -173,7 +173,7 @@ export default function FAQ() {
           <div className="flex flex-col gap-3 border-t border-line px-4 py-4 sm:flex-row sm:items-center sm:justify-between lg:col-span-3 lg:px-6">
             <p className="text-[16px] text-muted">Still have questions?</p>
             <a
-              href="https://github.com/esp4ce/stremio-letterboxd-addons/issues/new"
+              href="https://github.com/esp4ce/stremio-letterboxd-addon/issues/new"
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-ghost w-full sm:w-auto"

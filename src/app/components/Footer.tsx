@@ -1,4 +1,4 @@
-const REPO_URL = "https://github.com/esp4ce/stremio-letterboxd-addons";
+const REPO_URL = "https://github.com/esp4ce/stremio-letterboxd-addon";
 
 const LINKS = [
   { href: REPO_URL, label: "GitHub" },
