@@ -1381,7 +1381,7 @@ function ConfigureInner() {
   if (manifestUrl && !showConfig && !showPublicConfig && !forceMainForm) {
     return (
       <Frame step={3}>
-        <div className="mx-auto w-full max-w-[760px]">
+        <div className="mx-auto w-full max-w-[640px]">
           <div className="validate-mark mx-auto flex h-20 w-20 items-center justify-center" role="img" aria-label="Done">
             <svg className="h-20 w-20 text-foreground" viewBox="0 0 64 64" fill="none" aria-hidden="true">
               <circle className="validate-ring" cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" transform="rotate(-90 32 32)" />
@@ -1399,7 +1399,7 @@ function ConfigureInner() {
                 : "Install it once, then pick it up in Stremio."}
           </p>
 
-          <div className="surface mx-auto mt-10 grid w-full max-w-[600px] gap-6 p-6 sm:p-8">
+          <div className="surface mt-8 grid gap-6 p-5 sm:p-8">
             {syncOutcome === "synced" ? (
               <div>
                 <p className="rounded-control border border-line px-4 py-4 text-center text-[18px]" role="status">
