@@ -66,14 +66,14 @@ export default function HomeShell() {
       <main id="main" className="relative z-10 mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-4 sm:px-6 lg:px-8">
         {/* Overview */}
         <section hidden={pane !== "overview"} className="animate-fade-in flex flex-1 flex-col">
-          <div className="grid flex-1 items-center gap-10 py-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-14 lg:py-8">
+          <div className="grid flex-1 items-center gap-10 py-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-14 lg:py-8 min-[1440px]:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)]">
             <div>
               <h1 className="text-[36px] font-medium leading-[1.02] tracking-[-0.04em] sm:text-[48px] lg:text-[68px]">
                 Your Letterboxd,
                 <br />
                 inside Stremio.
               </h1>
-              <p className="mt-4 max-w-[40ch] text-base leading-relaxed text-muted sm:text-[18px]">
+              <p className="mt-4 max-w-[44ch] text-base leading-relaxed text-muted sm:text-[18px] min-[1440px]:max-w-none min-[1440px]:whitespace-nowrap">
                 Watchlist, diary, friends and lists as catalogs in Stremio and Nuvio. Free, unofficial, and
                 staying that way.
               </p>

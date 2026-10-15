@@ -88,15 +88,17 @@ body {
   transition-timing-function: var(--ease-out);
 }
 
-/* No single word left alone on the last line. */
-h1,
-h2,
-h3 {
-  text-wrap: balance;
-}
+/* No single word left alone on the last line (in the base layer so utilities such as whitespace-nowrap still win). */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
 
-p {
-  text-wrap: pretty;
+  p {
+    text-wrap: pretty;
+  }
 }
 
 button,
