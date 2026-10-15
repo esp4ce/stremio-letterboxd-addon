@@ -207,7 +207,7 @@ function Frame({ children, width = "max-w-5xl" }: { children: ReactNode; width?:
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
-      <main id="main" className={`mx-auto flex w-full ${width} flex-1 flex-col justify-center px-4 py-6 sm:px-6`}>{children}</main>
+      <main id="main" className={`mx-auto flex w-full ${width} flex-1 flex-col justify-center px-4 py-6 sm:px-6 lg:px-8`}>{children}</main>
       <Footer absolute={false} />
     </div>
   );

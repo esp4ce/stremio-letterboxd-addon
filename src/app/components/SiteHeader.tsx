@@ -46,7 +46,7 @@ export default function SiteHeader({ children }: { children?: ReactNode }) {
   const onConfigure = pathname.startsWith("/configure");
 
   return (
-    <header className="relative z-10 mx-auto w-full max-w-6xl px-4 pt-3.5 sm:px-6">
+    <header className="relative z-10 mx-auto w-full max-w-[1600px] px-4 pt-3.5 sm:px-6 lg:px-8">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <Link
           href="/"
