@@ -73,7 +73,7 @@ export default function HomeShell() {
                 <br />
                 inside Stremio.
               </h1>
-              <p className="mt-4 max-w-[40ch] text-base leading-relaxed text-muted sm:text-[18px]">
+              <p className="mt-4 text-base leading-relaxed text-muted sm:whitespace-nowrap sm:text-[18px]">
                 Watchlist, diary, friends and lists in Stremio and Nuvio.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
