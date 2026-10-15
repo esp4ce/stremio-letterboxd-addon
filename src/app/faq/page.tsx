@@ -60,12 +60,22 @@ export default function FAQ() {
       <SiteHeader />
 
       <main id="main" className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-4 pb-6 sm:px-6 lg:px-8 lg:min-h-0">
-        <div className="flex pb-5 pt-4 sm:justify-end lg:pt-8">
-          <h1 className="sr-only">Frequently asked questions</h1>
-          <div className="w-full sm:max-w-xs">
+        <h1 className="sr-only">Frequently asked questions</h1>
+        <div className="mt-4 grid flex-1 grid-cols-1 overflow-hidden rounded-card border border-line lg:mt-8 lg:min-h-0 lg:grid-cols-[200px_minmax(0,340px)_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)]">
+          <div className="relative border-b border-line lg:col-span-3">
             <label htmlFor={`${baseId}-search`} className="sr-only">
               Search the FAQ
             </label>
+            <svg
+              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-dim"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7" strokeWidth={1.75} />
+              <path d="M20 20l-3.5-3.5" strokeWidth={1.75} strokeLinecap="round" />
+            </svg>
             <input
               id={`${baseId}-search`}
               type="search"
@@ -74,15 +84,13 @@ export default function FAQ() {
                 setQuery(e.target.value);
                 setOpen(null);
               }}
-              placeholder="Search the FAQ…"
+              placeholder="Search all questions…"
               autoComplete="off"
               spellCheck={false}
-              className="field-input"
+              className="h-12 w-full bg-transparent pl-11 pr-4 text-[15px] text-foreground placeholder:text-dim focus:outline-none focus-visible:bg-raised/40"
             />
           </div>
-        </div>
 
-        <div className="grid flex-1 grid-cols-1 overflow-hidden rounded-card border border-line lg:min-h-0 lg:grid-cols-[200px_minmax(0,340px)_minmax(0,1fr)]">
           <nav
             aria-label="FAQ categories"
             className="flex gap-1 overflow-x-auto border-b border-line p-2 lg:flex-col lg:overflow-visible lg:border-b-0 lg:border-r lg:p-3"
