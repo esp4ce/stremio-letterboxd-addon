@@ -692,7 +692,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
   const sections: { id: ConfigSection; label: string }[] = [
     { id: "catalogs", label: "Catalogs" },
     { id: "display", label: "Display" },
-    ...(!isPublic ? [{ id: "accounts" as const, label: "Accounts" }] : []),
+    { id: "accounts", label: "Accounts" },
   ];
   const current = sections.some((s) => s.id === section) ? section : "catalogs";
 
@@ -833,15 +833,25 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                 </DisplayOptionsSection>
               ))}
 
-            {current === "accounts" && !isPublic && (
-              <AccountLinkSection
-                stremioLinked={fullProps.isStremioLinked}
-                onStremioLinkedChange={fullProps.onStremioLinkedChange}
-                nuvioLinked={fullProps.isNuvioLinked}
-                onNuvioLinkedChange={fullProps.onNuvioLinkedChange}
-                entitled={fullProps.entitled}
-              />
-            )}
+            {current === "accounts" &&
+              (isPublic ? (
+                // Username-only mode has no session, so nothing can be linked: the section shows the Supporter message.
+                <AccountLinkSection
+                  stremioLinked={false}
+                  onStremioLinkedChange={() => undefined}
+                  nuvioLinked={false}
+                  onNuvioLinkedChange={() => undefined}
+                  entitled={false}
+                />
+              ) : (
+                <AccountLinkSection
+                  stremioLinked={fullProps.isStremioLinked}
+                  onStremioLinkedChange={fullProps.onStremioLinkedChange}
+                  nuvioLinked={fullProps.isNuvioLinked}
+                  onNuvioLinkedChange={fullProps.onNuvioLinkedChange}
+                  entitled={fullProps.entitled}
+                />
+              ))}
           </div>
 
           <aside className="sticky bottom-0 flex min-h-0 flex-col gap-4 border-t border-line bg-background p-4 lg:static lg:border-l lg:border-t-0 lg:bg-transparent lg:p-5">
