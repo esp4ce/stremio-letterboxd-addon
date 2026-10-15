@@ -705,7 +705,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
       </SiteHeader>
 
       <main id="main" className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-4 pb-4 sm:px-6 lg:px-8 lg:min-h-0">
-        <div className="animate-fade-in grid flex-1 overflow-hidden rounded-card border border-line lg:min-h-0 lg:grid-cols-[190px_minmax(0,1fr)_280px]">
+        <div className="animate-fade-in grid flex-1 overflow-hidden rounded-card border border-line lg:min-h-0 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
           <nav
             aria-label="Configuration sections"
             className="flex gap-1 overflow-x-auto border-b border-line p-2 lg:flex-col lg:overflow-visible lg:border-b-0 lg:border-r lg:p-3"
@@ -716,7 +716,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                 type="button"
                 onClick={() => setSection(s.id)}
                 aria-current={current === s.id ? "true" : undefined}
-                className={`shrink-0 rounded-control px-3 py-2.5 text-left text-[14px] transition-colors ${
+                className={`shrink-0 rounded-control px-4 py-3 text-left text-[16px] transition-colors ${
                   current === s.id ? "bg-raised text-foreground" : "text-muted hover:text-foreground"
                 }`}
               >

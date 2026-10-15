@@ -61,13 +61,13 @@ export default function FAQ() {
 
       <main id="main" className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-4 pb-6 sm:px-6 lg:px-8 lg:min-h-0">
         <h1 className="sr-only">Frequently asked questions</h1>
-        <div className="mt-4 grid flex-1 grid-cols-1 overflow-hidden rounded-card border border-line lg:mt-8 lg:min-h-0 lg:grid-cols-[200px_minmax(0,340px)_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
+        <div className="mt-4 grid flex-1 grid-cols-1 overflow-hidden rounded-card border border-line lg:mt-8 lg:min-h-0 lg:grid-cols-[240px_minmax(0,400px)_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
           <div className="relative border-b border-line lg:col-span-3">
             <label htmlFor={`${baseId}-search`} className="sr-only">
               Search the FAQ
             </label>
             <svg
-              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-dim"
+              className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-dim"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -87,7 +87,7 @@ export default function FAQ() {
               placeholder="Search all questions…"
               autoComplete="off"
               spellCheck={false}
-              className="h-12 w-full bg-transparent pl-11 pr-4 text-[16px] text-foreground placeholder:text-dim focus:outline-none focus-visible:bg-raised/40"
+              className="h-14 w-full bg-transparent pl-12 pr-4 text-[16px] text-foreground placeholder:text-dim focus:outline-none focus-visible:bg-raised/40"
             />
           </div>
 
@@ -106,12 +106,12 @@ export default function FAQ() {
                     setQuery("");
                     setOpen(null);
                   }}
-                  className={`flex shrink-0 items-center justify-between gap-3 rounded-control px-3 py-2.5 text-[14px] transition-colors ${
+                  className={`flex shrink-0 items-center justify-between gap-3 rounded-control px-4 py-3 text-[16px] transition-colors ${
                     active ? "bg-raised text-foreground" : "text-muted hover:text-foreground"
                   }`}
                 >
                   <span>{section.title}</span>
-                  <span className="font-mono text-[12px] text-dim">{section.items.length}</span>
+                  <span className="font-mono text-[14px] text-dim">{section.items.length}</span>
                 </a>
               );
             })}
@@ -122,7 +122,7 @@ export default function FAQ() {
             aria-label={searching ? "Search results" : SECTIONS[categoryIndex].title}
           >
             {entries.length === 0 && (
-              <li className="px-3 py-4 text-sm text-dim">
+              <li className="px-4 py-4 text-[16px] text-dim">
                 No question matches. Try another word, or open an issue on GitHub.
               </li>
             )}
@@ -137,15 +137,15 @@ export default function FAQ() {
                     onClick={() => setOpen(isOpen && window.matchMedia("(max-width: 1023px)").matches ? null : index)}
                     aria-expanded={isOpen}
                     aria-controls={panelId}
-                    className={`block w-full rounded-control px-3 py-3 text-left text-[14px] leading-snug transition-colors ${
+                    className={`block w-full rounded-control px-4 py-3.5 text-left text-[16px] leading-snug transition-colors ${
                       isCurrent ? "lg:bg-raised lg:text-foreground" : ""
                     } ${isOpen ? "text-foreground" : "text-muted hover:text-foreground"}`}
                   >
-                    {searching && <span className="mb-0.5 block font-mono text-[12px] text-dim">{entry.category}</span>}
+                    {searching && <span className="mb-0.5 block font-mono text-[14px] text-dim">{entry.category}</span>}
                     {entry.item.q}
                   </button>
                   {/* Inline answer for small screens; desktop reads it in the right-hand pane. */}
-                  <div id={panelId} hidden={!isOpen} className="px-3 pb-4 text-[14px] leading-relaxed text-muted lg:hidden">
+                  <div id={panelId} hidden={!isOpen} className="px-4 pb-4 text-[16px] leading-relaxed text-muted lg:hidden">
                     {entry.item.a}
                   </div>
                 </li>
@@ -155,28 +155,28 @@ export default function FAQ() {
 
           <section
             aria-live="polite"
-            className="panel-scroll hidden overflow-y-auto p-8 lg:block"
+            className="panel-scroll hidden overflow-y-auto p-8 lg:block lg:p-12"
           >
             {desktopEntry && (
               <article key={desktopEntry.item.q} className="animate-fade-in">
-                <p className="font-mono text-xs text-dim">{desktopEntry.category}</p>
-                <h2 className="mt-2 max-w-[24ch] text-[28px] font-medium leading-[1.15] tracking-[-0.03em]">
+                <p className="font-mono text-[14px] text-dim">{desktopEntry.category}</p>
+                <h2 className="mt-3 max-w-[26ch] text-[28px] font-medium leading-[1.12] tracking-[-0.035em] lg:text-[40px]">
                   {desktopEntry.item.q}
                 </h2>
-                <div className="mt-4 max-w-[56ch] text-[16px] leading-relaxed text-muted [&_a]:text-foreground">
+                <div className="mt-5 max-w-[60ch] text-[18px] leading-relaxed text-muted [&_a]:text-foreground">
                   {desktopEntry.item.a}
                 </div>
               </article>
             )}
           </section>
 
-          <div className="flex flex-col gap-3 border-t border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between lg:col-span-3">
-            <p className="text-[14px] text-muted">Still have questions?</p>
+          <div className="flex flex-col gap-3 border-t border-line px-4 py-4 sm:flex-row sm:items-center sm:justify-between lg:col-span-3 lg:px-6">
+            <p className="text-[16px] text-muted">Still have questions?</p>
             <a
               href="https://github.com/esp4ce/stremio-letterboxd-addons/issues/new"
               target="_blank"
               rel="noopener noreferrer"
-              className="btn btn-ghost btn-sm w-full sm:w-auto"
+              className="btn btn-ghost w-full sm:w-auto"
             >
               Open an issue on GitHub
             </a>

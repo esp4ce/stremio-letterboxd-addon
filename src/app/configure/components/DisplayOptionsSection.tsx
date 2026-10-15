@@ -30,7 +30,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
   if (props.mode === "public") {
     return (
       <div>
-        <h3 className="text-[16px] font-medium text-foreground">Display Options</h3>
+        <h3 className="text-[18px] font-medium text-foreground">Display Options</h3>
         <div className="mt-3 space-y-2">
           <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
             <div className="min-w-0">
@@ -90,7 +90,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
 
   return (
     <div>
-      <h3 className="text-[16px] font-medium text-foreground">Display Options</h3>
+      <h3 className="text-[18px] font-medium text-foreground">Display Options</h3>
       <div className="mt-3 space-y-2">
         {items.map(({ key, label, description, defaultOn }) => {
           const enabled = defaultOn ? preferences[key] !== false : preferences[key] === true;

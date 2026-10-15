@@ -71,7 +71,7 @@ export function CatalogsSection({
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-[16px] font-medium text-foreground">Catalogs</h3>
+        <h3 className="text-[18px] font-medium text-foreground">Catalogs</h3>
         {sortedActiveItems.length > 1 && (
           <p className="text-[12px] text-dim">drag to reorder</p>
         )}

@@ -122,7 +122,7 @@ export function AccountLinkSection({
   return (
     <div>
       <div className="flex items-center gap-1.5">
-        <h3 className="text-[16px] font-medium text-foreground">Accounts</h3>
+        <h3 className="text-[18px] font-medium text-foreground">Accounts</h3>
         <span
           className="flex h-3.5 w-3.5 cursor-help items-center justify-center text-dim transition-colors hover:text-zinc-300"
           title="Link once and your catalogs update without reinstalling the addon. Your keys stay in this browser and never reach our servers."

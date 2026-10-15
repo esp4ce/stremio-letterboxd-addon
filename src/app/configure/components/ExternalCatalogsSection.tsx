@@ -15,7 +15,7 @@ export function ExternalCatalogsSection({
 }: ExternalCatalogsSectionProps) {
   return (
     <div>
-      <h3 className="text-[16px] font-medium text-foreground">
+      <h3 className="text-[18px] font-medium text-foreground">
         External Catalogs
       </h3>
       <p className="mt-1 break-words text-[12px] text-dim">
