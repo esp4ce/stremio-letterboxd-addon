@@ -423,7 +423,7 @@ function ConfigureInner() {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className="pointer-events-auto animate-fade-in relative overflow-hidden rounded-xl border border-line-strong bg-background px-4 py-3.5 shadow-2xl"
+            className="pointer-events-auto animate-fade-in relative overflow-hidden rounded-card border border-line-strong bg-background px-4 py-3.5 shadow-2xl"
           >
             <span
               className={`absolute inset-y-0 left-0 w-0.5 ${

@@ -39,6 +39,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
             </div>
             <Toggle
               enabled={props.showRatings}
+              label="Show Letterboxd ratings"
               onToggle={() => props.onShowRatingsChange(!props.showRatings)}
             />
           </div>
@@ -49,6 +50,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
             </div>
             <Toggle
               enabled={props.hideUnreleased}
+              label="Hide unreleased films"
               onToggle={() => props.onHideUnreleasedChange(!props.hideUnreleased)}
             />
           </div>
@@ -59,6 +61,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
             </div>
             <Toggle
               enabled={props.hideNoHomeRelease}
+              label="Hide films without a home release"
               onToggle={() => props.onHideNoHomeReleaseChange(!props.hideNoHomeRelease)}
             />
           </div>
@@ -69,6 +72,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
             </div>
             <Toggle
               enabled={props.publicSearch}
+              label="Letterboxd search"
               onToggle={() => props.onPublicSearchChange(!props.publicSearch)}
             />
           </div>
@@ -102,6 +106,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
               </div>
               <Toggle
                 enabled={enabled}
+                label={label}
                 onToggle={() => onPreferencesChange({ ...preferences, [key]: !enabled })}
               />
             </div>

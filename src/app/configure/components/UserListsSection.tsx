@@ -73,13 +73,14 @@ export function UserListsSection({
           return (
             <div
               key={list.id}
-              className="flex cursor-pointer items-center gap-3 rounded-lg bg-raised px-3.5 py-2.5 transition-colors hover:bg-raised"
+              className="flex cursor-pointer items-center gap-3 rounded-control bg-raised px-3.5 py-2.5 transition-colors hover:bg-raised"
             >
               <input
                 type="checkbox"
                 checked={isOwnListSelected(list.id)}
                 onChange={() => onToggleOwnList(list.id)}
-                className="h-4 w-4 rounded border-control bg-line-strong text-foreground accent-white"
+                aria-label={`Include ${list.name}`}
+                className="h-6 w-6 rounded-control border-control bg-line-strong text-foreground accent-white"
               />
               <div className="min-w-0 flex-1">
                 <EditableName

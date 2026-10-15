@@ -655,14 +655,15 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
               type="button"
               onClick={() => hideParentCatalog(item.key)}
               title="Hide parent catalog, keep sort variants"
-              className="rounded p-1 text-dim transition-colors hover:text-foreground"
+              className="-m-1 rounded-control p-2 text-dim transition-colors hover:text-foreground"
+              aria-label="Hide the main catalog and keep its sort variants"
             >
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
               </svg>
             </button>
           )}
-          <Toggle enabled={true} onToggle={() => toggleCatalog(item.key)} />
+          <Toggle enabled={true} onToggle={() => toggleCatalog(item.key)} label={`Show ${getItemDisplayName(item)}`} />
         </div>
       );
     }
@@ -675,7 +676,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
       : undefined;
     if (!onRemove) return null;
     return (
-      <button type="button" onClick={onRemove} className="flex-shrink-0 text-dim transition-colors hover:text-foreground">
+      <button type="button" onClick={onRemove} aria-label="Remove" className="-m-2 flex-shrink-0 p-2 text-dim transition-colors hover:text-foreground">
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TRASH_PATH} />
         </svg>

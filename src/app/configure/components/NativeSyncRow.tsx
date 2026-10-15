@@ -71,14 +71,14 @@ export function NativeSyncRow({ preferences, onPreferencesChange, signedIn, enti
             id={detailsId}
             role="status"
             hidden={!detailsOpen}
-            className="absolute top-full left-0 z-20 mt-2 w-60 max-w-[calc(100vw-5rem)] rounded-lg border border-line-strong bg-background px-3 py-2 text-[12px] leading-relaxed text-foreground shadow-xl"
+            className="absolute top-full left-0 z-20 mt-2 w-60 max-w-[calc(100vw-5rem)] rounded-control border border-line-strong bg-background px-3 py-2 text-[12px] leading-relaxed text-foreground shadow-xl"
           >
             {DETAILS}
           </p>
         </div>
         <p className="mt-0.5 text-[14px] text-dim">Films watched in Stremio land in your public diary</p>
       </div>
-      <Toggle enabled={control.kind === "toggle" && control.enabled} onToggle={onToggle} />
+      <Toggle enabled={control.kind === "toggle" && control.enabled} onToggle={onToggle} label="Auto-log to Diary" />
     </div>
   );
 }

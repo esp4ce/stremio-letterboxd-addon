@@ -117,8 +117,10 @@ export function CatalogsSection({
                             e.stopPropagation();
                             onToggleVariantExpand(isExpanded ? null : item.id);
                           }}
-                          className={`flex-shrink-0 rounded p-1 text-dim transition-colors hover:text-foreground ${isExpanded ? "bg-line-strong text-foreground" : ""}`}
+                          className={`-m-1 flex-shrink-0 rounded-control p-2 text-dim transition-colors hover:text-foreground ${isExpanded ? "bg-line-strong text-foreground" : ""}`}
                           title="Sort variants"
+                          aria-label="Sort variants"
+                          aria-expanded={isExpanded}
                         >
                           <svg className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -128,7 +130,7 @@ export function CatalogsSection({
                       {renderActiveItemAction(item)}
                     </SortableCatalogRow>
                     {isExpanded && hasVariants && (
-                      <div className="ml-6 mt-1 mb-1 flex flex-wrap gap-1.5 rounded-lg bg-raised px-3 py-2" onPointerDown={(e) => e.stopPropagation()}>
+                      <div className="ml-6 mt-1 mb-1 flex flex-wrap gap-1.5 rounded-control bg-raised px-3 py-2" onPointerDown={(e) => e.stopPropagation()}>
                         {availableVariantOptions.map((opt) => {
                           const active = variants.includes(opt.key);
                           return (
@@ -159,14 +161,14 @@ export function CatalogsSection({
           {disabledBaseItems.map((def) => (
             <div
               key={def.key}
-              className="flex items-center gap-2 rounded-lg bg-raised px-3 py-2.5 opacity-50"
+              className="flex items-center gap-2 rounded-control bg-raised px-3 py-2.5 opacity-50"
             >
               <div className="w-4 flex-shrink-0" />
               <div className="min-w-0 flex-1 pr-2">
                 <p className="truncate text-[14px] font-medium text-muted">{def.label}</p>
                 <p className="text-[12px] text-dim">{def.description}</p>
               </div>
-              <Toggle enabled={false} onToggle={() => onToggleCatalog(def.key)} />
+              <Toggle enabled={false} onToggle={() => onToggleCatalog(def.key)} label={`Show ${def.label}`} />
             </div>
           ))}
         </div>
