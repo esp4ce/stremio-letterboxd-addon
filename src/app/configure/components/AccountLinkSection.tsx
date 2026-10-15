@@ -124,19 +124,24 @@ export function AccountLinkSection({
     return (
       <div>
         <h3 className="text-[18px] font-medium text-foreground">Link your player</h3>
-        <div className="surface mt-4 p-5 sm:p-6">
-          <p className="text-[18px] font-medium text-foreground">Linking is a Supporter feature</p>
-          <p className="mt-2 max-w-[56ch] text-[16px] leading-relaxed text-muted">
-            Supporters link Stremio and Nuvio once, and their catalogs update on their own, with no reinstall
-            after every change.
-          </p>
-          <TransitionLink href="/#supporter" className="btn btn-primary mt-5 w-full sm:w-auto">
-            Become a Supporter
-          </TransitionLink>
+        <p className="mt-1 text-[14px] text-dim">
+          Link once and your catalogs update without reinstalling the addon.
+        </p>
+
+        <div className="mt-4 space-y-2">
+          <div className={ROW}>
+            <div className="min-w-0">
+              <p className="text-[16px] font-medium text-foreground">Supporter feature</p>
+              <p className="mt-0.5 text-[14px] text-dim">Link Stremio and Nuvio, and changes reach them on their own.</p>
+            </div>
+            <TransitionLink href="/#supporter" className="btn btn-primary btn-sm shrink-0">
+              Become a Supporter
+            </TransitionLink>
+          </div>
         </div>
 
         {(stremioLinked || nuvioLinked) && (
-          <div className="mt-4 space-y-2">
+          <div className="mt-2 space-y-2">
             {stremioLinked && (
               <PlayerRow
                 name="Stremio"
