@@ -699,13 +699,6 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground lg:h-dvh">
       <SiteHeader>
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-control px-1 py-2 text-[13.5px] text-muted transition-colors hover:text-foreground"
-        >
-          Back
-        </button>
         <span className="hidden max-w-[40vw] truncate text-[13.5px] text-dim sm:inline">
           {user ? user.displayName || user.username : "Public mode"}
         </span>
@@ -860,6 +853,9 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
             </div>
             <button type="button" onClick={onSave} disabled={isSaving} className="btn btn-primary w-full">
               {isSaving ? "Saving…" : saveLabel}
+            </button>
+            <button type="button" onClick={onBack} className="link-quiet justify-self-center py-1 text-[13px]">
+              {isPublic ? "Change username" : "Use another account"}
             </button>
           </aside>
         </div>

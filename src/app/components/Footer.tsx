@@ -1,8 +1,6 @@
 const REPO_URL = "https://github.com/esp4ce/stremio-letterboxd-addons";
 
 const LINKS = [
-  { href: "/faq", label: "FAQ" },
-  { href: "/#supporter", label: "Supporter" },
   { href: REPO_URL, label: "GitHub" },
   { href: "https://www.reddit.com/r/stremboxd/", label: "Reddit" },
 ];
