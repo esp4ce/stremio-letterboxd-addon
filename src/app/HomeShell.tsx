@@ -79,7 +79,6 @@ export default function HomeShell() {
               <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
                 <TransitionLink
                   href="/configure"
-                  direction="up"
                   trackTarget="configure"
                   className="btn btn-primary w-full sm:w-auto"
                 >
@@ -180,7 +179,7 @@ export default function HomeShell() {
         </section>
       </main>
 
-      <Footer absolute={false} />
+      <Footer />
     </div>
   );
 }

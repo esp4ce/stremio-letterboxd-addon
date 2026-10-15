@@ -864,7 +864,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
         </div>
       </main>
 
-      <Footer absolute={false} />
+      <Footer />
     </div>
   );
 }

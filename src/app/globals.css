@@ -280,15 +280,6 @@ body::after {
   border-radius: 3px;
 }
 
-.modal-scroll {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.modal-scroll::-webkit-scrollbar {
-  display: none;
-}
-
 @media (pointer: coarse) {
   .btn {
     min-height: 44px;

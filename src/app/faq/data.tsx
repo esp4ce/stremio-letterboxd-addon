@@ -116,7 +116,6 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
             Everything else stays free.{" "}
             <TransitionLink
               href="/#supporter"
-              direction="up"
               className="text-foreground underline underline-offset-2 hover:text-foreground"
             >
               See the Supporter offer
@@ -137,7 +136,6 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
             you already have a subscription, it keeps renewing until you cancel it from the portal.{" "}
             <TransitionLink
               href="/#supporter"
-              direction="up"
               className="text-foreground underline underline-offset-2 hover:text-foreground"
             >
               See the Founder offer
@@ -155,7 +153,6 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
             Yes. Log in with your Letterboxd password on the{" "}
             <TransitionLink
               href="/configure"
-              direction="up"
               className="text-foreground underline underline-offset-2 hover:text-foreground"
             >
               configure page

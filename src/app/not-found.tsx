@@ -27,7 +27,7 @@ export default function NotFound() {
           </Link>
         </div>
       </main>
-      <Footer absolute={false} />
+      <Footer />
     </div>
   );
 }

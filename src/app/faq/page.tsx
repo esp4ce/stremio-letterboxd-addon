@@ -184,7 +184,7 @@ export default function FAQ() {
         </div>
       </main>
 
-      <Footer absolute={false} />
+      <Footer />
     </div>
   );
 }

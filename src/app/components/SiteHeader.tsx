@@ -64,7 +64,6 @@ export default function SiteHeader({ children }: { children?: ReactNode }) {
                 {item.id === "faq" ? (
                   <TransitionLink
                     href={item.href}
-                    direction="up"
                     trackTarget="faq"
                     ariaCurrent={active === item.id ? "page" : undefined}
                     className={`block rounded-control px-2.5 py-2 text-center text-[14px] transition-colors sm:px-3 sm:py-1.5 sm:text-[14px] ${
@@ -102,7 +101,6 @@ export default function SiteHeader({ children }: { children?: ReactNode }) {
           {!onConfigure && (
             <TransitionLink
               href="/configure"
-              direction="up"
               trackTarget="configure"
               className="btn btn-primary btn-sm"
             >

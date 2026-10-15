@@ -218,7 +218,7 @@ function Frame({
       <SiteHeader />
       {step && <ConfigureSteps current={step} />}
       <main id="main" className={`mx-auto flex w-full ${width} flex-1 flex-col justify-center px-4 py-6 sm:px-6 lg:px-8`}>{children}</main>
-      <Footer absolute={false} />
+      <Footer />
     </div>
   );
 }
@@ -336,7 +336,6 @@ function ConfigureInner() {
         {message}{" "}
         <TransitionLink
           href="/#supporter"
-          direction="up"
           className="whitespace-nowrap text-muted underline decoration-line-strong underline-offset-2 transition-colors hover:text-foreground"
         >
           See supporter plan →

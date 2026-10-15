@@ -91,7 +91,6 @@ export default function SupporterOffer() {
             You&apos;re not logged in.{" "}
             <TransitionLink
               href="/configure"
-              direction="down"
               className="text-foreground underline underline-offset-2 hover:text-muted"
             >
               Log in

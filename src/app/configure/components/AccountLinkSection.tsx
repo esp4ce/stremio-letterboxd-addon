@@ -164,7 +164,6 @@ export function AccountLinkSection({
             </p>
             <TransitionLink
               href="/#supporter"
-              direction="up"
               className="flex-shrink-0 whitespace-nowrap rounded-lg bg-foreground px-3 py-2 text-[12px] font-semibold text-primary-fg transition-colors hover:bg-foreground"
             >
               Upgrade

@@ -5,11 +5,9 @@ const LINKS = [
   { href: "https://www.reddit.com/r/stremboxd/", label: "Reddit" },
 ];
 
-export default function Footer({ absolute = true }: { absolute?: boolean }) {
+export default function Footer() {
   return (
-    <footer
-      className={`${absolute ? "absolute bottom-0 left-0 right-0" : ""} border-t border-line py-4`}
-    >
+    <footer className="border-t border-line py-4">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col px-4 sm:px-6 lg:px-8 gap-3 text-[14px] text-dim sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1">
           <p>
