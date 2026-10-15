@@ -132,38 +132,45 @@ export default function HomeShell() {
         </section>
 
         {/* Free for good */}
-        <section hidden={pane !== "free"} className="animate-fade-in flex flex-1 flex-col py-8 lg:py-12">
-          <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14">
+        <section hidden={pane !== "free"} className="animate-fade-in flex flex-1 flex-col pb-8 pt-4 lg:pb-12 lg:pt-8">
+          <div className="grid gap-8 lg:gap-10">
             <div>
               <h2 className="text-[28px] font-medium leading-[1.08] tracking-[-0.035em] sm:text-[40px]">
                 What is free today stays free.
               </h2>
-              <p className="mt-4 max-w-[46ch] text-[15.5px] leading-relaxed text-muted">
+              <p className="mt-3 max-w-[56ch] text-[15.5px] leading-relaxed text-muted">
                 This is a commitment, not a promotion. Supporters pay for the hosting and get extra features on
                 top. Nothing on this list will move behind a paywall.
               </p>
-              <TransitionLink
-                href="/configure"
-                direction="up"
-                trackTarget="configure"
-                className="btn btn-primary mt-7 w-full sm:w-auto"
-              >
-                Install the addon
-              </TransitionLink>
             </div>
-            <ul className="border-t border-line">
+
+            <ul className="grid border-t border-line sm:grid-cols-2 sm:gap-x-12">
               {FREE_ITEMS.map((item) => (
-                <li key={item} className="flex items-baseline justify-between gap-4 border-b border-line py-3 text-[14.5px]">
+                <li
+                  key={item}
+                  className="flex items-baseline justify-between gap-4 border-b border-line py-4 text-[16px]"
+                >
                   <span>{item}</span>
                   <span className="font-mono text-[11.5px] text-dim">free</span>
                 </li>
               ))}
             </ul>
+
+            <div>
+              <TransitionLink
+                href="/configure"
+                direction="up"
+                trackTarget="configure"
+                className="btn btn-primary w-full sm:w-auto"
+              >
+                Install the addon
+              </TransitionLink>
+            </div>
           </div>
         </section>
 
         {/* Supporter */}
-        <section hidden={pane !== "supporter"} className="animate-fade-in flex flex-1 flex-col py-8 lg:py-12">
+        <section hidden={pane !== "supporter"} className="animate-fade-in flex flex-1 flex-col pb-8 pt-4 lg:pb-12 lg:pt-8">
           <SupporterOffer />
         </section>
       </main>

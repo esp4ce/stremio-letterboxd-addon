@@ -203,7 +203,7 @@ function parsePublicDraft(raw: string): PublicDraft | null {
 }
 
 /** Page frame for every /configure screen: wordmark, a way back, a centred column, the shared footer. */
-function Frame({ children, width = "max-w-5xl" }: { children: ReactNode; width?: string }) {
+function Frame({ children, width = "max-w-[1600px]" }: { children: ReactNode; width?: string }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
@@ -1486,7 +1486,7 @@ function ConfigureInner() {
   // Main form
   return (
     <Frame>
-      <div className="animate-fade-in grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:gap-16">
+      <div className="animate-fade-in grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:gap-16">
         <div>
           <h1 className="text-[32px] font-medium leading-[1.05] tracking-[-0.04em] sm:text-[44px]">
             {show2FA ? "One more step." : "Connect your Letterboxd."}
