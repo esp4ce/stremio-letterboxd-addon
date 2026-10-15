@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Configure Your Stremboxd Addon",
     description:
-      "Set up your Letterboxd + Stremio integration. Pick your catalogs, enable ratings, add custom lists, and install in one click.",
+      "Set up your Letterboxd integration for Stremio and Nuvio. Pick your catalogs, enable ratings, add custom lists, and install in one click.",
     url: "https://stremboxd.com/configure",
   },
 };

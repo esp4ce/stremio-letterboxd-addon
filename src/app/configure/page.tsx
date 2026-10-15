@@ -1396,7 +1396,7 @@ function ConfigureInner() {
               ? `Welcome, ${result.user.displayName || result.user.username}.`
               : usernameValidated
                 ? `Configured for ${usernameValidated.displayName}.`
-                : "Install it once, then pick it up in Stremio."}
+                : "Install it once, then pick it up in Stremio or Nuvio."}
           </p>
 
           <div className="surface mt-8 grid gap-6 p-5 sm:p-8">
@@ -1427,7 +1427,7 @@ function ConfigureInner() {
 
             <div className="grid gap-2">
               <label htmlFor="manifest-url" className="text-[16px] text-muted">
-                Manifest URL
+                Manifest URL, for Stremio and Nuvio
               </label>
               <div className="flex gap-2">
                 <input

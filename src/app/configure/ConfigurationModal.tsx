@@ -844,7 +844,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                   <dd>{isPublic ? "Reinstall" : isLinked ? "Automatic" : "Not linked"}</dd>
                 </div>
               </dl>
-              <p className="mt-5 font-mono text-xs text-dim">In Stremio, in this order</p>
+              <p className="mt-5 font-mono text-xs text-dim">In Stremio and Nuvio, in this order</p>
               <ol className="panel-scroll mt-2 min-h-0 flex-1 overflow-y-auto text-[14px]">
                 {sortedActiveItems.map((item, index) => (
                   <li key={item.id} className="flex gap-3 border-b border-line py-2 text-muted">

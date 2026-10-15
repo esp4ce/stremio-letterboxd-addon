@@ -65,7 +65,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
           <div className="flex items-center justify-between gap-4 rounded-lg bg-raised px-3.5 py-3">
             <div className="min-w-0">
               <p className="text-[14px] font-medium text-foreground">Letterboxd Search</p>
-              <p className="mt-0.5 text-[12px] text-dim">Search films directly via Letterboxd in Stremio</p>
+              <p className="mt-0.5 text-[12px] text-dim">Search films directly via Letterboxd in Stremio and Nuvio</p>
             </div>
             <Toggle
               enabled={props.publicSearch}
@@ -85,7 +85,7 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
     { key: "showReviews" as const, label: "Popular Reviews", description: "Show popular Letterboxd reviews on film pages", defaultOn: true },
     { key: "hideUnreleased" as const, label: "Hide Unreleased Films", description: "Hide films that haven't been released yet", defaultOn: false },
     { key: "hideNoHomeRelease" as const, label: "Hide Films Without a Home Release", description: "Hide films not yet available digitally, physically or on TV", defaultOn: false },
-    { key: "search" as const, label: "Letterboxd Search", description: "Search films directly via Letterboxd in Stremio", defaultOn: true },
+    { key: "search" as const, label: "Letterboxd Search", description: "Search films directly via Letterboxd in Stremio and Nuvio", defaultOn: true },
   ] as const;
 
   return (
