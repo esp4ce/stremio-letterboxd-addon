@@ -218,7 +218,7 @@ function PlanCard({
   return (
     <div className="surface flex min-w-0 flex-col gap-6 p-5 sm:p-7">
       <div className="flex min-w-0 flex-col gap-2">
-        <p className="font-mono text-xs text-dim">{name}</p>
+        <h3 className="text-[17px] font-medium text-foreground">{name}</h3>
         <p className="flex flex-wrap items-baseline gap-x-2">
           <span className="text-[32px] font-medium leading-none tracking-[-0.04em] tabular-nums">{price}</span>
           <span className="text-sm text-dim">{period}</span>

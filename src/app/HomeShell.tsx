@@ -62,7 +62,7 @@ export default function HomeShell() {
         <section hidden={pane !== "overview"} className="animate-fade-in flex flex-1 flex-col">
           <div className="grid flex-1 items-center gap-10 py-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-14 lg:py-8">
             <div>
-              <h1 className="text-[36px] font-medium leading-[1.02] tracking-[-0.04em] sm:text-[48px] lg:text-[58px]">
+              <h1 className="text-[36px] font-medium leading-[1.02] tracking-[-0.04em] sm:text-[48px] lg:text-[68px]">
                 Your Letterboxd,
                 <br />
                 inside Stremio.
@@ -142,6 +142,14 @@ export default function HomeShell() {
                 This is a commitment, not a promotion. Supporters pay for the hosting and get extra features on
                 top. Nothing on this list will move behind a paywall.
               </p>
+              <TransitionLink
+                href="/configure"
+                direction="up"
+                trackTarget="configure"
+                className="btn btn-primary mt-6 w-full sm:w-auto"
+              >
+                Install the addon
+              </TransitionLink>
             </div>
 
             <ul className="grid border-t border-line sm:grid-cols-2 sm:gap-x-12">
@@ -155,17 +163,6 @@ export default function HomeShell() {
                 </li>
               ))}
             </ul>
-
-            <div>
-              <TransitionLink
-                href="/configure"
-                direction="up"
-                trackTarget="configure"
-                className="btn btn-primary w-full sm:w-auto"
-              >
-                Install the addon
-              </TransitionLink>
-            </div>
           </div>
         </section>
 
