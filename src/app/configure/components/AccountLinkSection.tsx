@@ -163,7 +163,7 @@ export function AccountLinkSection({
               )}
             </p>
             <TransitionLink
-              href="/pricing"
+              href="/#supporter"
               direction="up"
               className="flex-shrink-0 whitespace-nowrap rounded-lg bg-white px-3 py-2 text-[11.5px] font-semibold text-black transition-colors hover:bg-zinc-200"
             >

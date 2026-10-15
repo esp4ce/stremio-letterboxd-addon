@@ -295,7 +295,7 @@ function ConfigureInner() {
       <>
         {message}{" "}
         <TransitionLink
-          href="/pricing"
+          href="/#supporter"
           direction="up"
           className="whitespace-nowrap text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition-colors hover:text-zinc-200"
         >
@@ -661,7 +661,7 @@ function ConfigureInner() {
         const resuming = peekCheckoutIntent() !== null;
         applyLoginResult(data as LoginResponse, !resuming);
         track("login_succeeded", { method: "password", entitled: (data as LoginResponse).entitled, remember_me: rememberMe });
-        if (resuming) router.push("/pricing?resume=1");
+        if (resuming) router.push("/?resume=1#supporter");
       } else {
         // Public flow (username only)
         const response = await fetch(`${BACKEND_URL}/auth/validate-username`, {
@@ -726,7 +726,7 @@ function ConfigureInner() {
       applyLoginResult(data as LoginResponse, !resuming);
       track("login_succeeded", { method: "totp", entitled: (data as LoginResponse).entitled, remember_me: rememberMe });
       // Logged in because /pricing asked for it: send them back to their checkout.
-      if (resuming) router.push("/pricing?resume=1");
+      if (resuming) router.push("/?resume=1#supporter");
     } catch (err) {
       showErrorToast(err instanceof Error ? err.message : "Invalid code");
     } finally {
