@@ -7,20 +7,15 @@ type Theme = "light" | "dark";
 const STORAGE_KEY = "theme";
 const CHANGE_EVENT = "stremboxd:themechange";
 
+const BROWSER_UI_COLOR: Record<Theme, string> = { dark: "#0a0a0a", light: "#f7f7f8" };
+
 function readTheme(): Theme {
-  const explicit = document.documentElement.dataset.theme;
-  if (explicit === "light" || explicit === "dark") return explicit;
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  return document.documentElement.dataset.theme === "light" ? "light" : "dark";
 }
 
 function subscribe(onChange: () => void) {
-  const media = window.matchMedia("(prefers-color-scheme: light)");
-  media.addEventListener("change", onChange);
   window.addEventListener(CHANGE_EVENT, onChange);
-  return () => {
-    media.removeEventListener("change", onChange);
-    window.removeEventListener(CHANGE_EVENT, onChange);
-  };
+  return () => window.removeEventListener(CHANGE_EVENT, onChange);
 }
 
 /** Switches between the light and dark theme and remembers the choice on this device. */
@@ -30,6 +25,7 @@ export default function ThemeToggle() {
 
   const toggle = () => {
     document.documentElement.dataset.theme = next;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", BROWSER_UI_COLOR[next]);
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {

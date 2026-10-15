@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 /*
- * Design tokens. Dark is the default; light follows the system setting unless the
- * visitor picked a theme with the header toggle (data-theme on <html>).
+ * Design tokens. Dark is always the default; light only applies when the visitor
+ * picks it with the header toggle (data-theme="light" on <html>).
  * [data-theme] on any element re-scopes the tokens, so a subtree can force a theme.
  */
 :root,
@@ -29,32 +29,6 @@
   --scroll-thumb: #2a2a30;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   color-scheme: dark;
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --background: #f7f7f8;
-    --foreground: #101012;
-    --surface: #ffffff;
-    --raised: #ededf0;
-    --line: #e1e1e6;
-    --line-strong: #cbcbd2;
-    --control: #85858f;
-    --muted: #52525b;
-    --dim: #686872;
-    --field: #ffffff;
-    --primary: #101012;
-    --primary-fg: #f7f7f8;
-    --primary-hover: #000000;
-    --card-from: #ffffff;
-    --card-to: #f2f2f4;
-    --beam-core: rgba(0, 0, 0, 0.055);
-    --beam-edge: rgba(0, 0, 0, 0.008);
-    --beam-pool: rgba(0, 0, 0, 0.04);
-    --grain-opacity: 0.35;
-    --scroll-thumb: #cbcbd2;
-    color-scheme: light;
-  }
 }
 
 :root[data-theme="light"],
