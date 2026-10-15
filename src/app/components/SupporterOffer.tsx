@@ -130,7 +130,7 @@ export default function SupporterOffer() {
         <h2 className="text-[28px] font-medium leading-[1.08] tracking-[-0.035em] text-foreground sm:text-[40px]">
           Support <span translate="no">Stremboxd</span>.
         </h2>
-        <p className="mt-3 max-w-[46ch] text-[16px] leading-relaxed text-muted">
+        <p className="mt-3 text-[16px] leading-relaxed text-muted md:whitespace-nowrap">
           Supporting pays the hosting and adds features that run without you.
         </p>
       </div>
