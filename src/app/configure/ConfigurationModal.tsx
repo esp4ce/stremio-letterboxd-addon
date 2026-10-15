@@ -25,6 +25,7 @@ import { ExternalCatalogsSection } from "./components/ExternalCatalogsSection";
 import { UserListsSection } from "./components/UserListsSection";
 import { AccountLinkSection } from "./components/AccountLinkSection";
 import SiteHeader from "../components/SiteHeader";
+import { ConfigureSteps } from "./components/ConfigureSteps";
 import Footer from "../components/Footer";
 import { NativeSyncRow } from "./components/NativeSyncRow";
 
@@ -703,6 +704,8 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
           {user ? user.displayName || user.username : "Public mode"}
         </span>
       </SiteHeader>
+
+      <ConfigureSteps current={2} />
 
       <main id="main" className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-4 pb-4 sm:px-6 lg:px-8 lg:min-h-0">
         <div className="animate-fade-in grid flex-1 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-card border border-line lg:min-h-0 lg:grid-cols-[220px_minmax(0,1fr)_320px]">

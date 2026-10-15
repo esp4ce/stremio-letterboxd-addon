@@ -6,6 +6,7 @@ import TransitionLink from "../components/TransitionLink";
 import Footer from "../components/Footer";
 import SiteHeader from "../components/SiteHeader";
 import { OtpInput } from "./components/OtpInput";
+import { ConfigureSteps } from "./components/ConfigureSteps";
 import ConfigurationModal from "./ConfigurationModal";
 import { Toggle } from "./components/primitives";
 import type { UserPreferences } from "../../types/preferences";
@@ -203,10 +204,19 @@ function parsePublicDraft(raw: string): PublicDraft | null {
 }
 
 /** Page frame for every /configure screen: wordmark, a way back, a centred column, the shared footer. */
-function Frame({ children, width = "max-w-[1600px]" }: { children: ReactNode; width?: string }) {
+function Frame({
+  children,
+  width = "max-w-[1600px]",
+  step,
+}: {
+  children: ReactNode;
+  width?: string;
+  step?: 1 | 2 | 3;
+}) {
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
+      {step && <ConfigureSteps current={step} />}
       <main id="main" className={`mx-auto flex w-full ${width} flex-1 flex-col justify-center px-4 py-6 sm:px-6 lg:px-8`}>{children}</main>
       <Footer absolute={false} />
     </div>
@@ -1370,8 +1380,8 @@ function ConfigureInner() {
   const manifestUrl = result?.manifestUrl || generatedManifestUrl;
   if (manifestUrl && !showConfig && !showPublicConfig && !forceMainForm) {
     return (
-      <Frame>
-        <div className="animate-fade-in grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:gap-14">
+      <Frame step={3}>
+        <div className="animate-fade-in grid items-center gap-8 lg:grid-cols-[minmax(0,520px)_minmax(0,480px)] lg:justify-center lg:gap-16">
           <div>
             <h1 className="text-[28px] font-medium leading-[1.05] tracking-[-0.04em] sm:text-[40px]">
               Your addon is ready.
@@ -1485,7 +1495,7 @@ function ConfigureInner() {
 
   // Main form
   return (
-    <Frame>
+    <Frame step={1}>
       <div className="animate-fade-in grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:gap-16">
         <div>
           <h1 className="text-[28px] font-medium leading-[1.05] tracking-[-0.04em] sm:text-[40px]">
