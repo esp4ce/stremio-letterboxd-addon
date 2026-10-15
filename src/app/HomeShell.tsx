@@ -138,8 +138,8 @@ export default function HomeShell() {
         </section>
 
         {/* Free for good */}
-        <section hidden={pane !== "free"} className="animate-fade-in flex flex-1 flex-col pb-8 pt-4 lg:pb-12 lg:pt-8">
-          <div className="grid gap-8 lg:gap-10">
+        <section hidden={pane !== "free"} className="animate-fade-in flex flex-1 flex-col pb-8 pt-4 lg:pb-10 lg:pt-8">
+          <div className="grid flex-1 gap-8 lg:grid-rows-[auto_minmax(150px,1fr)_minmax(0,2fr)] lg:gap-10">
             <div>
               <h2 className="text-[28px] font-medium leading-[1.08] tracking-[-0.035em] sm:text-[40px]">
                 What is free today stays free.
@@ -149,23 +149,23 @@ export default function HomeShell() {
               </p>
             </div>
 
-            <ul className="grid overflow-hidden rounded-card border border-line sm:grid-cols-3">
+            <ul className="grid overflow-hidden rounded-card border border-line sm:grid-cols-3 lg:h-full">
               {COMMITMENTS.map((item, index) => (
                 <li
                   key={item.title}
-                  className={`p-5 sm:p-6 ${index < COMMITMENTS.length - 1 ? "border-b border-line sm:border-b-0 sm:border-r" : ""}`}
+                  className={`flex flex-col justify-center p-5 sm:p-6 lg:p-8 ${index < COMMITMENTS.length - 1 ? "border-b border-line sm:border-b-0 sm:border-r" : ""}`}
                 >
-                  <h3 className="text-[18px] font-medium tracking-[-0.02em]">{item.title}</h3>
-                  <p className="mt-1.5 text-[14.5px] leading-relaxed text-dim">{item.text}</p>
+                  <h3 className="text-[18px] font-medium tracking-[-0.02em] lg:text-[24px]">{item.title}</h3>
+                  <p className="mt-1.5 text-[14.5px] leading-relaxed text-dim lg:mt-2 lg:text-[16px]">{item.text}</p>
                 </li>
               ))}
             </ul>
 
-            <ul className="grid border-t border-line sm:grid-cols-2 sm:gap-x-12">
+            <ul className="grid border-t border-line sm:grid-cols-2 sm:gap-x-12 lg:h-full lg:grid-rows-4">
               {FREE_ITEMS.map((item) => (
                 <li
                   key={item}
-                  className="flex items-baseline justify-between gap-4 border-b border-line py-4 text-[16px]"
+                  className="flex items-center justify-between gap-4 border-b border-line py-4 text-[16px] lg:text-[18px]"
                 >
                   <span>{item}</span>
                   <span className="font-mono text-[11.5px] text-dim">free</span>
