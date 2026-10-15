@@ -310,6 +310,10 @@ function ConfigureInner() {
 
   const usernameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  // The 2FA step replaces the form, so the typed credentials are kept here for the second request.
+  const credentialsRef = useRef<{ username: string; password: string }>({ username: "", password: "" });
+  // Bumped after a rejected code so the digit fields come back empty and focused.
+  const [otpKey, setOtpKey] = useState(0);
   const toastIdRef = useRef(0);
   const [passwordPreview, setPasswordPreview] = useState("");
   const hasPassword = passwordPreview.trim().length > 0;
@@ -670,6 +674,8 @@ function ConfigureInner() {
       return;
     }
 
+    credentialsRef.current = { username, password: password ?? "" };
+
     if (fullAccess && !password) {
       showErrorToast("Enter your password, or choose Username only");
       return;
@@ -744,8 +750,7 @@ function ConfigureInner() {
   };
 
   const handleSubmit2FA = async (codeOverride?: string) => {
-    const username = usernameRef.current?.value?.trim();
-    const password = passwordRef.current?.value?.trim();
+    const { username, password } = credentialsRef.current;
 
     const code = (codeOverride ?? totpCode).trim();
 
@@ -776,6 +781,8 @@ function ConfigureInner() {
       if (resuming) router.push("/?resume=1#supporter");
     } catch (err) {
       showErrorToast(err instanceof Error ? err.message : "Invalid code");
+      setTotpCode("");
+      setOtpKey((key) => key + 1);
     } finally {
       setIs2FALoading(false);
     }
@@ -1516,6 +1523,7 @@ function ConfigureInner() {
           {show2FA ? (
             <div className="grid gap-6">
               <OtpInput
+                key={otpKey}
                 value={totpCode}
                 onChange={setTotpCode}
                 onComplete={(code) => void handleSubmit2FA(code)}

@@ -47,8 +47,9 @@ export function OtpInput({
           autoFocus={index === 0}
           onChange={(e) => {
             const typed = e.target.value.replace(/\D/g, "").slice(-1);
-            const next = value.slice(0, index) + typed + value.slice(index + 1);
-            commit(next);
+            const next = digits.slice();
+            next[index] = typed;
+            commit(next.join(""));
             if (typed) refs.current[index + 1]?.focus();
           }}
           onKeyDown={(e) => {
