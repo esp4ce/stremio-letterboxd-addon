@@ -1,30 +1,227 @@
 @import "tailwindcss";
 
-/* Theme variables */
-:root {
+/*
+ * Design tokens. Dark is always the default; light only applies when the visitor
+ * picks it with the header toggle (data-theme="light" on <html>).
+ * [data-theme] on any element re-scopes the tokens, so a subtree can force a theme.
+ */
+:root,
+[data-theme="dark"] {
   --background: #0a0a0a;
-  --foreground: #ededed;
+  --foreground: #ececee;
+  --surface: #111113;
+  --raised: #17171a;
+  --line: #242428;
+  --line-strong: #34343a;
+  --control: #6c6c75;
+  --muted: #a2a2ab;
+  --dim: #868690;
+  --field: #101013;
+  --primary: #f2f2f4;
+  --primary-fg: #0a0a0a;
+  --primary-hover: #ffffff;
+  --card-from: #121215;
+  --card-to: #0e0e10;
+  --beam-core: rgba(255, 255, 255, 0.08);
+  --beam-edge: rgba(255, 255, 255, 0.012);
+  --beam-pool: rgba(255, 255, 255, 0.055);
+  --grain-opacity: 0.5;
+  --scroll-thumb: #2a2a30;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"],
+[data-theme="light"] {
+  --background: #f7f7f8;
+  --foreground: #101012;
+  --surface: #ffffff;
+  --raised: #ededf0;
+  --line: #e1e1e6;
+  --line-strong: #cbcbd2;
+  --control: #85858f;
+  --muted: #52525b;
+  --dim: #686872;
+  --field: #ffffff;
+  --primary: #101012;
+  --primary-fg: #f7f7f8;
+  --primary-hover: #000000;
+  --card-from: #ffffff;
+  --card-to: #f2f2f4;
+  --beam-core: rgba(0, 0, 0, 0.055);
+  --beam-edge: rgba(0, 0, 0, 0.008);
+  --beam-pool: rgba(0, 0, 0, 0.04);
+  --grain-opacity: 0.35;
+  --scroll-thumb: #cbcbd2;
+  color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-control: var(--control);
+  --color-muted: var(--muted);
+  --color-dim: var(--dim);
+  --color-field: var(--field);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
   font-weight: 400;
-  cursor: default;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Fade-in animation */
+* {
+  transition-timing-function: var(--ease-out);
+}
+
+/* No single word left alone on the last line (in the base layer so utilities such as whitespace-nowrap still win). */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Fixed, non-interactive grain: one layer for the whole app, never on scrolling containers. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
+}
+
+/* Focus: one visible ring everywhere keyboard users land. */
+:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    border-radius: var(--radius-control);
+    padding: 0.7rem 1.15rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      color 0.2s,
+      transform 0.15s;
+  }
+  .btn:active {
+    transform: translateY(1px) scale(0.99);
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: var(--primary-fg);
+  }
+  .btn-primary:hover {
+    background: var(--primary-hover);
+  }
+  .btn-ghost {
+    border: 1px solid var(--line-strong);
+    color: var(--foreground);
+  }
+  .btn-ghost:hover {
+    background: var(--raised);
+  }
+  .btn[disabled] {
+    background: var(--raised);
+    color: var(--dim);
+    border-color: transparent;
+    cursor: not-allowed;
+  }
+  .btn-sm {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.875rem;
+  }
+  .link-quiet {
+    color: var(--muted);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
+    transition: color 0.2s;
+  }
+  .link-quiet:hover {
+    color: var(--foreground);
+  }
+  .field-input {
+    width: 100%;
+    height: 2.75rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--control);
+    background: var(--field);
+    padding: 0 0.9rem;
+    color: var(--foreground);
+    font-size: 1rem;
+    transition: border-color 0.2s;
+  }
+  .field-input::placeholder {
+    color: var(--dim);
+  }
+  .field-input:focus {
+    outline: none;
+    border-color: var(--foreground);
+  }
+  .surface {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: linear-gradient(180deg, var(--card-from), var(--card-to));
+  }
+}
+
+/* Light beam behind the hero: one cone and one soft pool. */
+.beam {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    conic-gradient(from 198deg at 88% -16%, transparent 0deg, var(--beam-core) 14deg, var(--beam-edge) 30deg, transparent 38deg),
+    radial-gradient(60% 50% at 82% 0%, var(--beam-pool), transparent 70%);
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -33,63 +230,43 @@ body {
 }
 
 .animate-fade-in {
-  animation: fade-in 0.6s ease-out;
+  animation: fade-in 0.35s var(--ease-out);
 }
 
-/* Film grain texture overlay */
-.film-grain::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  opacity: 0.4;
-  mix-blend-mode: overlay;
+/* Page transitions: a quick cross-fade, nothing sliding across the screen. */
+@keyframes vt-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
-/* View Transitions API animations */
-@keyframes slide-up-out {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-100%); }
+@keyframes vt-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-@keyframes slide-up-in {
-  from { opacity: 0; transform: translateY(100%); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slide-down-out {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(100%); }
-}
-
-@keyframes slide-down-in {
-  from { opacity: 0; transform: translateY(-100%); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Default transition: slide up */
 ::view-transition-old(root) {
-  animation: slide-up-out 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: vt-out 0.15s ease-out forwards;
 }
 
 ::view-transition-new(root) {
-  animation: slide-up-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: vt-in 0.2s ease-out forwards;
 }
 
-/* Transition direction: down */
-[data-transition="down"]::view-transition-old(root) {
-  animation: slide-down-out 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+/* Scrollbars for panels that scroll inside a one-screen layout. */
+.panel-scroll {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
 }
 
-[data-transition="down"]::view-transition-new(root) {
-  animation: slide-down-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-/* Custom scrollbar for configuration modal (user lists only) */
 .config-scroll::-webkit-scrollbar {
   width: 6px;
 }
@@ -99,21 +276,69 @@ body {
 }
 
 .config-scroll::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+  background: var(--scroll-thumb);
   border-radius: 3px;
 }
 
-.config-scroll::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
 }
 
-/* Hide scrollbar for modal container (but keep scroll functionality) */
-.modal-scroll {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-.modal-scroll::-webkit-scrollbar {
-  display: none; /* Chrome/Safari/Opera */
+/* Used by the admin dashboard only. */
+.film-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
 }
 
+/* Validation mark: the ring draws, then the check, then the whole mark settles. */
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes settle {
+  0% {
+    transform: scale(0.9);
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.validate-mark {
+  animation: settle 0.7s var(--ease-out) 0.55s both;
+}
+
+.validate-ring {
+  stroke-dasharray: 176;
+  stroke-dashoffset: 176;
+  animation: draw 0.6s var(--ease-out) 0.05s forwards;
+}
+
+.validate-check {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: draw 0.4s var(--ease-out) 0.5s forwards;
+}

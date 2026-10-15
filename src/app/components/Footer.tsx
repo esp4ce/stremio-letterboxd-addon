@@ -1,27 +1,35 @@
+const REPO_URL = "https://github.com/esp4ce/stremio-letterboxd-addon";
+
 const LINKS = [
-  { href: "https://github.com/esp4ce", label: "esp4ce" },
-  { href: "https://www.reddit.com/r/stremboxd/", label: "reddit" },
-  { href: "/pricing", label: "support" },
+  { href: REPO_URL, label: "GitHub" },
+  { href: "https://www.reddit.com/r/stremboxd/", label: "Reddit" },
 ];
 
-export default function Footer({ absolute = true }: { absolute?: boolean }) {
+export default function Footer() {
   return (
-    <footer className={`${absolute ? "absolute bottom-0 left-0 right-0" : ""} py-4`}>
-      <div className="text-center text-xs font-light tracking-wide text-zinc-600">
-        {LINKS.map((link, index) => (
-          <span key={link.href}>
+    <footer className="border-t border-line py-4">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col px-4 sm:px-6 lg:px-8 gap-3 text-[14px] text-dim sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <p>
+            Unofficial. Not affiliated with{" "}
+            <span translate="no">Letterboxd</span>, <span translate="no">Stremio</span> or{" "}
+            <span translate="no">Nuvio</span>.
+          </p>
+        </div>
+        <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2">
+          {LINKS.map((link) => (
             <a
+              key={link.label}
               href={link.href}
-              {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              className="transition-colors hover:text-zinc-400"
+              {...(link.href.startsWith("http")
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
+              className="py-1 transition-colors hover:text-foreground"
             >
               {link.label}
             </a>
-            {index < LINKS.length - 1 && (
-              <span className="mx-3 text-zinc-800">/</span>
-            )}
-          </span>
-        ))}
+          ))}
+        </nav>
       </div>
     </footer>
   );

@@ -69,11 +69,11 @@ export function CatalogsSection({
   onToggleCatalogVariant,
 }: CatalogsSectionProps) {
   return (
-    <div className="mt-7">
+    <div>
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">Catalogs</h3>
+        <h3 className="text-[18px] font-medium text-foreground">Catalogs</h3>
         {sortedActiveItems.length > 1 && (
-          <p className="text-[10px] text-zinc-600">drag to reorder</p>
+          <p className="text-[12px] text-dim">drag to reorder</p>
         )}
       </div>
 
@@ -102,9 +102,9 @@ export function CatalogsSection({
                           onCancel={onCancelEditing}
                         />
                         <div className="flex items-center gap-2">
-                          <p className="text-[11px] text-zinc-500">{getItemSubtext(item)}</p>
+                          <p className="text-[12px] text-dim">{getItemSubtext(item)}</p>
                           {variants.length > 0 && (
-                            <span className="text-[10px] text-zinc-600">
+                            <span className="text-[12px] text-dim">
                               +{variants.length} sort{variants.length > 1 ? "s" : ""}
                             </span>
                           )}
@@ -117,8 +117,10 @@ export function CatalogsSection({
                             e.stopPropagation();
                             onToggleVariantExpand(isExpanded ? null : item.id);
                           }}
-                          className={`flex-shrink-0 rounded p-1 text-zinc-500 transition-colors hover:text-zinc-300 ${isExpanded ? "bg-zinc-700/50 text-zinc-300" : ""}`}
+                          className={`-m-1 flex-shrink-0 rounded-control p-2 text-dim transition-colors hover:text-foreground ${isExpanded ? "bg-line-strong text-foreground" : ""}`}
                           title="Sort variants"
+                          aria-label="Sort variants"
+                          aria-expanded={isExpanded}
                         >
                           <svg className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -128,7 +130,7 @@ export function CatalogsSection({
                       {renderActiveItemAction(item)}
                     </SortableCatalogRow>
                     {isExpanded && hasVariants && (
-                      <div className="ml-6 mt-1 mb-1 flex flex-wrap gap-1.5 rounded-lg bg-zinc-800/20 px-3 py-2" onPointerDown={(e) => e.stopPropagation()}>
+                      <div className="ml-6 mt-1 mb-1 flex flex-wrap gap-1.5 rounded-control bg-raised px-3 py-2" onPointerDown={(e) => e.stopPropagation()}>
                         {availableVariantOptions.map((opt) => {
                           const active = variants.includes(opt.key);
                           return (
@@ -136,14 +138,14 @@ export function CatalogsSection({
                               key={opt.key}
                               type="button"
                               onClick={() => onToggleCatalogVariant(item.id, opt.key)}
-                              className={`rounded-full border px-3 py-1 text-[11px] transition-colors ${active ? "border-white/30 bg-white/10 text-white" : "border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300"}`}
+                              className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${active ? "border-foreground/30 bg-foreground/10 text-foreground" : "border-line-strong text-dim hover:border-control hover:text-foreground"}`}
                               title={opt.description}
                             >
                               {opt.label}
                             </button>
                           );
                         })}
-                        <p className="w-full mt-1 text-[10px] text-zinc-600">Creates a separate catalog for each enabled option</p>
+                        <p className="w-full mt-1 text-[12px] text-dim">Creates a separate catalog for each enabled option</p>
                       </div>
                     )}
                   </div>
@@ -159,14 +161,14 @@ export function CatalogsSection({
           {disabledBaseItems.map((def) => (
             <div
               key={def.key}
-              className="flex items-center gap-2 rounded-lg bg-zinc-800/15 px-3 py-2.5 opacity-50"
+              className="flex items-center gap-2 rounded-control bg-raised px-3 py-2.5 opacity-50"
             >
               <div className="w-4 flex-shrink-0" />
               <div className="min-w-0 flex-1 pr-2">
-                <p className="truncate text-[13px] font-medium text-zinc-400">{def.label}</p>
-                <p className="text-[11px] text-zinc-600">{def.description}</p>
+                <p className="truncate text-[14px] font-medium text-muted">{def.label}</p>
+                <p className="text-[12px] text-dim">{def.description}</p>
               </div>
-              <Toggle enabled={false} onToggle={() => onToggleCatalog(def.key)} />
+              <Toggle enabled={false} onToggle={() => onToggleCatalog(def.key)} label={`Show ${def.label}`} />
             </div>
           ))}
         </div>

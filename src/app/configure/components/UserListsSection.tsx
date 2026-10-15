@@ -3,7 +3,6 @@
 import { EditableName } from "./primitives";
 
 interface UserListsSectionProps {
-  user: { username: string; displayName: string | null };
   lists: Array<{ id: string; name: string; filmCount: number }>;
   selectedListIds: string[];
   editingCatalogId: string | null;
@@ -20,7 +19,6 @@ interface UserListsSectionProps {
 }
 
 export function UserListsSection({
-  user,
   lists,
   selectedListIds,
   editingCatalogId,
@@ -37,9 +35,9 @@ export function UserListsSection({
 }: UserListsSectionProps) {
   if (lists.length === 0) {
     return (
-      <div className="mt-7">
-        <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">Your Lists</h3>
-        <p className="mt-3 text-[13px] text-zinc-500">No lists found on this account</p>
+      <div>
+        <h3 className="text-[18px] font-medium text-foreground">Your Lists</h3>
+        <p className="mt-3 text-[14px] text-dim">No lists found on this account</p>
       </div>
     );
   }
@@ -47,45 +45,42 @@ export function UserListsSection({
   const ownListCount = selectedListIds.length;
 
   return (
-    <div className="mt-7">
+    <div>
       <div className="flex items-center justify-between gap-3">
-        <h3 className="min-w-0 truncate text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">
-          {user.displayName || user.username}&apos;s Lists
-        </h3>
-        <div className="flex flex-shrink-0 items-center gap-2">
-          <span className="text-[11px] text-zinc-500">
-            {ownListCount} / {lists.length}
-          </span>
+        <p className="min-w-0 truncate text-[14px] text-dim">
+          {ownListCount} of {lists.length} selected
+        </p>
+        <div className="flex flex-shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={onSelectAll}
-            className="text-[11px] text-zinc-500 transition-colors hover:text-zinc-200"
+            className="rounded-control px-2 py-1.5 text-[14px] text-muted transition-colors hover:text-foreground"
           >
-            All
+            Select all
           </button>
-          <span className="text-[11px] text-zinc-700">/</span>
           <button
             type="button"
             onClick={onDeselectAll}
-            className="text-[11px] text-zinc-500 transition-colors hover:text-zinc-200"
+            className="rounded-control px-2 py-1.5 text-[14px] text-muted transition-colors hover:text-foreground"
           >
             None
           </button>
         </div>
       </div>
-      <div className="config-scroll mt-3 grid max-h-[32dvh] grid-cols-1 sm:max-h-[20vh] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="config-scroll mt-3 grid max-h-[40dvh] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
         {lists.map((list) => {
           const ownCatId = `letterboxd-list-${list.id}`;
           return (
             <div
               key={list.id}
-              className="flex cursor-pointer items-center gap-3 rounded-lg bg-zinc-800/35 px-3.5 py-2.5 transition-colors hover:bg-zinc-800/55"
+              className="flex cursor-pointer items-center gap-3 rounded-control bg-raised px-3.5 py-2.5 transition-colors hover:bg-raised"
             >
               <input
                 type="checkbox"
                 checked={isOwnListSelected(list.id)}
                 onChange={() => onToggleOwnList(list.id)}
-                className="h-4 w-4 rounded border-zinc-600 bg-zinc-700 text-white accent-white"
+                aria-label={`Include ${list.name}`}
+                className="h-6 w-6 rounded-control border-control bg-line-strong text-foreground accent-white"
               />
               <div className="min-w-0 flex-1">
                 <EditableName
@@ -100,7 +95,7 @@ export function UserListsSection({
                   stopPropagation
                 />
               </div>
-              <span className="flex-shrink-0 text-[11px] text-zinc-500">{list.filmCount}</span>
+              <span className="flex-shrink-0 text-[12px] text-dim">{list.filmCount}</span>
             </div>
           );
         })}

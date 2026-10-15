@@ -24,14 +24,14 @@ export function SortableCatalogRow({ id, children }: { id: string; children: Rea
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-2 rounded-lg px-3 py-2.5 transition-colors ${isDragging ? "opacity-50 bg-zinc-800/60 shadow-lg" : "bg-zinc-800/35 hover:bg-zinc-800/50"}`}
+      className={`flex items-center gap-2 rounded-control px-3 py-2.5 transition-colors ${isDragging ? "opacity-50 bg-raised shadow-lg" : "bg-raised hover:bg-raised"}`}
     >
       <button
         type="button"
         {...listeners}
         {...attributes}
         tabIndex={-1}
-        className="flex-shrink-0 cursor-grab text-zinc-600 hover:text-zinc-400 active:cursor-grabbing touch-none"
+        className="-my-2 -ml-1 flex h-10 w-8 flex-shrink-0 cursor-grab items-center justify-center text-dim hover:text-muted active:cursor-grabbing touch-none"
         aria-label="Drag to reorder"
       >
         <GripIcon />
@@ -74,20 +74,21 @@ export function EditableName({
           if (e.key === "Escape") onCancel();
         }}
         autoFocus
-        className="w-full rounded border border-zinc-600 bg-zinc-800 px-2 py-0.5 text-base text-white focus:border-zinc-400 focus:outline-none sm:text-[13px]"
+        className="w-full rounded-control border border-control bg-raised px-2 py-0.5 text-base text-foreground focus:border-control focus:outline-none sm:text-[14px]"
       />
     );
   }
   return (
     <div className="flex items-center gap-1.5">
-      <p className="min-w-0 break-words text-[13px] font-medium text-white sm:truncate">{displayName}</p>
+      <p className="min-w-0 break-words text-[14px] font-medium text-foreground sm:truncate">{displayName}</p>
       <button
         type="button"
         onClick={(e) => {
           if (stopPropagation) e.stopPropagation();
           onStartEditing();
         }}
-        className="flex-shrink-0 text-zinc-600 transition-colors hover:text-zinc-300"
+        className="-m-2 flex-shrink-0 p-2 text-dim transition-colors hover:text-foreground"
+        aria-label="Rename"
       >
         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={PENCIL_ICON} />
@@ -97,15 +98,20 @@ export function EditableName({
   );
 }
 
-export function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+export function Toggle({ enabled, onToggle, label }: { enabled: boolean; onToggle: () => void; label?: string }) {
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={enabled}
+      aria-label={label}
       onClick={onToggle}
-      className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${enabled ? "bg-white" : "bg-zinc-700"}`}
+      className={`relative h-6 w-11 flex-shrink-0 rounded-full border transition-colors ${
+        enabled ? "border-foreground bg-foreground" : "border-control bg-raised"
+      }`}
     >
       <span
-        className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full transition-transform ${enabled ? "translate-x-5 bg-black" : "translate-x-0 bg-zinc-400"}`}
+        className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full transition-transform ${enabled ? "translate-x-5 bg-background" : "translate-x-0 bg-dim"}`}
       />
     </button>
   );

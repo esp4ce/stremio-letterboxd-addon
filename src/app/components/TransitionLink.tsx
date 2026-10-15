@@ -7,24 +7,24 @@ import { track } from "../../lib/analytics";
 
 interface TransitionLinkProps {
   href: string;
-  direction: "up" | "down";
   className?: string;
   children: ReactNode;
   ariaLabel?: string;
+  ariaCurrent?: "page";
   /** Serializable so server components can set it; emits landing_cta_clicked. */
   trackTarget?: "configure" | "pricing" | "faq";
 }
 
 /**
  * Custom Link component with View Transitions API support.
- * Animates page transitions with slide-up or slide-down effect.
+ * Cross-fades between pages when the browser supports view transitions.
  */
 export default function TransitionLink({
   href,
-  direction,
   className,
   children,
   ariaLabel,
+  ariaCurrent,
   trackTarget,
 }: TransitionLinkProps) {
   const router = useRouter();
@@ -35,8 +35,6 @@ export default function TransitionLink({
 
       if (trackTarget) track("landing_cta_clicked", { target: trackTarget });
 
-      document.documentElement.dataset.transition = direction;
-
       if (document.startViewTransition) {
         document.startViewTransition(() => {
           router.push(href);
@@ -45,7 +43,7 @@ export default function TransitionLink({
         router.push(href);
       }
     },
-    [direction, href, router, trackTarget]
+    [href, router, trackTarget]
   );
 
   return (
@@ -54,6 +52,7 @@ export default function TransitionLink({
       onClick={handleClick}
       className={className}
       aria-label={ariaLabel}
+      aria-current={ariaCurrent}
     >
       {children}
     </Link>
