@@ -1381,55 +1381,25 @@ function ConfigureInner() {
   if (manifestUrl && !showConfig && !showPublicConfig && !forceMainForm) {
     return (
       <Frame step={3}>
-        <div className="animate-fade-in grid items-center gap-8 lg:grid-cols-[minmax(0,520px)_minmax(0,480px)] lg:justify-center lg:gap-16">
-          <div>
-            <h1 className="text-[28px] font-medium leading-[1.05] tracking-[-0.04em] sm:text-[40px]">
-              Your addon is ready.
-            </h1>
-            <p className="mt-3 max-w-[42ch] text-[16px] leading-relaxed text-muted">
-              {result
-                ? `Welcome, ${result.user.displayName || result.user.username}.`
-                : usernameValidated
-                  ? `Configured for ${usernameValidated.displayName}.`
-                  : "Install it once, then pick it up in Stremio."}
-            </p>
-            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-              <button
-                type="button"
-                onClick={() => {
-                  setForceMainForm(false);
-                  if (result) setShowConfig(true);
-                  else setShowPublicConfig(true);
-                }}
-                className="link-quiet py-1"
-              >
-                Reconfigure
-              </button>
-              <button type="button" onClick={result ? handleLogout : handleReset} className="link-quiet py-1">
-                {result ? "Sign out" : "Start over"}
-              </button>
-            </div>
-            <p className="mt-8 max-w-[46ch] text-[14px] leading-relaxed text-dim">
-              Tip: use{" "}
-              <a
-                href="https://stremio-addon-manager.vercel.app/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="link-quiet"
-              >
-                Stremio Addon Manager
-              </a>{" "}
-              to rank Stremboxd first.
-            </p>
-          </div>
+        <div className="animate-fade-in mx-auto w-full max-w-[640px]">
+          <h1 className="text-center text-[28px] font-medium leading-[1.08] tracking-[-0.035em] sm:text-[40px]">
+            Your addon is ready.
+          </h1>
+          <p className="mt-3 text-center text-[16px] text-muted">
+            {result
+              ? `Welcome, ${result.user.displayName || result.user.username}.`
+              : usernameValidated
+                ? `Configured for ${usernameValidated.displayName}.`
+                : "Install it once, then pick it up in Stremio."}
+          </p>
 
-          <div className="surface grid gap-4 p-5 sm:p-6">
+          <div className="surface mt-8 grid gap-6 p-5 sm:p-8">
             {syncOutcome === "synced" ? (
               <div>
-                <p className="rounded-control border border-line px-4 py-3 text-sm text-foreground" role="status">
+                <p className="rounded-control border border-line px-4 py-3 text-center text-[16px]" role="status">
                   Updated in Stremio.
                 </p>
-                <p className="mt-2 text-[14px] text-dim">
+                <p className="mt-3 text-center text-[14px] text-dim">
                   TV and mobile may need a restart.{" "}
                   <button type="button" onClick={handleInstallStremio} className="link-quiet">
                     Reinstall manually
@@ -1437,21 +1407,23 @@ function ConfigureInner() {
                 </p>
               </div>
             ) : (
-              <div>
+              <div className="grid gap-3">
                 <button type="button" onClick={handleInstallStremio} className="btn btn-primary w-full">
                   Install in Stremio
                 </button>
                 {syncOutcome === "not-installed" && (
-                  <p className="mt-3 text-[14px] text-muted">Install it once, then your changes sync automatically.</p>
+                  <p className="text-center text-[14px] text-muted">
+                    Install it once, then your changes sync automatically.
+                  </p>
                 )}
               </div>
             )}
 
-            <div>
-              <label htmlFor="manifest-url" className="block text-[14px] text-muted">
+            <div className="grid gap-2">
+              <label htmlFor="manifest-url" className="text-[14px] text-muted">
                 Manifest URL
               </label>
-              <div className="mt-2 flex gap-2">
+              <div className="flex gap-2">
                 <input
                   id="manifest-url"
                   type="text"
@@ -1467,11 +1439,11 @@ function ConfigureInner() {
             </div>
 
             {resumeLink && (
-              <div>
-                <label htmlFor="resume-link" className="block text-[14px] text-muted">
+              <div className="grid gap-2">
+                <label htmlFor="resume-link" className="text-[14px] text-muted">
                   Edit link, reopens this setup on any device
                 </label>
-                <div className="mt-2 flex gap-2">
+                <div className="flex gap-2">
                   <input
                     id="resume-link"
                     type="text"
@@ -1487,6 +1459,36 @@ function ConfigureInner() {
               </div>
             )}
           </div>
+
+          <div className="mt-5 flex items-center justify-center gap-6 text-[14px]">
+            <button
+              type="button"
+              onClick={() => {
+                setForceMainForm(false);
+                if (result) setShowConfig(true);
+                else setShowPublicConfig(true);
+              }}
+              className="link-quiet py-1"
+            >
+              Reconfigure
+            </button>
+            <button type="button" onClick={result ? handleLogout : handleReset} className="link-quiet py-1">
+              {result ? "Sign out" : "Start over"}
+            </button>
+          </div>
+
+          <p className="mt-8 text-center text-[14px] text-dim">
+            Tip: use{" "}
+            <a
+              href="https://stremio-addon-manager.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-quiet"
+            >
+              Stremio Addon Manager
+            </a>{" "}
+            to rank Stremboxd first.
+          </p>
         </div>
         {renderErrorToastStack()}
       </Frame>
@@ -1496,49 +1498,17 @@ function ConfigureInner() {
   // Main form
   return (
     <Frame step={1}>
-      <div className="animate-fade-in grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:gap-16">
-        <div>
-          <h1 className="text-[28px] font-medium leading-[1.05] tracking-[-0.04em] sm:text-[40px]">
-            {show2FA ? "One more step." : "Connect your Letterboxd."}
-          </h1>
-          {show2FA ? (
-            <p className="mt-3 max-w-[40ch] text-[16px] text-muted">Enter the code from your authenticator app.</p>
-          ) : (
-            <div className="mt-6 grid max-w-md gap-2.5" role="group" aria-label="Access mode">
-              <button
-                type="button"
-                aria-pressed={!fullAccess}
-                onClick={() => {
-                  setFullAccess(false);
-                  setPasswordPreview("");
-                }}
-                className={`grid gap-1 rounded-card border px-4 py-3.5 text-left transition-colors ${
-                  !fullAccess ? "border-foreground bg-surface" : "border-line hover:border-line-strong"
-                }`}
-              >
-                <span className="text-[16px] font-medium">Username only</span>
-                <span className="text-[14px] text-dim">Watchlist, lists, Popular. No password.</span>
-              </button>
-              <button
-                type="button"
-                aria-pressed={fullAccess}
-                onClick={() => setFullAccess(true)}
-                className={`grid gap-1 rounded-card border px-4 py-3.5 text-left transition-colors ${
-                  fullAccess ? "border-foreground bg-surface" : "border-line hover:border-line-strong"
-                }`}
-              >
-                <span className="text-[16px] font-medium">Full access</span>
-                <span className="text-[14px] text-dim">
-                  Adds diary, friends activity and actions from Stremio. Needs your password.
-                </span>
-              </button>
-            </div>
-          )}
-        </div>
+      <div className="animate-fade-in mx-auto w-full max-w-[640px]">
+        <h1 className="text-center text-[28px] font-medium leading-[1.08] tracking-[-0.035em] sm:text-[40px]">
+          {show2FA ? "One more step." : "Connect your Letterboxd."}
+        </h1>
+        {show2FA && (
+          <p className="mt-3 text-center text-[16px] text-muted">Enter the code from your authenticator app.</p>
+        )}
 
-        <div className="surface p-5 sm:p-6">
+        <div className="surface mt-8 p-5 sm:p-8">
           {show2FA ? (
-            <div className="grid gap-5">
+            <div className="grid gap-6">
               <OtpInput
                 value={totpCode}
                 onChange={setTotpCode}
@@ -1551,19 +1521,47 @@ function ConfigureInner() {
                   setShow2FA(false);
                   setTotpCode("");
                 }}
-                className="link-quiet justify-self-start py-1 text-sm"
+                className="link-quiet justify-self-center py-1 text-[14px]"
               >
                 Back
               </button>
             </div>
           ) : (
             <form
-              className="grid gap-5"
+              className="grid gap-6"
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSubmit();
               }}
             >
+              <div role="group" aria-label="Access mode" className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  aria-pressed={!fullAccess}
+                  onClick={() => {
+                    setFullAccess(false);
+                    setPasswordPreview("");
+                  }}
+                  className={`grid content-start gap-1 rounded-card border p-4 text-left transition-colors ${
+                    !fullAccess ? "border-foreground bg-raised" : "border-line hover:border-line-strong"
+                  }`}
+                >
+                  <span className="text-[16px] font-medium">Username only</span>
+                  <span className="text-[14px] text-dim">Watchlist, lists, Popular. No password.</span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={fullAccess}
+                  onClick={() => setFullAccess(true)}
+                  className={`grid content-start gap-1 rounded-card border p-4 text-left transition-colors ${
+                    fullAccess ? "border-foreground bg-raised" : "border-line hover:border-line-strong"
+                  }`}
+                >
+                  <span className="text-[16px] font-medium">Full access</span>
+                  <span className="text-[14px] text-dim">Adds diary, friends activity and actions.</span>
+                </button>
+              </div>
+
               <div className="grid gap-2">
                 <label htmlFor="username" className="text-[14px] text-muted">
                   Letterboxd username
@@ -1596,7 +1594,7 @@ function ConfigureInner() {
                     onChange={(e) => setPasswordPreview(e.target.value)}
                     disabled={isLoading}
                     placeholder={wide ? PASSWORD_NOTE : PASSWORD_NOTE_SHORT}
-                    className="field-input truncate placeholder:text-[14px] sm:placeholder:text-sm"
+                    className="field-input truncate"
                   />
                 </div>
               )}
@@ -1604,7 +1602,7 @@ function ConfigureInner() {
               {fullAccess && hasPassword && (
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium">Stay signed in</p>
+                    <p className="text-[16px] font-medium">Stay signed in</p>
                     <p className="text-[14px] text-dim">Supporters only</p>
                   </div>
                   <Toggle enabled={rememberMe} onToggle={() => setRememberMe(!rememberMe)} label="Stay signed in" />

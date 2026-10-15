@@ -12,10 +12,10 @@ export function ConfigureSteps({ current }: { current: 1 | 2 | 3 }) {
           return (
             <li key={label} aria-current={active ? "step" : undefined} className="min-w-0">
               <div className={`h-1 rounded-full transition-colors ${done || active ? "bg-foreground" : "bg-line-strong"}`} />
-              <p className={`mt-2 truncate text-[12px] ${active ? "text-foreground" : "text-dim"}`}>
+              <span className="sr-only">
                 {label}
-                {done && <span className="sr-only"> (done)</span>}
-              </p>
+                {done ? " (done)" : ""}
+              </span>
             </li>
           );
         })}
