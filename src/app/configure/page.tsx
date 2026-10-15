@@ -318,6 +318,7 @@ function ConfigureInner() {
   const [rememberMe, setRememberMe] = useState(true);
   // Explicit choice between the two ways to use the addon; the password field only exists in full access.
   const [fullAccess, setFullAccess] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
 
   const dismissToast = (id: number) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
@@ -1590,17 +1591,46 @@ function ConfigureInner() {
                   <label htmlFor="password" className="text-[14px] text-muted">
                     Password
                   </label>
-                  <input
-                    ref={passwordRef}
-                    type="password"
-                    id="password"
-                    name="password"
-                    autoComplete="current-password"
-                    onChange={(e) => setPasswordPreview(e.target.value)}
-                    disabled={isLoading}
-                    placeholder="Password"
-                    className="field-input"
-                  />
+                  <div className="relative">
+                    <input
+                      ref={passwordRef}
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      autoComplete="current-password"
+                      onChange={(e) => setPasswordPreview(e.target.value)}
+                      disabled={isLoading}
+                      placeholder="Password"
+                      className="field-input pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((value) => !value)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-pressed={showPassword}
+                      className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-control text-dim transition-colors hover:text-foreground"
+                    >
+                      {showPassword ? (
+                        <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.1A9.7 9.7 0 0112 5c5 0 8.5 4.2 9.5 7a10.8 10.8 0 01-2.6 3.9M6.1 6.1A10.9 10.9 0 002.5 12c1 2.8 4.5 7 9.5 7 1.5 0 2.9-.4 4.1-1"
+                            strokeWidth={1.75}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : (
+                        <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M2.5 12C3.5 9.2 7 5 12 5s8.5 4.2 9.5 7c-1 2.8-4.5 7-9.5 7s-8.5-4.2-9.5-7z"
+                            strokeWidth={1.75}
+                            strokeLinejoin="round"
+                          />
+                          <circle cx="12" cy="12" r="3" strokeWidth={1.75} />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                   <p className="text-[14px] text-dim">{wide ? PASSWORD_NOTE : PASSWORD_NOTE_SHORT}</p>
                 </div>
               )}
