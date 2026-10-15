@@ -3,7 +3,6 @@
 import { EditableName } from "./primitives";
 
 interface UserListsSectionProps {
-  user: { username: string; displayName: string | null };
   lists: Array<{ id: string; name: string; filmCount: number }>;
   selectedListIds: string[];
   editingCatalogId: string | null;
@@ -20,7 +19,6 @@ interface UserListsSectionProps {
 }
 
 export function UserListsSection({
-  user,
   lists,
   selectedListIds,
   editingCatalogId,

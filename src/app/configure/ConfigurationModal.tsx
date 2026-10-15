@@ -782,7 +782,6 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                     </summary>
                     <div className="border-t border-line p-4">
                       <UserListsSection
-                        user={user}
                         lists={lists}
                         selectedListIds={selectedOwnListIds}
                         editingCatalogId={editingCatalogId}
