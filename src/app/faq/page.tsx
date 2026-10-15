@@ -1,180 +1,176 @@
 "use client";
 
-import { useState, useId, type MouseEvent } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useId, useMemo, useState, useSyncExternalStore } from "react";
+import SiteHeader from "../components/SiteHeader";
+import TransitionLink from "../components/TransitionLink";
 import Footer from "../components/Footer";
 import { SECTIONS } from "./data";
 import type { FAQItem } from "./data";
 
-function FAQCard({
-  item,
-  index,
-  open,
-  onToggle,
-}: {
-  item: FAQItem;
-  index: number;
-  open: boolean;
-  onToggle: () => void;
-}) {
-  const baseId = useId();
-  const headingId = `${baseId}-q-${index}`;
-  const panelId = `${baseId}-a-${index}`;
+const slug = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
-  return (
-    <div className="film-grain rounded-xl bg-zinc-900/50 transition-colors hover:bg-zinc-900">
-      <button
-        onClick={onToggle}
-        aria-expanded={open}
-        aria-controls={panelId}
-        id={headingId}
-        className="w-full p-5 text-left"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <span className="text-base font-medium text-zinc-200">{item.q}</span>
-          <svg
-            className={`mt-0.5 h-4 w-4 shrink-0 text-zinc-600 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </button>
-      <div
-        id={panelId}
-        role="region"
-        aria-labelledby={headingId}
-        className={`grid transition-[grid-template-rows] duration-200 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
-      >
-        <div className="overflow-hidden">
-          <p className="px-5 pb-5 text-sm font-light leading-relaxed text-zinc-400">{item.a}</p>
-        </div>
-      </div>
-    </div>
-  );
+function subscribeToHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
 }
 
+interface Entry {
+  item: FAQItem;
+  category: string;
+}
+
+/**
+ * Categories on the left, questions in the middle, the answer on the right.
+ * On small screens the same list reads as an accordion with the answer inline.
+ * The category lives in the URL hash so a section can be linked directly.
+ */
 export default function FAQ() {
-  const router = useRouter();
-  const tabsId = useId();
-  const [active, setActive] = useState(0);
-  const [openItems, setOpenItems] = useState<Set<number>>(new Set());
+  const baseId = useId();
+  const hash = useSyncExternalStore(
+    subscribeToHash,
+    () => window.location.hash.slice(1),
+    () => ""
+  );
+  const categoryIndex = Math.max(
+    0,
+    SECTIONS.findIndex((section) => slug(section.title) === hash)
+  );
 
-  // Send Back to wherever the user came from, not a hardcoded page.
-  // document.referrer doesn't work here since TransitionLink navigates via
-  // router.push — history length is the only reliable signal we have.
-  const goBack = (e: MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    document.documentElement.dataset.transition = "down";
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState<number | null>(null);
 
-    const navigate = () => {
-      if (window.history.length > 1) {
-        router.back();
-      } else {
-        router.push("/");
-      }
-    };
-
-    if (document.startViewTransition) {
-      document.startViewTransition(navigate);
-    } else {
-      navigate();
+  const entries: Entry[] = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return SECTIONS[categoryIndex].items.map((item) => ({ item, category: SECTIONS[categoryIndex].title }));
     }
-  };
+    return SECTIONS.flatMap((section) =>
+      section.items
+        .filter((item) => `${item.q} ${item.aText ?? (typeof item.a === "string" ? item.a : "")}`.toLowerCase().includes(q))
+        .map((item) => ({ item, category: section.title }))
+    );
+  }, [categoryIndex, query]);
 
-  function handleTabChange(i: number) {
-    setActive(i);
-    setOpenItems(new Set());
-  }
-
-  function toggleItem(i: number) {
-    setOpenItems((prev) => {
-      const next = new Set(prev);
-      next.has(i) ? next.delete(i) : next.add(i);
-      return next;
-    });
-  }
+  const searching = query.trim().length > 0;
+  const selected = open !== null && open < entries.length ? open : null;
+  // Desktop always shows an answer; mobile only shows what was opened.
+  const desktopEntry = entries[selected ?? 0];
 
   return (
-    <div className="fixed inset-0 overflow-y-auto bg-[#0a0a0a] text-white">
-      <div className="relative flex min-h-full flex-col">
-      <Link
-        href="/"
-        onClick={goBack}
-        className="absolute left-4 top-4 z-10 text-sm font-light text-zinc-500 transition-colors hover:text-zinc-200 sm:left-6 sm:top-6"
-      >
-        <svg
-          className="inline-block h-4 w-4 mr-1 -mt-0.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Back
-      </Link>
+    <div className="flex min-h-dvh flex-col lg:h-dvh">
+      <SiteHeader>
+        <TransitionLink href="/configure" direction="up" trackTarget="configure" className="btn btn-primary btn-sm">
+          <span className="sm:hidden">Install</span>
+          <span className="hidden sm:inline">Install the addon</span>
+        </TransitionLink>
+      </SiteHeader>
 
-      <div className="mx-auto w-full max-w-4xl flex-1 px-4 pt-16 pb-12 sm:pt-24 sm:pb-20">
-        <h1 className="mb-10 text-3xl font-semibold tracking-tight sm:text-4xl">FAQ</h1>
-
-        {/* Tabs */}
-        <div role="tablist" aria-label="FAQ sections" className="mb-8 flex flex-wrap gap-2">
-          {SECTIONS.map((section, i) => (
-            <button
-              key={section.title}
-              role="tab"
-              id={`${tabsId}-tab-${i}`}
-              aria-selected={active === i}
-              aria-controls={`${tabsId}-panel-${i}`}
-              onClick={() => handleTabChange(i)}
-              className={`rounded-full px-4 py-1.5 text-sm font-light transition-colors ${
-                active === i
-                  ? "bg-white text-black"
-                  : "bg-zinc-900 text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              {section.title}
-            </button>
-          ))}
-        </div>
-
-        {/* Panel with fade transition */}
-        <div
-          key={active}
-          role="tabpanel"
-          id={`${tabsId}-panel-${active}`}
-          aria-labelledby={`${tabsId}-tab-${active}`}
-          className="flex flex-col gap-3 animate-fade-in"
-        >
-          {SECTIONS[active].items.map((item, i) => (
-            <FAQCard
-              key={item.q}
-              item={item}
-              index={i}
-              open={openItems.has(i)}
-              onToggle={() => toggleItem(i)}
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-6 sm:px-6 lg:min-h-0">
+        <div className="flex flex-col gap-4 pb-5 pt-4 sm:flex-row sm:items-end sm:justify-between">
+          <h1 className="text-[30px] font-medium leading-none tracking-[-0.035em] sm:text-[40px]">FAQ</h1>
+          <div className="w-full sm:max-w-xs">
+            <label htmlFor={`${baseId}-search`} className="sr-only">
+              Search the FAQ
+            </label>
+            <input
+              id={`${baseId}-search`}
+              type="search"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setOpen(null);
+              }}
+              placeholder="Search the FAQ…"
+              autoComplete="off"
+              spellCheck={false}
+              className="field-input"
             />
-          ))}
+          </div>
         </div>
-      </div>
 
-      <div className="px-4 text-center text-sm font-light text-zinc-600">
-        Still have questions?{" "}
-        <a
-          href="https://github.com/esp4ce/stremio-letterboxd-addons/issues"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition-colors hover:text-zinc-200"
-        >
-          Open an issue on GitHub
-        </a>
-      </div>
+        <div className="grid flex-1 grid-cols-1 overflow-hidden rounded-card border border-line lg:min-h-0 lg:grid-cols-[200px_minmax(0,340px)_minmax(0,1fr)]">
+          <nav
+            aria-label="FAQ categories"
+            className="flex gap-1 overflow-x-auto border-b border-line p-2 lg:flex-col lg:overflow-visible lg:border-b-0 lg:border-r lg:p-3"
+          >
+            {SECTIONS.map((section, index) => {
+              const active = !searching && index === categoryIndex;
+              return (
+                <a
+                  key={section.title}
+                  href={`#${slug(section.title)}`}
+                  aria-current={active ? "true" : undefined}
+                  onClick={() => {
+                    setQuery("");
+                    setOpen(null);
+                  }}
+                  className={`flex shrink-0 items-center justify-between gap-3 rounded-control px-3 py-2.5 text-[14px] transition-colors ${
+                    active ? "bg-raised text-foreground" : "text-muted hover:text-foreground"
+                  }`}
+                >
+                  <span>{section.title}</span>
+                  <span className="font-mono text-[11.5px] text-dim">{section.items.length}</span>
+                </a>
+              );
+            })}
+          </nav>
+
+          <ul
+            className="panel-scroll max-h-[70dvh] overflow-y-auto p-2 lg:max-h-none lg:border-r lg:border-line"
+            aria-label={searching ? "Search results" : SECTIONS[categoryIndex].title}
+          >
+            {entries.length === 0 && (
+              <li className="px-3 py-4 text-sm text-dim">
+                No question matches. Try another word, or open an issue on GitHub.
+              </li>
+            )}
+            {entries.map((entry, index) => {
+              const isOpen = selected === index;
+              const isCurrent = (selected ?? 0) === index;
+              const panelId = `${baseId}-a-${index}`;
+              return (
+                <li key={`${entry.category}-${entry.item.q}`}>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(isOpen && window.matchMedia("(max-width: 1023px)").matches ? null : index)}
+                    aria-expanded={isOpen}
+                    aria-controls={panelId}
+                    className={`block w-full rounded-control px-3 py-3 text-left text-[14.5px] leading-snug transition-colors ${
+                      isCurrent ? "lg:bg-raised lg:text-foreground" : ""
+                    } ${isOpen ? "text-foreground" : "text-muted hover:text-foreground"}`}
+                  >
+                    {searching && <span className="mb-0.5 block font-mono text-[11px] text-dim">{entry.category}</span>}
+                    {entry.item.q}
+                  </button>
+                  {/* Inline answer for small screens; desktop reads it in the right-hand pane. */}
+                  <div id={panelId} hidden={!isOpen} className="px-3 pb-4 text-[14.5px] leading-relaxed text-muted lg:hidden">
+                    {entry.item.a}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          <section
+            aria-live="polite"
+            className="panel-scroll hidden overflow-y-auto p-8 lg:block"
+          >
+            {desktopEntry && (
+              <article key={desktopEntry.item.q} className="animate-fade-in">
+                <p className="font-mono text-xs text-dim">{desktopEntry.category}</p>
+                <h2 className="mt-2 max-w-[24ch] text-[28px] font-medium leading-[1.15] tracking-[-0.03em]">
+                  {desktopEntry.item.q}
+                </h2>
+                <div className="mt-4 max-w-[56ch] text-[15.5px] leading-relaxed text-muted [&_a]:text-foreground">
+                  {desktopEntry.item.a}
+                </div>
+              </article>
+            )}
+          </section>
+        </div>
+      </main>
 
       <Footer absolute={false} />
-      </div>
     </div>
   );
 }

@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
  */
 export default function SiteHeader({ children }: { children?: ReactNode }) {
   return (
-    <header className="relative z-10 flex items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
+    <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
       <Link
         href="/"
         translate="no"
