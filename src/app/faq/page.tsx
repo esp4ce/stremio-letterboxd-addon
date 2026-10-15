@@ -2,7 +2,6 @@
 
 import { useId, useMemo, useState, useSyncExternalStore } from "react";
 import SiteHeader from "../components/SiteHeader";
-import TransitionLink from "../components/TransitionLink";
 import Footer from "../components/Footer";
 import { SECTIONS } from "./data";
 import type { FAQItem } from "./data";
@@ -58,12 +57,7 @@ export default function FAQ() {
 
   return (
     <div className="flex min-h-dvh flex-col lg:h-dvh">
-      <SiteHeader>
-        <TransitionLink href="/configure" direction="up" trackTarget="configure" className="btn btn-primary btn-sm">
-          <span className="sm:hidden">Install</span>
-          <span className="hidden sm:inline">Install the addon</span>
-        </TransitionLink>
-      </SiteHeader>
+      <SiteHeader />
 
       <main id="main" className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-6 sm:px-6 lg:min-h-0">
         <div className="flex flex-col gap-4 pb-5 pt-4 sm:flex-row sm:items-end sm:justify-between">
@@ -170,7 +164,7 @@ export default function FAQ() {
         </div>
       </main>
 
-      <Footer absolute={false} />
+      <Footer absolute={false} help />
     </div>
   );
 }

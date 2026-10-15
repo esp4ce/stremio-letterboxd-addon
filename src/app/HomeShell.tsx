@@ -1,21 +1,15 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- in-page hash links stay native anchors so the browser fires hashchange */
 "use client";
 
-import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import TransitionLink from "./components/TransitionLink";
 import SupporterOffer from "./components/SupporterOffer";
 import Footer from "./components/Footer";
+import SiteHeader from "./components/SiteHeader";
 import { OFFERS } from "../lib/offers";
 import { track } from "../lib/analytics";
 
 type Pane = "overview" | "free" | "supporter";
-
-const TABS: { pane: Pane; label: string; href: string }[] = [
-  { pane: "overview", label: "Overview", href: "/" },
-  { pane: "free", label: "Free for good", href: "/#free" },
-  { pane: "supporter", label: "Supporter", href: "/#supporter" },
-];
 
 const FREE_ITEMS = [
   "Watchlist, liked films and diary",
@@ -61,55 +55,7 @@ export default function HomeShell() {
     <div className="relative flex min-h-dvh flex-col overflow-x-clip">
       <div className="beam" aria-hidden="true" />
 
-      <header className="relative z-10 mx-auto w-full max-w-6xl px-4 pt-3.5 sm:px-6">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-          <Link
-            href="/"
-            translate="no"
-            className="order-1 rounded-control text-[16px] font-semibold tracking-tight sm:flex-1"
-          >
-            Stremboxd
-          </Link>
-
-          <nav aria-label="Sections" className="order-3 w-full sm:order-2 sm:w-auto">
-            <ul className="flex gap-0.5 rounded-card border border-line p-1">
-              {TABS.map((tab) => (
-                <li key={tab.pane} className="flex-1 sm:flex-none">
-                  <a
-                    href={tab.href}
-                    aria-current={pane === tab.pane ? "page" : undefined}
-                    className={`block rounded-control px-3 py-2 text-center text-[13.5px] transition-colors sm:py-1.5 ${
-                      pane === tab.pane ? "bg-raised text-foreground" : "text-muted hover:text-foreground"
-                    }`}
-                  >
-                    {tab.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          <div className="order-2 ml-auto flex items-center gap-4 sm:order-3 sm:ml-0 sm:flex-1 sm:justify-end">
-            <TransitionLink
-              href="/faq"
-              direction="up"
-              trackTarget="faq"
-              className="py-2 text-[13.5px] text-muted transition-colors hover:text-foreground"
-            >
-              FAQ
-            </TransitionLink>
-            <TransitionLink
-              href="/configure"
-              direction="up"
-              trackTarget="configure"
-              className="btn btn-primary btn-sm"
-            >
-              <span className="sm:hidden">Install</span>
-              <span className="hidden sm:inline">Install the addon</span>
-            </TransitionLink>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main id="main" className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 sm:px-6">
         {/* Overview */}
@@ -186,8 +132,8 @@ export default function HomeShell() {
         </section>
 
         {/* Free for good */}
-        <section hidden={pane !== "free"} className="animate-fade-in flex flex-1 flex-col justify-center py-10 lg:py-8">
-          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14">
+        <section hidden={pane !== "free"} className="animate-fade-in flex flex-1 flex-col py-8 lg:py-12">
+          <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14">
             <div>
               <h2 className="text-[28px] font-medium leading-[1.08] tracking-[-0.035em] sm:text-[40px]">
                 What is free today stays free.
@@ -217,7 +163,7 @@ export default function HomeShell() {
         </section>
 
         {/* Supporter */}
-        <section hidden={pane !== "supporter"} className="animate-fade-in flex flex-1 flex-col justify-center py-10 lg:py-8">
+        <section hidden={pane !== "supporter"} className="animate-fade-in flex flex-1 flex-col py-8 lg:py-12">
           <SupporterOffer />
         </section>
       </main>

@@ -11,6 +11,7 @@ interface TransitionLinkProps {
   className?: string;
   children: ReactNode;
   ariaLabel?: string;
+  ariaCurrent?: "page";
   /** Serializable so server components can set it; emits landing_cta_clicked. */
   trackTarget?: "configure" | "pricing" | "faq";
 }
@@ -25,6 +26,7 @@ export default function TransitionLink({
   className,
   children,
   ariaLabel,
+  ariaCurrent,
   trackTarget,
 }: TransitionLinkProps) {
   const router = useRouter();
@@ -54,6 +56,7 @@ export default function TransitionLink({
       onClick={handleClick}
       className={className}
       aria-label={ariaLabel}
+      aria-current={ariaCurrent}
     >
       {children}
     </Link>

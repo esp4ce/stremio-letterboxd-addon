@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import TransitionLink from "../components/TransitionLink";
 import Footer from "../components/Footer";
@@ -206,15 +206,7 @@ function parsePublicDraft(raw: string): PublicDraft | null {
 function Frame({ children, width = "max-w-5xl" }: { children: ReactNode; width?: string }) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <SiteHeader>
-        <TransitionLink
-          href="/"
-          direction="down"
-          className="py-2 text-[13.5px] text-muted transition-colors hover:text-foreground"
-        >
-          Back to home
-        </TransitionLink>
-      </SiteHeader>
+      <SiteHeader />
       <main id="main" className={`mx-auto flex w-full ${width} flex-1 flex-col justify-center px-4 py-6 sm:px-6`}>{children}</main>
       <Footer absolute={false} />
     </div>
@@ -231,7 +223,22 @@ export default function Configure() {
 
 // useSearchParams() requires a Suspense boundary above it for the static
 // shell — the actual read never suspends at runtime, this is build-time only.
+const PASSWORD_NOTE = "Used once to sign in. We keep an encrypted token, never your password.";
+const PASSWORD_NOTE_SHORT = "Used once to sign in, never stored.";
+
+function subscribeToWidth(onChange: () => void) {
+  const query = window.matchMedia("(min-width: 640px)");
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
 function ConfigureInner() {
+  // The full sentence needs about 440px; below that, a shorter wording keeps the placeholder on one line.
+  const wide = useSyncExternalStore(
+    subscribeToWidth,
+    () => window.matchMedia("(min-width: 640px)").matches,
+    () => true
+  );
   const searchParams = useSearchParams();
   const router = useRouter();
   const [confirmingCheckout, setConfirmingCheckout] = useState(searchParams.get("checkout") === "success");
@@ -1578,11 +1585,9 @@ function ConfigureInner() {
                     autoComplete="current-password"
                     onChange={(e) => setPasswordPreview(e.target.value)}
                     disabled={isLoading}
-                    className="field-input"
+                    placeholder={wide ? PASSWORD_NOTE : PASSWORD_NOTE_SHORT}
+                    className="field-input truncate placeholder:text-[13px] sm:placeholder:text-sm"
                   />
-                  <p className="text-[13px] leading-relaxed text-dim">
-                    Used once to sign in. We keep an encrypted token, never your password.
-                  </p>
                 </div>
               )}
 

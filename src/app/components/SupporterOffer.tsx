@@ -126,7 +126,7 @@ export default function SupporterOffer() {
   const founderGone = offer?.founderAvailable === false;
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-14">
+    <div className="grid gap-8 lg:gap-10">
       <div>
         <h2 className="text-[28px] font-medium leading-[1.08] tracking-[-0.035em] text-foreground sm:text-[40px]">
           Support <span translate="no">Stremboxd</span>.
@@ -134,60 +134,61 @@ export default function SupporterOffer() {
         <p className="mt-3 max-w-[46ch] text-[15.5px] leading-relaxed text-muted">
           Supporting pays the hosting and adds features that run without you.
         </p>
-
-        <div className="mt-7">
-          <div
-            className="hidden grid-cols-[176px_minmax(0,1fr)_minmax(0,1fr)] gap-x-6 border-b border-line pb-3 font-mono text-xs text-dim sm:grid"
-            aria-hidden="true"
-          >
-            <span>Feature</span>
-            <span>Free</span>
-            <span className="text-foreground">Supporter</span>
-          </div>
-          <ul>
-            {COMPARISON.map((row) => (
-              <li
-                key={row.feature}
-                className="grid grid-cols-1 gap-2 border-b border-line py-4 sm:grid-cols-[176px_minmax(0,1fr)_minmax(0,1fr)] sm:items-center sm:gap-x-6"
-              >
-                <InfoBubble info={row.info}>
-                  <h3 className="text-[15px] font-medium text-foreground">{row.feature}</h3>
-                </InfoBubble>
-                <p className="flex gap-3 text-sm text-dim sm:block">
-                  <span className="w-[72px] shrink-0 font-mono text-[11px] sm:hidden">Free</span>
-                  <span>{row.free}</span>
-                </p>
-                <p className="flex gap-3 text-sm text-foreground sm:block">
-                  <span className="w-[72px] shrink-0 font-mono text-[11px] text-dim sm:hidden">Supporter</span>
-                  <span>{row.supporter}</span>
-                </p>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-sm text-dim">
-            More supporter features are on the way, included at no extra cost.
-          </p>
-        </div>
       </div>
 
-      <div aria-live="polite" className="grid content-start gap-3 sm:grid-cols-2 lg:grid-cols-1">
+      <div aria-live="polite" className="grid gap-4 sm:grid-cols-2">
         <PlanCard
+          name="Supporter"
           price={OFFERS.supporter.price}
           period={OFFERS.supporter.period}
           detail={OFFERS.supporter.detail}
-          cta={opening ? "Opening checkout…" : "Become a Supporter"}
+          cta={opening ? "Opening checkout\u2026" : "Become a Supporter"}
           disabled={opening}
           onClick={() => subscribe("supporter")}
         />
         <PlanCard
+          name="Founder"
           price={OFFERS.founder.price}
           period={OFFERS.founder.period}
           detail={OFFERS.founder.detail}
           info="Founder access lasts as long as Stremboxd runs, which depends on Letterboxd and Stremio."
-          cta={founderGone ? "No longer available" : opening ? "Opening checkout…" : "Become a Founder"}
+          cta={founderGone ? "No longer available" : opening ? "Opening checkout\u2026" : "Become a Founder"}
           disabled={opening || founderGone}
           onClick={() => subscribe("founder")}
         />
+      </div>
+
+      <div>
+        <h3 className="sr-only">Free compared to Supporter</h3>
+        <div
+          className="hidden grid-cols-3 gap-x-6 border-b border-line pb-3 font-mono text-xs text-dim sm:grid"
+          aria-hidden="true"
+        >
+          <span>Feature</span>
+          <span>Free</span>
+          <span className="text-foreground">Supporter</span>
+        </div>
+        <ul>
+          {COMPARISON.map((row) => (
+            <li
+              key={row.feature}
+              className="grid grid-cols-1 gap-2 border-b border-line py-4 sm:grid-cols-3 sm:items-center sm:gap-x-6"
+            >
+              <InfoBubble info={row.info}>
+                <h4 className="text-[15px] font-medium text-foreground">{row.feature}</h4>
+              </InfoBubble>
+              <p className="flex gap-3 text-sm text-dim sm:block">
+                <span className="w-[72px] shrink-0 font-mono text-[11px] sm:hidden">Free</span>
+                <span>{row.free}</span>
+              </p>
+              <p className="flex gap-3 text-sm text-foreground sm:block">
+                <span className="w-[72px] shrink-0 font-mono text-[11px] text-dim sm:hidden">Supporter</span>
+                <span>{row.supporter}</span>
+              </p>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-sm text-dim">More supporter features are on the way, included at no extra cost.</p>
       </div>
 
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
@@ -196,6 +197,7 @@ export default function SupporterOffer() {
 }
 
 function PlanCard({
+  name,
   price,
   period,
   detail,
@@ -204,6 +206,7 @@ function PlanCard({
   disabled,
   onClick,
 }: {
+  name: string;
   price: string;
   period: string;
   detail: string;
@@ -213,8 +216,9 @@ function PlanCard({
   onClick: () => void;
 }) {
   return (
-    <div className="surface flex min-w-0 flex-col gap-5 p-5 sm:p-6">
-      <div className="flex min-w-0 flex-col gap-1.5">
+    <div className="surface flex min-w-0 flex-col gap-6 p-5 sm:p-7">
+      <div className="flex min-w-0 flex-col gap-2">
+        <p className="font-mono text-xs text-dim">{name}</p>
         <p className="flex flex-wrap items-baseline gap-x-2">
           <span className="text-[32px] font-medium leading-none tracking-[-0.04em] tabular-nums">{price}</span>
           <span className="text-sm text-dim">{period}</span>

@@ -831,8 +831,8 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
             )}
           </div>
 
-          <aside className="sticky bottom-0 flex flex-col gap-4 border-t border-line bg-background p-4 lg:static lg:border-l lg:border-t-0 lg:bg-transparent lg:p-5">
-            <div className="hidden lg:block">
+          <aside className="sticky bottom-0 flex min-h-0 flex-col gap-4 border-t border-line bg-background p-4 lg:static lg:border-l lg:border-t-0 lg:bg-transparent lg:p-5">
+            <div className="hidden min-h-0 flex-1 flex-col lg:flex">
               <p className="font-mono text-xs text-dim">Your addon</p>
               <dl className="mt-3 divide-y divide-line border-y border-line text-[13.5px]">
                 <div className="flex justify-between py-2.5">
@@ -848,6 +848,15 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                   <dd>{isPublic ? "Reinstall" : isLinked ? "Automatic" : "Not linked"}</dd>
                 </div>
               </dl>
+              <p className="mt-5 font-mono text-xs text-dim">In Stremio, in this order</p>
+              <ol className="panel-scroll mt-2 min-h-0 flex-1 overflow-y-auto text-[13.5px]">
+                {sortedActiveItems.map((item, index) => (
+                  <li key={item.id} className="flex gap-3 border-b border-line py-2 text-muted">
+                    <span className="w-5 shrink-0 text-right font-mono text-[11.5px] tabular-nums text-dim">{index + 1}</span>
+                    <span className="min-w-0 truncate">{getItemDisplayName(item)}</span>
+                  </li>
+                ))}
+              </ol>
             </div>
             <button type="button" onClick={onSave} disabled={isSaving} className="btn btn-primary w-full">
               {isSaving ? "Saving…" : saveLabel}

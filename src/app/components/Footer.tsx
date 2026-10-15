@@ -7,25 +7,27 @@ const LINKS = [
   { href: "https://www.reddit.com/r/stremboxd/", label: "Reddit" },
 ];
 
-export default function Footer({ absolute = true }: { absolute?: boolean }) {
+export default function Footer({ absolute = true, help = false }: { absolute?: boolean; help?: boolean }) {
   return (
     <footer
       className={`${absolute ? "absolute bottom-0 left-0 right-0" : ""} border-t border-line py-4`}
     >
       <div className="mx-auto flex w-full max-w-6xl flex-col px-4 sm:px-6 gap-3 text-[13px] text-dim sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1">
-          <p>
-            Still have questions?{" "}
-            <a
-              href={`${REPO_URL}/issues/new`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link-quiet"
-            >
-              Open an issue on GitHub
-            </a>
-            .
-          </p>
+          {help && (
+            <p>
+              Still have questions?{" "}
+              <a
+                href={`${REPO_URL}/issues/new`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link-quiet"
+              >
+                Open an issue on GitHub
+              </a>
+              .
+            </p>
+          )}
           <p>
             Unofficial. Not affiliated with{" "}
             <span translate="no">Letterboxd</span>, <span translate="no">Stremio</span> or{" "}
