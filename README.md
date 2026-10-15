@@ -2,20 +2,14 @@
 
 # Stremboxd
 
-**Bring your Letterboxd life into Stremio.**  
+**Bring your Letterboxd life into Stremio and Nuvio.**  
 Watchlist, diary, friends, lists, ratings — all in one addon.
 
 [![CI](https://github.com/esp4ce/stremio-letterboxd-addon/actions/workflows/ci.yml/badge.svg)](https://github.com/esp4ce/stremio-letterboxd-addon/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![Stremio](https://img.shields.io/badge/Stremio-addon-8A05BE?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyek0xMCAxNi41di05bDYgNC41LTYgNC41eiIvPjwvc3ZnPg==)](https://stremboxd.com/configure)
 
-[**Configure →**](https://stremboxd.com/configure) · [Website](https://stremboxd.com) · [Pricing](https://stremboxd.com/pricing) · [FAQ](https://stremboxd.com/faq)
-
-<br />
-
-![Stremboxd — set up in 30 seconds](docs/preview.gif)
-
-<sub>Username → catalogs → drag to reorder → install.</sub>
+[**Configure →**](https://stremboxd.com/configure) · [Website](https://stremboxd.com) · [Supporter](https://stremboxd.com/#supporter) · [FAQ](https://stremboxd.com/faq)
 
 </div>
 
@@ -32,11 +26,11 @@ Watchlist, diary, friends, lists, ratings — all in one addon.
 - **Genre, decade & sort filters** — narrow down any catalog instantly
 - **Search** — find Letterboxd films from the Stremio search bar
 - **2FA support** — works with accounts that have two-factor authentication
-- **All platforms** — Stremio web, desktop, Android, iOS, TV
+- **All platforms** — Stremio web, desktop, Android, iOS, TV, and Nuvio
 
 ## Two modes
 
-| | Public mode | Full mode |
+| | Username only | Full access |
 |---|---|---|
 | **Setup** | Username only, no login | Login with Letterboxd credentials |
 | **Watchlist** | Public watchlist | Public + private |
@@ -56,12 +50,12 @@ Everything above is free and stays free. A supporter subscription adds three thi
 | **Auto-log to Diary** | Mark films watched with quick actions | Films you finish in Stremio land in your diary |
 | **Session** | Log in again, every time | Persistent, stays signed in |
 
-9,99&nbsp;€ / year, or 3&nbsp;€ / month. Covers hosting. [**See pricing →**](https://stremboxd.com/pricing)
+9,99&nbsp;€ / year, or 3&nbsp;€ / month. Covers hosting. [**See Supporter →**](https://stremboxd.com/#supporter)
 
 ## Get started
 
 1. Go to [stremboxd.com/configure](https://stremboxd.com/configure)
-2. Choose Public or Full mode and configure your preferences
+2. Choose Username only or Full access, then pick your catalogs and preferences
 3. Click **Install in Stremio**
 4. _(Optional)_ Use [Stremio Addon Manager](https://stremio-addon-manager.vercel.app/) to prioritize the addon for best results
 
@@ -78,7 +72,7 @@ Everything above is free and stays free. A supporter subscription adds three thi
 
 Everything here stays free. Supporting pays the hosting and adds automatic diary logging, changes without reinstalling, and staying signed in.
 
-[![Become a supporter](https://img.shields.io/badge/Stremboxd-become%20a%20supporter-white?style=flat-square)](https://stremboxd.com/pricing)
+[![Become a supporter](https://img.shields.io/badge/Stremboxd-become%20a%20supporter-white?style=flat-square)](https://stremboxd.com/#supporter)
 
 ## License
 
