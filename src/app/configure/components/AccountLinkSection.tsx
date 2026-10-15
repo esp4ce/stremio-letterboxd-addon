@@ -257,7 +257,7 @@ function PlayerRow({
       : "Linked. Automatic updates need Supporter."
     : entitled
       ? `Changes reach ${name} on their own.`
-      : `Changes reach ${name} on their own. Supporter feature.`;
+      : "Automatic updates are a Supporter feature.";
 
   return (
     <div className={ROW}>
@@ -270,7 +270,13 @@ function PlayerRow({
           Unlink
         </button>
       ) : (
-        <button type="button" onClick={onLink} disabled={disabled || linking} className="btn btn-ghost btn-sm shrink-0">
+        <button
+          type="button"
+          onClick={onLink}
+          disabled={disabled || linking || !entitled}
+          title={entitled ? undefined : "Available with Supporter"}
+          className="btn btn-ghost btn-sm shrink-0"
+        >
           {linking ? "Linking…" : "Link"}
         </button>
       )}
