@@ -118,6 +118,53 @@ export function AccountLinkSection({
 
   const busy = pairing !== null;
 
+  // Linking is a Supporter feature: say so plainly and offer the way in. A player linked before the
+  // subscription lapsed stays visible so it can still be unlinked.
+  if (!entitled) {
+    return (
+      <div>
+        <h3 className="text-[18px] font-medium text-foreground">Link your player</h3>
+        <div className="surface mt-4 p-5 sm:p-6">
+          <p className="text-[18px] font-medium text-foreground">Linking is a Supporter feature</p>
+          <p className="mt-2 max-w-[56ch] text-[16px] leading-relaxed text-muted">
+            Supporters link Stremio and Nuvio once, and their catalogs update on their own, with no reinstall
+            after every change.
+          </p>
+          <TransitionLink href="/#supporter" className="btn btn-primary mt-5 w-full sm:w-auto">
+            Become a Supporter
+          </TransitionLink>
+        </div>
+
+        {(stremioLinked || nuvioLinked) && (
+          <div className="mt-4 space-y-2">
+            {stremioLinked && (
+              <PlayerRow
+                name="Stremio"
+                linked
+                entitled={false}
+                linking={false}
+                disabled={false}
+                onLink={() => undefined}
+                onUnlink={() => unlink("stremio")}
+              />
+            )}
+            {nuvioLinked && (
+              <PlayerRow
+                name="Nuvio"
+                linked
+                entitled={false}
+                linking={false}
+                disabled={false}
+                onLink={() => undefined}
+                onUnlink={() => unlink("nuvio")}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <h3 className="text-[18px] font-medium text-foreground">Link your player</h3>
@@ -200,27 +247,15 @@ export function AccountLinkSection({
           </div>
         )}
 
-        {entitled ? (
-          <div className={ROW}>
-            <div className="min-w-0">
-              <p className="text-[16px] font-medium text-foreground">Subscription</p>
-              <p className="mt-0.5 text-[14px] text-dim">Billing, invoices, cancel.</p>
-            </div>
-            <a href={`${BACKEND_URL}/billing/portal`} className="btn btn-ghost btn-sm shrink-0">
-              Manage
-            </a>
+        <div className={ROW}>
+          <div className="min-w-0">
+            <p className="text-[16px] font-medium text-foreground">Subscription</p>
+            <p className="mt-0.5 text-[14px] text-dim">Billing, invoices, cancel.</p>
           </div>
-        ) : (
-          <div className={ROW}>
-            <div className="min-w-0">
-              <p className="text-[16px] font-medium text-foreground">Supporter</p>
-              <p className="mt-0.5 text-[14px] text-dim">Auto-sync, auto-log to diary and a persistent session.</p>
-            </div>
-            <TransitionLink href="/#supporter" className="btn btn-primary btn-sm shrink-0">
-              See Supporter
-            </TransitionLink>
-          </div>
-        )}
+          <a href={`${BACKEND_URL}/billing/portal`} className="btn btn-ghost btn-sm shrink-0">
+            Manage
+          </a>
+        </div>
       </div>
 
       {error && (
@@ -255,9 +290,7 @@ function PlayerRow({
     ? entitled
       ? `Linked. Changes reach ${name} on their own.`
       : "Linked. Automatic updates need Supporter."
-    : entitled
-      ? `Changes reach ${name} on their own.`
-      : "Automatic updates are a Supporter feature.";
+    : `Changes reach ${name} on their own.`;
 
   return (
     <div className={ROW}>
@@ -270,13 +303,7 @@ function PlayerRow({
           Unlink
         </button>
       ) : (
-        <button
-          type="button"
-          onClick={onLink}
-          disabled={disabled || linking || !entitled}
-          title={entitled ? undefined : "Available with Supporter"}
-          className="btn btn-ghost btn-sm shrink-0"
-        >
+        <button type="button" onClick={onLink} disabled={disabled || linking} className="btn btn-ghost btn-sm shrink-0">
           {linking ? "Linking…" : "Link"}
         </button>
       )}
