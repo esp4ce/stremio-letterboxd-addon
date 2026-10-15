@@ -12,14 +12,14 @@ import { track } from "../lib/analytics";
 type Pane = "overview" | "free" | "supporter";
 
 const FREE_ITEMS = [
-  "Watchlist, liked films and diary",
-  "Friends activity",
-  "Any public list by URL",
-  "Popular this week",
-  "Ratings on posters",
-  "Rate, like and manage",
-  "Sort, shuffle and filter",
-  "Stremio and Nuvio",
+  { title: "Watchlist, liked films and diary", text: "Your Letterboxd lists as catalogs, in the order you choose." },
+  { title: "Friends activity", text: "What the people you follow have just logged." },
+  { title: "Any public list by URL", text: "Paste a list link and it becomes a catalog." },
+  { title: "Popular this week", text: "What Letterboxd members are watching right now." },
+  { title: "Ratings on posters", text: "Letterboxd ratings shown on every poster." },
+  { title: "Rate, like and manage", text: "Act on a film from its page in Stremio." },
+  { title: "Sort, shuffle and filter", text: "By genre and decade, or in random order." },
+  { title: "Stremio and Nuvio", text: "One addon for both players, on any device." },
 ];
 
 const FLOW = [
@@ -152,14 +152,16 @@ export default function HomeShell() {
               </TransitionLink>
             </div>
 
-            <ul className="grid border-t border-line sm:grid-cols-2 sm:gap-x-12">
-              {FREE_ITEMS.map((item) => (
+            <ul className="grid overflow-hidden rounded-card border border-line sm:grid-cols-2 lg:grid-cols-4">
+              {FREE_ITEMS.map((item, index) => (
                 <li
-                  key={item}
-                  className="flex items-baseline justify-between gap-4 border-b border-line py-4 text-[16px]"
+                  key={item.title}
+                  className={`flex min-h-[132px] flex-col gap-2 border-line p-5 lg:min-h-[184px] ${
+                    index < FREE_ITEMS.length - 1 ? "border-b" : ""
+                  } sm:[&:nth-child(odd)]:border-r lg:border-r lg:[&:nth-child(4n)]:border-r-0 lg:[&:nth-last-child(-n+4)]:border-b-0`}
                 >
-                  <span>{item}</span>
-                  <span className="font-mono text-[11.5px] text-dim">free</span>
+                  <h3 className="text-[16px] font-medium leading-snug">{item.title}</h3>
+                  <p className="text-[14px] leading-relaxed text-dim">{item.text}</p>
                 </li>
               ))}
             </ul>
