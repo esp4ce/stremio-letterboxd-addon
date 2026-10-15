@@ -142,14 +142,6 @@ export default function HomeShell() {
                 This is a commitment, not a promotion. Supporters pay for the hosting and get extra features on
                 top. Nothing on this list will move behind a paywall.
               </p>
-              <TransitionLink
-                href="/configure"
-                direction="up"
-                trackTarget="configure"
-                className="btn btn-primary mt-6 w-full sm:w-auto"
-              >
-                Install the addon
-              </TransitionLink>
             </div>
 
             <ul className="grid overflow-hidden rounded-card border border-line sm:grid-cols-2 lg:grid-cols-4">
