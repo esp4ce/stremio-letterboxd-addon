@@ -1,3 +1,4 @@
+import Link from "next/link";
 import TransitionLink from "./components/TransitionLink";
 import Footer from "./components/Footer";
 
@@ -11,12 +12,12 @@ export default function NotFound() {
         <p className="text-lg font-light text-zinc-400 sm:text-xl">
           ★½. Didn&apos;t finish it.
         </p>
-        <a
-          href="/pricing"
-          className="mt-4 text-sm font-light text-zinc-600 transition-colors hover:text-zinc-400"
+        <Link
+          href="/#supporter"
+          className="mt-4 py-2 text-sm text-dim transition-colors hover:text-foreground"
         >
-          support Stremboxd
-        </a>
+          Support Stremboxd
+        </Link>
       </div>
       <Footer />
     </div>

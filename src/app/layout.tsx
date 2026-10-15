@@ -1,14 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import ConsoleMessage from "./components/ConsoleMessage";
 import PostHogProvider from "./components/PostHogProvider";
 
-const inter = Inter({
-  variable: "--font-inter",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
-  weight: ["300", "400", "600"],
+  display: "swap",
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
   display: "swap",
 });
 
@@ -80,7 +85,7 @@ const jsonLd = {
       name: "Supporter",
       price: "9.99",
       priceCurrency: "EUR",
-      url: "https://stremboxd.com/pricing",
+      url: "https://stremboxd.com/#supporter",
       priceSpecification: {
         "@type": "UnitPriceSpecification",
         price: "9.99",
@@ -103,7 +108,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${inter.className} antialiased`}>
+      <body className={`${geist.variable} ${geistMono.variable} antialiased`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
