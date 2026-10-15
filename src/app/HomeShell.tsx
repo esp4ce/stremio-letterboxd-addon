@@ -90,14 +90,14 @@ export default function HomeShell() {
               </div>
             </div>
 
-            <ol className="ml-1.5 border-l border-line-strong">
+            <ol className="ml-2 border-l border-line-strong lg:ml-4">
               {FLOW.map((step) => (
-                <li key={step.title} className="relative py-3 pl-6">
-                  <span aria-hidden="true" className="absolute -left-[4px] top-[22px] h-[7px] w-[7px] rounded-full bg-foreground" />
-                  <p className="text-[15px] font-medium">
+                <li key={step.title} className="relative py-4 pl-8 lg:py-5 lg:pl-10">
+                  <span aria-hidden="true" className="absolute -left-[5px] top-[27px] h-[9px] w-[9px] rounded-full bg-foreground lg:top-[33px]" />
+                  <p className="text-[18px] font-medium leading-snug lg:text-[22px]">
                     {step.title === "Stremboxd" ? <span translate="no">{step.title}</span> : step.title}
                   </p>
-                  <p className="text-[13.5px] text-dim">{step.text}</p>
+                  <p className="mt-0.5 text-[15px] text-dim lg:text-[17px]">{step.text}</p>
                 </li>
               ))}
             </ol>

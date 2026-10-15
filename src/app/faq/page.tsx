@@ -60,9 +60,9 @@ export default function FAQ() {
       <SiteHeader />
 
       <main id="main" className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-4 pb-6 sm:px-6 lg:px-8 lg:min-h-0">
-        <div className="flex flex-col gap-4 pb-5 pt-4 lg:pt-8">
+        <div className="flex pb-5 pt-4 sm:justify-end lg:pt-8">
           <h1 className="sr-only">Frequently asked questions</h1>
-          <div className="w-full sm:max-w-md">
+          <div className="w-full sm:max-w-xs">
             <label htmlFor={`${baseId}-search`} className="sr-only">
               Search the FAQ
             </label>
