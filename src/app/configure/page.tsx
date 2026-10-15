@@ -1399,7 +1399,7 @@ function ConfigureInner() {
                 : "Install it once, then pick it up in Stremio."}
           </p>
 
-          <div className="surface mt-10 grid gap-7 p-6 sm:p-10">
+          <div className="surface mx-auto mt-10 grid w-full max-w-[600px] gap-6 p-6 sm:p-8">
             {syncOutcome === "synced" ? (
               <div>
                 <p className="rounded-control border border-line px-4 py-4 text-center text-[18px]" role="status">
