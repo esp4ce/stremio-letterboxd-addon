@@ -12,14 +12,20 @@ import { track } from "../lib/analytics";
 type Pane = "overview" | "free" | "supporter";
 
 const FREE_ITEMS = [
-  { title: "Watchlist, liked films and diary", text: "Your Letterboxd lists as catalogs, in the order you choose." },
-  { title: "Friends activity", text: "What the people you follow have just logged." },
-  { title: "Any public list by URL", text: "Paste a list link and it becomes a catalog." },
-  { title: "Popular this week", text: "What Letterboxd members are watching right now." },
-  { title: "Ratings on posters", text: "Letterboxd ratings shown on every poster." },
-  { title: "Rate, like and manage", text: "Act on a film from its page in Stremio." },
-  { title: "Sort, shuffle and filter", text: "By genre and decade, or in random order." },
-  { title: "Stremio and Nuvio", text: "One addon for both players, on any device." },
+  "Watchlist, liked films and diary",
+  "Friends activity",
+  "Any public list by URL",
+  "Popular this week",
+  "Ratings on posters",
+  "Rate, like and manage",
+  "Sort, shuffle and filter",
+  "Stremio and Nuvio",
+];
+
+const COMMITMENTS = [
+  { title: "No paywall later", text: "Nothing on this list will move behind one." },
+  { title: "Open source", text: "The code is public on GitHub." },
+  { title: "Supporters pay the hosting", text: "Optional, and it adds features on top." },
 ];
 
 const FLOW = [
@@ -139,21 +145,30 @@ export default function HomeShell() {
                 What is free today stays free.
               </h2>
               <p className="mt-3 max-w-[56ch] text-[15.5px] leading-relaxed text-muted">
-                This is a commitment, not a promotion. Supporters pay for the hosting and get extra features on
-                top. Nothing on this list will move behind a paywall.
+                This is a commitment, not a promotion.
               </p>
             </div>
 
-            <ul className="grid overflow-hidden rounded-card border border-line sm:grid-cols-2 lg:grid-cols-4">
-              {FREE_ITEMS.map((item, index) => (
+            <ul className="grid overflow-hidden rounded-card border border-line sm:grid-cols-3">
+              {COMMITMENTS.map((item, index) => (
                 <li
                   key={item.title}
-                  className={`flex min-h-[132px] flex-col gap-2 border-line p-5 lg:min-h-[184px] ${
-                    index < FREE_ITEMS.length - 1 ? "border-b" : ""
-                  } sm:[&:nth-child(odd)]:border-r lg:border-r lg:[&:nth-child(4n)]:border-r-0 lg:[&:nth-last-child(-n+4)]:border-b-0`}
+                  className={`p-5 sm:p-6 ${index < COMMITMENTS.length - 1 ? "border-b border-line sm:border-b-0 sm:border-r" : ""}`}
                 >
-                  <h3 className="text-[16px] font-medium leading-snug">{item.title}</h3>
-                  <p className="text-[14px] leading-relaxed text-dim">{item.text}</p>
+                  <h3 className="text-[18px] font-medium tracking-[-0.02em]">{item.title}</h3>
+                  <p className="mt-1.5 text-[14.5px] leading-relaxed text-dim">{item.text}</p>
+                </li>
+              ))}
+            </ul>
+
+            <ul className="grid border-t border-line sm:grid-cols-2 sm:gap-x-12">
+              {FREE_ITEMS.map((item) => (
+                <li
+                  key={item}
+                  className="flex items-baseline justify-between gap-4 border-b border-line py-4 text-[16px]"
+                >
+                  <span>{item}</span>
+                  <span className="font-mono text-[11.5px] text-dim">free</span>
                 </li>
               ))}
             </ul>

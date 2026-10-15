@@ -61,7 +61,7 @@ export default function FAQ() {
 
       <main id="main" className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-4 pb-6 sm:px-6 lg:px-8 lg:min-h-0">
         <h1 className="sr-only">Frequently asked questions</h1>
-        <div className="mt-4 grid flex-1 grid-cols-1 overflow-hidden rounded-card border border-line lg:mt-8 lg:min-h-0 lg:grid-cols-[200px_minmax(0,340px)_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)]">
+        <div className="mt-4 grid flex-1 grid-cols-1 overflow-hidden rounded-card border border-line lg:mt-8 lg:min-h-0 lg:grid-cols-[200px_minmax(0,340px)_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
           <div className="relative border-b border-line lg:col-span-3">
             <label htmlFor={`${baseId}-search`} className="sr-only">
               Search the FAQ
@@ -169,10 +169,22 @@ export default function FAQ() {
               </article>
             )}
           </section>
+
+          <div className="flex flex-col gap-3 border-t border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between lg:col-span-3">
+            <p className="text-[14px] text-muted">Still have questions?</p>
+            <a
+              href="https://github.com/esp4ce/stremio-letterboxd-addons/issues/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-ghost btn-sm w-full sm:w-auto"
+            >
+              Open an issue on GitHub
+            </a>
+          </div>
         </div>
       </main>
 
-      <Footer absolute={false} help />
+      <Footer absolute={false} />
     </div>
   );
 }
