@@ -46,10 +46,10 @@ export function NativeSyncRow({ preferences, onPreferencesChange, signedIn, enti
   };
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg bg-raised px-3.5 py-3">
+    <div className="flex items-center justify-between gap-4 rounded-control bg-raised px-4 py-3.5">
       <div className="min-w-0">
         <div ref={detailsRef} className="relative flex items-center gap-1.5">
-          <p className="text-[14px] font-medium text-foreground">Auto-log to Diary</p>
+          <p className="text-[16px] font-medium text-foreground">Auto-log to Diary</p>
           <button
             type="button"
             onClick={() => setDetailsOpen((open) => !open)}
@@ -76,7 +76,7 @@ export function NativeSyncRow({ preferences, onPreferencesChange, signedIn, enti
             {DETAILS}
           </p>
         </div>
-        <p className="mt-0.5 text-[12px] text-dim">Films watched in Stremio land in your public diary</p>
+        <p className="mt-0.5 text-[14px] text-dim">Films watched in Stremio land in your public diary</p>
       </div>
       <Toggle enabled={control.kind === "toggle" && control.enabled} onToggle={onToggle} />
     </div>
