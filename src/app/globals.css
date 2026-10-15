@@ -114,6 +114,17 @@ body {
   transition-timing-function: var(--ease-out);
 }
 
+/* No single word left alone on the last line. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
 button,
 a,
 input,
