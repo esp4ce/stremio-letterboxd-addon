@@ -60,7 +60,7 @@ export function NativeSyncRow({ preferences, onPreferencesChange, signedIn, enti
             aria-controls={detailsId}
             aria-label="About Auto-log to Diary"
             title={detailsOpen ? undefined : DETAILS}
-            className={`-m-2 flex flex-shrink-0 cursor-help items-center justify-center rounded-full p-2 transition-colors hover:text-zinc-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 ${detailsOpen ? "text-zinc-300" : "text-zinc-600"}`}
+            className={`-m-2 flex flex-shrink-0 cursor-help items-center justify-center rounded-full p-2 transition-colors hover:text-zinc-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 ${detailsOpen ? "text-zinc-300" : "text-dim"}`}
           >
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="12" r="9" strokeWidth={2} />
@@ -76,7 +76,7 @@ export function NativeSyncRow({ preferences, onPreferencesChange, signedIn, enti
             {DETAILS}
           </p>
         </div>
-        <p className="mt-0.5 text-[11px] text-zinc-500">Films watched in Stremio land in your public diary</p>
+        <p className="mt-0.5 text-[11px] text-dim">Films watched in Stremio land in your public diary</p>
       </div>
       <Toggle enabled={control.kind === "toggle" && control.enabled} onToggle={onToggle} />
     </div>

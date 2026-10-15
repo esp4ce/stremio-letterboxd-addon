@@ -24,6 +24,8 @@ import { DisplayOptionsSection } from "./components/DisplayOptionsSection";
 import { ExternalCatalogsSection } from "./components/ExternalCatalogsSection";
 import { UserListsSection } from "./components/UserListsSection";
 import { AccountLinkSection } from "./components/AccountLinkSection";
+import SiteHeader from "../components/SiteHeader";
+import Footer from "../components/Footer";
 import { NativeSyncRow } from "./components/NativeSyncRow";
 
 interface BaseProps {
@@ -87,6 +89,8 @@ interface PublicModeProps extends BaseProps {
 
 type ConfigurationModalProps = FullModeProps | PublicModeProps;
 
+type ConfigSection = "catalogs" | "lists" | "display" | "accounts";
+
 export default function ConfigurationModal(props: ConfigurationModalProps) {
   const { mode, user, lists, onBack, onSave, isSaving, externalListUrl, onExternalListUrlChange, onAddExternalList, isResolvingList } = props;
 
@@ -94,6 +98,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
   const hasUsername = !!user;
 
   // Catalog name editing state
+  const [section, setSection] = useState<ConfigSection>("catalogs");
   const [editingCatalogId, setEditingCatalogId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   // Sort variant expansion state
@@ -649,7 +654,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
               type="button"
               onClick={() => hideParentCatalog(item.key)}
               title="Hide parent catalog, keep sort variants"
-              className="rounded p-1 text-zinc-600 transition-colors hover:text-zinc-300"
+              className="rounded p-1 text-dim transition-colors hover:text-zinc-300"
             >
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
@@ -669,7 +674,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
       : undefined;
     if (!onRemove) return null;
     return (
-      <button type="button" onClick={onRemove} className="flex-shrink-0 text-zinc-500 transition-colors hover:text-zinc-300">
+      <button type="button" onClick={onRemove} className="flex-shrink-0 text-dim transition-colors hover:text-zinc-300">
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TRASH_PATH} />
         </svg>
@@ -677,160 +682,181 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     );
   };
 
+  const fullProps = props as FullModeProps;
+  const publicProps = props as PublicModeProps;
+  const isLinked = !isPublic && (fullProps.isStremioLinked || fullProps.isNuvioLinked);
+  const saveLabel = isPublic ? "Generate & Install" : isLinked ? "Save" : "Save & Install";
+  const activeCount = sortedActiveItems.length;
+
+  const sections: { id: ConfigSection; label: string }[] = [
+    { id: "catalogs", label: "Catalogs" },
+    { id: "lists", label: "Lists" },
+    { id: "display", label: "Display" },
+    ...(!isPublic ? [{ id: "accounts" as const, label: "Accounts" }] : []),
+  ];
+  const current = sections.some((s) => s.id === section) ? section : "catalogs";
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-[#0a0a0a] px-3 py-3 text-white sm:px-6 sm:py-5">
-      <div className="w-full max-w-3xl 2xl:max-w-4xl">
-        {/* dvh, not vh: on mobile vh counts the area hidden behind the browser toolbar. */}
-        <div className="film-grain animate-fade-in modal-scroll relative max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl border border-zinc-800 bg-zinc-900 p-4 shadow-2xl sm:max-h-[88dvh] sm:p-6 lg:p-7">
-          {/* Header */}
-          <div className="flex items-center justify-between gap-4">
-            <button
-              type="button"
-              onClick={onBack}
-              className="group inline-flex flex-shrink-0 items-center gap-2 text-[12px] text-zinc-400 transition-colors hover:text-zinc-200"
-            >
-              <svg className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </button>
+    <div className="flex min-h-dvh flex-col bg-background text-foreground lg:h-dvh">
+      <SiteHeader>
+        <button
+          type="button"
+          onClick={onBack}
+          className="rounded-control px-1 py-2 text-[13.5px] text-muted transition-colors hover:text-foreground"
+        >
+          Back
+        </button>
+        <span className="hidden max-w-[40vw] truncate text-[13.5px] text-dim sm:inline">
+          {user ? user.displayName || user.username : "Public mode"}
+        </span>
+      </SiteHeader>
 
-            <p className="min-w-0 truncate text-[12px] text-zinc-500">
-              {user ? (
-                <span className="text-zinc-300">{user.displayName || user.username}</span>
-              ) : (
-                "Public mode"
-              )}
-            </p>
-          </div>
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-4 sm:px-6 lg:min-h-0">
+        <div className="animate-fade-in grid flex-1 overflow-hidden rounded-card border border-line lg:min-h-0 lg:grid-cols-[190px_minmax(0,1fr)_280px]">
+          <nav
+            aria-label="Configuration sections"
+            className="flex gap-1 overflow-x-auto border-b border-line p-2 lg:flex-col lg:overflow-visible lg:border-b-0 lg:border-r lg:p-3"
+          >
+            {sections.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSection(s.id)}
+                aria-current={current === s.id ? "true" : undefined}
+                className={`shrink-0 rounded-control px-3 py-2.5 text-left text-[14px] transition-colors ${
+                  current === s.id ? "bg-raised text-foreground" : "text-muted hover:text-foreground"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </nav>
 
-          <CatalogsSection
-            sortedActiveItems={sortedActiveItems}
-            disabledBaseItems={disabledBaseItems}
-            effectiveCatalogOrder={effectiveCatalogOrder}
-            sensors={sensors}
-            onDragEnd={handleDragEnd}
-            editingCatalogId={editingCatalogId}
-            editingName={editingName}
-            onEditingNameChange={setEditingName}
-            onStartEditingName={startEditingCatalogName}
-            onSaveName={saveCatalogName}
-            onCancelEditing={() => setEditingCatalogId(null)}
-            expandedVariantCatalog={expandedVariantCatalog}
-            onToggleVariantExpand={setExpandedVariantCatalog}
-            availableVariantOptions={availableVariantOptions}
-            canHaveVariants={canHaveVariants}
-            getCatalogVariants={getCatalogVariants}
-            getItemDisplayName={getItemDisplayName}
-            getItemDefaultName={getItemDefaultName}
-            getItemSubtext={getItemSubtext}
-            renderActiveItemAction={renderActiveItemAction}
-            onToggleCatalog={toggleCatalog}
-            onToggleCatalogVariant={toggleCatalogVariant}
-          />
-
-          {isPublic ? (
-            <DisplayOptionsSection
-              mode="public"
-              showRatings={(props as PublicModeProps).showRatings}
-              onShowRatingsChange={(props as PublicModeProps).onShowRatingsChange}
-              hideUnreleased={(props as PublicModeProps).hideUnreleased}
-              onHideUnreleasedChange={(props as PublicModeProps).onHideUnreleasedChange}
-              hideNoHomeRelease={(props as PublicModeProps).hideNoHomeRelease}
-              onHideNoHomeReleaseChange={(props as PublicModeProps).onHideNoHomeReleaseChange}
-              publicSearch={(props as PublicModeProps).publicSearch}
-              onPublicSearchChange={(props as PublicModeProps).onPublicSearchChange}
-            >
-              <NativeSyncRow preferences={null} signedIn={false} entitled={false} onBlocked={props.onUpsell} />
-            </DisplayOptionsSection>
-          ) : (
-            <DisplayOptionsSection
-              mode="full"
-              preferences={(props as FullModeProps).preferences}
-              onPreferencesChange={(props as FullModeProps).onPreferencesChange}
-            >
-              <NativeSyncRow
-                preferences={(props as FullModeProps).preferences}
-                onPreferencesChange={(props as FullModeProps).onPreferencesChange}
-                signedIn
-                entitled={(props as FullModeProps).entitled}
-                onBlocked={props.onUpsell}
+          <div className="panel-scroll min-w-0 p-4 sm:p-6 lg:overflow-y-auto">
+            {current === "catalogs" && (
+              <CatalogsSection
+                sortedActiveItems={sortedActiveItems}
+                disabledBaseItems={disabledBaseItems}
+                effectiveCatalogOrder={effectiveCatalogOrder}
+                sensors={sensors}
+                onDragEnd={handleDragEnd}
+                editingCatalogId={editingCatalogId}
+                editingName={editingName}
+                onEditingNameChange={setEditingName}
+                onStartEditingName={startEditingCatalogName}
+                onSaveName={saveCatalogName}
+                onCancelEditing={() => setEditingCatalogId(null)}
+                expandedVariantCatalog={expandedVariantCatalog}
+                onToggleVariantExpand={setExpandedVariantCatalog}
+                availableVariantOptions={availableVariantOptions}
+                canHaveVariants={canHaveVariants}
+                getCatalogVariants={getCatalogVariants}
+                getItemDisplayName={getItemDisplayName}
+                getItemDefaultName={getItemDefaultName}
+                getItemSubtext={getItemSubtext}
+                renderActiveItemAction={renderActiveItemAction}
+                onToggleCatalog={toggleCatalog}
+                onToggleCatalogVariant={toggleCatalogVariant}
               />
-            </DisplayOptionsSection>
-          )}
+            )}
 
-          <ExternalCatalogsSection
-            externalListUrl={externalListUrl}
-            onExternalListUrlChange={onExternalListUrlChange}
-            onAddExternalList={onAddExternalList}
-            isResolvingList={isResolvingList}
-          />
-
-          {hasUsername && user && (
-            <UserListsSection
-              user={user}
-              lists={lists}
-              selectedListIds={selectedOwnListIds}
-              editingCatalogId={editingCatalogId}
-              editingName={editingName}
-              onEditingNameChange={setEditingName}
-              onStartEditingName={startEditingCatalogName}
-              onSaveName={saveCatalogName}
-              onCancelEditing={() => setEditingCatalogId(null)}
-              getCatalogDisplayName={getCatalogDisplayName}
-              isOwnListSelected={isOwnListSelected}
-              onToggleOwnList={toggleOwnList}
-              onSelectAll={selectAllOwnLists}
-              onDeselectAll={deselectAllOwnLists}
-            />
-          )}
-
-          {!isPublic && (
-            <AccountLinkSection
-              stremioLinked={(props as FullModeProps).isStremioLinked}
-              onStremioLinkedChange={(props as FullModeProps).onStremioLinkedChange}
-              nuvioLinked={(props as FullModeProps).isNuvioLinked}
-              onNuvioLinkedChange={(props as FullModeProps).onNuvioLinkedChange}
-              entitled={(props as FullModeProps).entitled}
-            />
-          )}
-
-          {/* Save Button: pinned to the bottom of the scroll area on mobile, where the modal is several screens long. The negative margins cancel the card padding so the fade covers rows scrolling underneath. */}
-          <div className="sticky -bottom-4 z-10 -mx-4 -mb-4 mt-4 bg-gradient-to-t from-zinc-900 from-75% to-transparent px-4 pb-4 pt-6 sm:static sm:m-0 sm:mt-8 sm:bg-none sm:p-0">
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={isSaving}
-              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-[15px] font-semibold text-black transition-all hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSaving ? (
-                <>
-                  <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Saving...
-                </>
+            {current === "display" &&
+              (isPublic ? (
+                <DisplayOptionsSection
+                  mode="public"
+                  showRatings={publicProps.showRatings}
+                  onShowRatingsChange={publicProps.onShowRatingsChange}
+                  hideUnreleased={publicProps.hideUnreleased}
+                  onHideUnreleasedChange={publicProps.onHideUnreleasedChange}
+                  hideNoHomeRelease={publicProps.hideNoHomeRelease}
+                  onHideNoHomeReleaseChange={publicProps.onHideNoHomeReleaseChange}
+                  publicSearch={publicProps.publicSearch}
+                  onPublicSearchChange={publicProps.onPublicSearchChange}
+                >
+                  <NativeSyncRow preferences={null} signedIn={false} entitled={false} onBlocked={props.onUpsell} />
+                </DisplayOptionsSection>
               ) : (
-                <>
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  {isPublic
-                    ? "Generate & Install"
-                    : (props as FullModeProps).isStremioLinked || (props as FullModeProps).isNuvioLinked
-                      ? "Save"
-                      : "Save & Install"}
-                </>
-              )}
-            </button>
+                <DisplayOptionsSection
+                  mode="full"
+                  preferences={fullProps.preferences}
+                  onPreferencesChange={fullProps.onPreferencesChange}
+                >
+                  <NativeSyncRow
+                    preferences={fullProps.preferences}
+                    onPreferencesChange={fullProps.onPreferencesChange}
+                    signedIn
+                    entitled={fullProps.entitled}
+                    onBlocked={props.onUpsell}
+                  />
+                </DisplayOptionsSection>
+              ))}
+
+            {current === "lists" && (
+              <div className="space-y-8">
+                <ExternalCatalogsSection
+                  externalListUrl={externalListUrl}
+                  onExternalListUrlChange={onExternalListUrlChange}
+                  onAddExternalList={onAddExternalList}
+                  isResolvingList={isResolvingList}
+                />
+                {hasUsername && user && (
+                  <UserListsSection
+                    user={user}
+                    lists={lists}
+                    selectedListIds={selectedOwnListIds}
+                    editingCatalogId={editingCatalogId}
+                    editingName={editingName}
+                    onEditingNameChange={setEditingName}
+                    onStartEditingName={startEditingCatalogName}
+                    onSaveName={saveCatalogName}
+                    onCancelEditing={() => setEditingCatalogId(null)}
+                    getCatalogDisplayName={getCatalogDisplayName}
+                    isOwnListSelected={isOwnListSelected}
+                    onToggleOwnList={toggleOwnList}
+                    onSelectAll={selectAllOwnLists}
+                    onDeselectAll={deselectAllOwnLists}
+                  />
+                )}
+              </div>
+            )}
+
+            {current === "accounts" && !isPublic && (
+              <AccountLinkSection
+                stremioLinked={fullProps.isStremioLinked}
+                onStremioLinkedChange={fullProps.onStremioLinkedChange}
+                nuvioLinked={fullProps.isNuvioLinked}
+                onNuvioLinkedChange={fullProps.onNuvioLinkedChange}
+                entitled={fullProps.entitled}
+              />
+            )}
           </div>
+
+          <aside className="sticky bottom-0 flex flex-col gap-4 border-t border-line bg-background p-4 lg:static lg:border-l lg:border-t-0 lg:bg-transparent lg:p-5">
+            <div className="hidden lg:block">
+              <p className="font-mono text-xs text-dim">Your addon</p>
+              <dl className="mt-3 divide-y divide-line border-y border-line text-[13.5px]">
+                <div className="flex justify-between py-2.5">
+                  <dt className="text-muted">Catalogs</dt>
+                  <dd className="tabular-nums">{activeCount} on</dd>
+                </div>
+                <div className="flex justify-between py-2.5">
+                  <dt className="text-muted">Mode</dt>
+                  <dd>{isPublic ? "Username only" : "Full access"}</dd>
+                </div>
+                <div className="flex justify-between py-2.5">
+                  <dt className="text-muted">Player sync</dt>
+                  <dd>{isPublic ? "Reinstall" : isLinked ? "Automatic" : "Not linked"}</dd>
+                </div>
+              </dl>
+            </div>
+            <button type="button" onClick={onSave} disabled={isSaving} className="btn btn-primary w-full">
+              {isSaving ? "Saving…" : saveLabel}
+            </button>
+          </aside>
         </div>
       </div>
+
+      <Footer absolute={false} />
     </div>
   );
 }

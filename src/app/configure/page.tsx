@@ -4,6 +4,8 @@ import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import TransitionLink from "../components/TransitionLink";
 import Footer from "../components/Footer";
+import SiteHeader from "../components/SiteHeader";
+import { OtpInput } from "./components/OtpInput";
 import ConfigurationModal from "./ConfigurationModal";
 import { Toggle } from "./components/primitives";
 import type { UserPreferences } from "../../types/preferences";
@@ -200,6 +202,25 @@ function parsePublicDraft(raw: string): PublicDraft | null {
   return draft as unknown as PublicDraft;
 }
 
+/** Page frame for every /configure screen: wordmark, a way back, a centred column, the shared footer. */
+function Frame({ children, width = "max-w-5xl" }: { children: ReactNode; width?: string }) {
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <SiteHeader>
+        <TransitionLink
+          href="/"
+          direction="down"
+          className="py-2 text-[13.5px] text-muted transition-colors hover:text-foreground"
+        >
+          Back to home
+        </TransitionLink>
+      </SiteHeader>
+      <main className={`mx-auto flex w-full ${width} flex-1 flex-col justify-center px-4 py-6 sm:px-6`}>{children}</main>
+      <Footer absolute={false} />
+    </div>
+  );
+}
+
 export default function Configure() {
   return (
     <Suspense fallback={<div className="fixed inset-0 bg-[#0a0a0a]" />}>
@@ -278,6 +299,8 @@ function ConfigureInner() {
   // Default on: matches the pre-existing always-persist behavior for
   // supporters. Has no effect for non-supporters (no cookie either way).
   const [rememberMe, setRememberMe] = useState(true);
+  // Explicit choice between the two ways to use the addon; the password field only exists in full access.
+  const [fullAccess, setFullAccess] = useState(true);
 
   const dismissToast = (id: number) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
@@ -630,6 +653,11 @@ function ConfigureInner() {
       return;
     }
 
+    if (fullAccess && !password) {
+      showErrorToast("Enter your password, or choose Username only");
+      return;
+    }
+
     track("configure_mode_chosen", { mode: password ? "full" : "public" });
     setIsLoading(true);
     setForceMainForm(false);
@@ -698,11 +726,13 @@ function ConfigureInner() {
     }
   };
 
-  const handleSubmit2FA = async () => {
+  const handleSubmit2FA = async (codeOverride?: string) => {
     const username = usernameRef.current?.value?.trim();
     const password = passwordRef.current?.value?.trim();
 
-    if (!username || !password || !totpCode.trim()) return;
+    const code = (codeOverride ?? totpCode).trim();
+
+    if (!username || !password || !code) return;
 
     setIs2FALoading(true);
     try {
@@ -710,7 +740,7 @@ function ConfigureInner() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ username, password, totp: totpCode.trim(), rememberMe }),
+        body: JSON.stringify({ username, password, totp: code, rememberMe }),
       });
 
       const data = await response.json();
@@ -1130,46 +1160,40 @@ function ConfigureInner() {
   // confirmed (or the deadline passes: 20s, 60s for Founder), then fall through.
   if (confirmingCheckout) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-zinc-950 px-6 text-center">
-        <div className="max-w-sm">
+      <Frame width="max-w-md">
+        <div className="text-center" role="status">
           {checkoutSlow ? (
             <>
-              <p className="text-sm text-zinc-300">Payment received. Thanks for supporting Stremboxd.</p>
-              <p className="mt-2 text-[12px] text-zinc-500">
+              <h1 className="text-[26px] font-medium tracking-[-0.03em]">Payment received.</h1>
+              <p className="mt-3 text-[15px] leading-relaxed text-muted">Thanks for supporting Stremboxd.</p>
+              <p className="mt-2 text-sm leading-relaxed text-dim">
                 Founder access can take a minute to show up. Nothing else to do: reload this page in a little while.
               </p>
-              <button
-                type="button"
-                onClick={() => setConfirmingCheckout(false)}
-                className="mt-5 w-full cursor-pointer rounded-xl border border-zinc-700 px-4 py-3 text-[14px] font-medium text-zinc-200 transition-colors hover:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-950"
-              >
+              <button type="button" onClick={() => setConfirmingCheckout(false)} className="btn btn-ghost mt-6 w-full">
                 Continue for now
               </button>
             </>
           ) : checkoutNeedsLogin ? (
             <>
-              <p className="text-sm text-zinc-300">Payment received. Thanks for supporting Stremboxd.</p>
-              <p className="mt-2 text-[12px] text-zinc-500">
+              <h1 className="text-[26px] font-medium tracking-[-0.03em]">Payment received.</h1>
+              <p className="mt-3 text-[15px] leading-relaxed text-muted">Thanks for supporting Stremboxd.</p>
+              <p className="mt-2 text-sm leading-relaxed text-dim">
                 This tab lost your session during checkout. Log back in to activate your supporter session.
               </p>
-              <button
-                type="button"
-                onClick={() => setConfirmingCheckout(false)}
-                className="mt-5 w-full cursor-pointer rounded-xl bg-white px-4 py-3 text-[15px] font-semibold text-black transition-all hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-950"
-              >
+              <button type="button" onClick={() => setConfirmingCheckout(false)} className="btn btn-primary mt-6 w-full">
                 Log in
               </button>
             </>
           ) : (
             <>
-              <p className="text-sm text-zinc-300">Confirming your payment…</p>
-              <p className="mt-2 text-[12px] text-zinc-500">
+              <h1 className="text-[26px] font-medium tracking-[-0.03em]">Confirming your payment…</h1>
+              <p className="mt-3 text-sm leading-relaxed text-dim">
                 This can take a minute. If nothing happens, reload this page.
               </p>
             </>
           )}
         </div>
-      </div>
+      </Frame>
     );
   }
 
@@ -1182,87 +1206,75 @@ function ConfigureInner() {
   if (checkoutWelcome && result && preferences) {
     const autoLogAlreadyOn = preferences.nativeSync === true && autoLogState !== "done";
     return (
-      <div className="fixed inset-0 overflow-y-auto bg-[#0a0a0a] text-white">
-        <div className="grid min-h-full grid-rows-[1fr_auto_1fr]">
-          <div />
-          <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-8">
-            <div className="film-grain animate-fade-in relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl sm:p-8">
-              <h2 className="text-center text-2xl font-semibold text-white">
-                {checkoutWelcome === "founder" ? "You're a Founder." : "You're a supporter."}
-              </h2>
-              <p className="mt-2 text-center text-[13px] text-zinc-400">
-                Thank you. Your support pays the hosting.
-              </p>
+      <Frame width="max-w-md">
+        <div className="surface animate-fade-in p-6 sm:p-8">
+          <h1 className="text-[26px] font-medium tracking-[-0.03em]">
+            {checkoutWelcome === "founder" ? "You\u2019re a Founder." : "You\u2019re a Supporter."}
+          </h1>
+          <p className="mt-2 text-[15px] text-muted">Thank you. Your support pays the hosting.</p>
 
-              {!autoLogAlreadyOn && (
-                <div className="mt-6">
-                  {autoLogState === "done" ? (
-                    <div className="flex items-center justify-center gap-2 rounded-lg bg-zinc-800/35 px-4 py-3">
-                      <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" />
-                      <p className="text-[13px] text-zinc-300">Auto-log to Diary is on.</p>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleEnableAutoLog}
-                        disabled={autoLogState === "saving"}
-                        className="flex w-full cursor-pointer items-center justify-center rounded-lg bg-white px-4 py-3 text-[15px] font-semibold text-black transition-all hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        {autoLogState === "saving" ? "Turning on..." : "Turn on Auto-log to Diary"}
-                      </button>
-                      <p className="mt-2 text-center text-[11px] text-zinc-500">
-                        {autoLogState === "error"
-                          ? "Couldn't turn it on right now. Try again, or later from your settings."
-                          : "Films you finish in Stremio land in your diary, dated."}
-                      </p>
-                    </>
-                  )}
-                </div>
-              )}
-
-              <div className="mt-6 border-t border-zinc-800 pt-4">
-                {reasonAnswered ? (
-                  <p className="text-center text-[12px] text-zinc-400">Thanks!</p>
-                ) : (
-                  <>
-                    <p className="text-center text-[12px] text-zinc-400">
-                      What made you decide? <span className="text-zinc-600">(optional)</span>
-                    </p>
-                    <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-                      {SUPPORTER_REASONS.map((reason) => (
-                        <button
-                          key={reason.value}
-                          type="button"
-                          onClick={() => handleReason(reason.value)}
-                          className="rounded-full border border-zinc-700 px-3 py-1.5 text-[11.5px] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
-                        >
-                          {reason.label}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {checkoutWelcome === "founder" && (
-                <p className="mt-4 text-center text-[11px] text-zinc-500">
-                  If you also have a subscription, it keeps renewing until you cancel it from the portal.
+          {!autoLogAlreadyOn && (
+            <div className="mt-6">
+              {autoLogState === "done" ? (
+                <p className="rounded-control border border-line px-4 py-3 text-sm text-muted" role="status">
+                  Auto-log to Diary is on.
                 </p>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleEnableAutoLog}
+                    disabled={autoLogState === "saving"}
+                    className="btn btn-primary w-full"
+                  >
+                    {autoLogState === "saving" ? "Turning on…" : "Turn on Auto-log to Diary"}
+                  </button>
+                  <p className="mt-2 text-[13px] text-dim">
+                    {autoLogState === "error"
+                      ? "Couldn\u2019t turn it on right now. Try again, or later from your settings."
+                      : "Films you finish in Stremio land in your diary, dated."}
+                  </p>
+                </>
               )}
-
-              <button
-                type="button"
-                onClick={() => setCheckoutWelcome(null)}
-                className="mt-5 w-full cursor-pointer rounded-lg border border-zinc-700 px-4 py-2.5 text-[13px] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
-              >
-                Continue to settings
-              </button>
             </div>
+          )}
+
+          <div className="mt-6 border-t border-line pt-5">
+            {reasonAnswered ? (
+              <p className="text-sm text-muted">Thanks.</p>
+            ) : (
+              <>
+                <p className="text-sm text-muted">
+                  What made you decide? <span className="text-dim">(optional)</span>
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {SUPPORTER_REASONS.map((reason) => (
+                    <button
+                      key={reason.value}
+                      type="button"
+                      onClick={() => handleReason(reason.value)}
+                      className="rounded-control border border-line-strong px-3 py-2 text-[13px] text-muted transition-colors hover:border-control hover:text-foreground"
+                    >
+                      {reason.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
-          <div />
+
+          {checkoutWelcome === "founder" && (
+            <p className="mt-4 text-[13px] text-dim">
+              If you also have a subscription, it keeps renewing until you cancel it from the portal.
+            </p>
+          )}
+
+          <button type="button" onClick={() => setCheckoutWelcome(null)} className="btn btn-ghost mt-6 w-full">
+            Continue to settings
+          </button>
         </div>
-      </div>
+        {renderErrorToastStack()}
+      </Frame>
     );
   }
 
@@ -1351,200 +1363,193 @@ function ConfigureInner() {
   const manifestUrl = result?.manifestUrl || generatedManifestUrl;
   if (manifestUrl && !showConfig && !showPublicConfig && !forceMainForm) {
     return (
-      <div className="fixed inset-0 overflow-y-auto bg-[#0a0a0a] text-white">
-        {/* Equal 1fr rows keep the card centered; they collapse on short screens so the page scrolls instead of clipping. */}
-        <div className="grid min-h-full grid-rows-[1fr_auto_1fr]">
-        <div />
-        <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-8">
-          <div className="film-grain animate-fade-in relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl sm:p-8">
-            <div className="mb-5 flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-500/15 ring-1 ring-green-500/25">
-                <svg className="h-7 w-7 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+      <Frame>
+        <div className="animate-fade-in grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:gap-14">
+          <div>
+            <h1 className="text-[32px] font-medium leading-[1.05] tracking-[-0.04em] sm:text-[44px]">
+              Your addon is ready.
+            </h1>
+            <p className="mt-3 max-w-[42ch] text-[15.5px] leading-relaxed text-muted">
+              {result
+                ? `Welcome, ${result.user.displayName || result.user.username}.`
+                : usernameValidated
+                  ? `Configured for ${usernameValidated.displayName}.`
+                  : "Install it once, then pick it up in Stremio."}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  setForceMainForm(false);
+                  if (result) setShowConfig(true);
+                  else setShowPublicConfig(true);
+                }}
+                className="link-quiet py-1"
+              >
+                Reconfigure
+              </button>
+              <button type="button" onClick={result ? handleLogout : handleReset} className="link-quiet py-1">
+                {result ? "Sign out" : "Start over"}
+              </button>
+            </div>
+            <p className="mt-8 max-w-[46ch] text-[13px] leading-relaxed text-dim">
+              Tip: use{" "}
+              <a
+                href="https://stremio-addon-manager.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link-quiet"
+              >
+                Stremio Addon Manager
+              </a>{" "}
+              to rank Stremboxd first.
+            </p>
+          </div>
+
+          <div className="surface grid gap-4 p-5 sm:p-6">
+            {syncOutcome === "synced" ? (
+              <div>
+                <p className="rounded-control border border-line px-4 py-3 text-sm text-foreground" role="status">
+                  Updated in Stremio.
+                </p>
+                <p className="mt-2 text-[13px] text-dim">
+                  TV and mobile may need a restart.{" "}
+                  <button type="button" onClick={handleInstallStremio} className="link-quiet">
+                    Reinstall manually
+                  </button>
+                </p>
+              </div>
+            ) : (
+              <div>
+                <button type="button" onClick={handleInstallStremio} className="btn btn-primary w-full">
+                  Install in Stremio
+                </button>
+                {syncOutcome === "not-installed" && (
+                  <p className="mt-3 text-[13px] text-muted">Install it once, then your changes sync automatically.</p>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="manifest-url" className="block text-[13px] text-muted">
+                Manifest URL
+              </label>
+              <div className="mt-2 flex gap-2">
+                <input
+                  id="manifest-url"
+                  type="text"
+                  readOnly
+                  value={manifestUrl}
+                  spellCheck={false}
+                  className="field-input min-w-0 text-[13px]"
+                />
+                <button type="button" onClick={handleCopy} className="btn btn-ghost shrink-0">
+                  {copied ? "Copied" : "Copy"}
+                </button>
               </div>
             </div>
 
-            <h2 className="mt-1 text-center text-2xl font-semibold text-white">Addon Ready!</h2>
-
-            <p className="mt-2 text-center text-[13px] text-zinc-400">
-              {result
-                ? `Welcome, ${result.user.displayName || result.user.username}!`
-                : usernameValidated
-                  ? `Configured for ${usernameValidated.displayName}`
-                  : "Your addon is ready to install"}
-            </p>
-
-            <div className="mt-6">
-              {syncOutcome === "synced" ? (
-                <>
-                  <div className="flex items-center justify-center gap-2 rounded-lg bg-zinc-800/35 px-4 py-3">
-                    <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" />
-                    <p className="text-[13px] text-zinc-300">Updated in Stremio.</p>
-                  </div>
-                  <p className="mt-2 text-center text-[11px] text-zinc-500">
-                    TV and mobile may need a restart.{" "}
-                    <button
-                      type="button"
-                      onClick={handleInstallStremio}
-                      className="cursor-pointer underline underline-offset-2 transition-colors hover:text-zinc-300"
-                    >
-                      Reinstall manually
-                    </button>
-                  </p>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleInstallStremio}
-                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-[15px] font-semibold text-black transition-all hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-900"
-                  >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Install in Stremio
-                  </button>
-
-                  {syncOutcome === "not-installed" && (
-                    <p className="mt-3 text-center text-[13px] text-zinc-400">
-                      Install it once, then your changes sync automatically.
-                    </p>
-                  )}
-                </>
-              )}
-
-              <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-800/35 p-3">
-                <label className="block text-[10px] uppercase tracking-[0.12em] text-zinc-500">Manifest URL</label>
+            {resumeLink && (
+              <div>
+                <label htmlFor="resume-link" className="block text-[13px] text-muted">
+                  Edit link, reopens this setup on any device
+                </label>
                 <div className="mt-2 flex gap-2">
                   <input
+                    id="resume-link"
                     type="text"
                     readOnly
-                    value={manifestUrl}
-                    className="block h-10 w-full min-w-0 rounded-lg border border-zinc-700 bg-zinc-800 px-3 text-base text-zinc-300 focus:outline-none sm:text-[12px]"
+                    value={resumeLink}
+                    spellCheck={false}
+                    className="field-input min-w-0 text-[13px]"
                   />
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="h-10 flex-shrink-0 rounded-lg border border-zinc-700 bg-zinc-800 px-3 text-xs text-zinc-300 transition-colors hover:bg-zinc-700"
-                  >
-                    {copied ? "✓" : "Copy"}
+                  <button type="button" onClick={handleCopyResumeLink} className="btn btn-ghost shrink-0">
+                    {resumeCopied ? "Copied" : "Copy"}
                   </button>
                 </div>
               </div>
-
-              {resumeLink && (
-                <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-800/35 p-3">
-                  <label className="block text-[10px] uppercase tracking-[0.12em] text-zinc-500">
-                    Edit link: reopens this configuration on any device
-                  </label>
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={resumeLink}
-                      className="block h-10 w-full min-w-0 rounded-lg border border-zinc-700 bg-zinc-800 px-3 text-base text-zinc-300 focus:outline-none sm:text-[12px]"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleCopyResumeLink}
-                      className="h-10 flex-shrink-0 rounded-lg border border-zinc-700 bg-zinc-800 px-3 text-xs text-zinc-300 transition-colors hover:bg-zinc-700"
-                    >
-                      {resumeCopied ? "✓" : "Copy"}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-4 flex items-center justify-center gap-3 text-xs text-zinc-500">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForceMainForm(false);
-                    if (result) setShowConfig(true);
-                    else setShowPublicConfig(true);
-                  }}
-                  className="transition-colors hover:text-zinc-300"
-                >
-                  Reconfigure
-                </button>
-                <span className="text-zinc-700">|</span>
-                <button
-                  type="button"
-                  onClick={result ? handleLogout : handleReset}
-                  className="transition-colors hover:text-zinc-300"
-                >
-                  {result ? "Sign out" : "Start over"}
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-5 border-t border-zinc-800 pt-4">
-              <p className="text-center text-[11px] font-light leading-relaxed text-zinc-500">
-                Tip: use{" "}
-                <a
-                  href="https://stremio-addon-manager.vercel.app/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-zinc-300 underline decoration-zinc-600 underline-offset-2 transition-colors hover:text-white hover:decoration-zinc-400"
-                >
-                  Stremio Addon Manager
-                </a>{" "}
-                to rank Stremboxd first.
-              </p>
-            </div>
+            )}
           </div>
         </div>
-
-        <div className="flex items-end justify-center">
-          <Footer absolute={false} />
-        </div>
-        </div>
         {renderErrorToastStack()}
-      </div>
+      </Frame>
     );
   }
 
   // Main form
   return (
-    <div className="fixed inset-0 overflow-y-auto bg-[#0a0a0a] text-white">
-      {/* Equal 1fr rows keep the card centered with the arrow mid-gap above it; they collapse on short screens so everything scrolls together. */}
-      <div className="grid min-h-full grid-rows-[1fr_auto_1fr]">
-        <div className="flex items-center justify-center py-3">
-          <TransitionLink
-            href="/"
-            direction="down"
-            className="flex h-[clamp(2.875rem,3vw,4rem)] w-[clamp(2.875rem,3vw,4rem)] items-center justify-center rounded-full bg-white transition-all hover:scale-110 hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#0a0a0a]"
-            ariaLabel="Back to home"
-          >
-            <svg className="h-[clamp(1.0625rem,1.2vw,1.625rem)] w-[clamp(1.0625rem,1.2vw,1.625rem)] text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-            </svg>
-          </TransitionLink>
+    <Frame>
+      <div className="animate-fade-in grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:gap-16">
+        <div>
+          <h1 className="text-[32px] font-medium leading-[1.05] tracking-[-0.04em] sm:text-[44px]">
+            {show2FA ? "One more step." : "Connect your Letterboxd."}
+          </h1>
+          {show2FA ? (
+            <p className="mt-3 max-w-[40ch] text-[15.5px] text-muted">Enter the code from your authenticator app.</p>
+          ) : (
+            <div className="mt-6 grid max-w-md gap-2.5" role="group" aria-label="Access mode">
+              <button
+                type="button"
+                aria-pressed={!fullAccess}
+                onClick={() => {
+                  setFullAccess(false);
+                  setPasswordPreview("");
+                }}
+                className={`grid gap-1 rounded-card border px-4 py-3.5 text-left transition-colors ${
+                  !fullAccess ? "border-foreground bg-surface" : "border-line hover:border-line-strong"
+                }`}
+              >
+                <span className="text-[15px] font-medium">Username only</span>
+                <span className="text-[13.5px] text-dim">Watchlist, lists, Popular. No password.</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={fullAccess}
+                onClick={() => setFullAccess(true)}
+                className={`grid gap-1 rounded-card border px-4 py-3.5 text-left transition-colors ${
+                  fullAccess ? "border-foreground bg-surface" : "border-line hover:border-line-strong"
+                }`}
+              >
+                <span className="text-[15px] font-medium">Full access</span>
+                <span className="text-[13.5px] text-dim">
+                  Adds diary, friends activity and actions from Stremio. Needs your password.
+                </span>
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="mx-auto w-full max-w-lg px-4 sm:px-8">
-          <div className="film-grain animate-fade-in relative w-full overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl sm:p-8">
-            <h2
-              className="text-center text-2xl font-semibold text-white sm:text-3xl"
-            >
-              Configure your addon
-            </h2>
-            <p className="mx-auto mt-2.5 max-w-lg text-center text-xs leading-relaxed text-zinc-400 ">
-              Password is optional for diary, friends activity and full Letterboxd controls.
-            </p>
-
+        <div className="surface p-5 sm:p-6">
+          {show2FA ? (
+            <div className="grid gap-5">
+              <OtpInput
+                value={totpCode}
+                onChange={setTotpCode}
+                onComplete={(code) => void handleSubmit2FA(code)}
+                disabled={is2FALoading}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setShow2FA(false);
+                  setTotpCode("");
+                }}
+                className="link-quiet justify-self-start py-1 text-sm"
+              >
+                Back
+              </button>
+            </div>
+          ) : (
             <form
-              className="mt-7 space-y-5"
+              className="grid gap-5"
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSubmit();
               }}
             >
-              <div>
-                <label htmlFor="username" className="block text-[13px] font-medium text-zinc-300">
-                  Username
-                  <span className="ml-1 text-xs text-zinc-500">*</span>
+              <div className="grid gap-2">
+                <label htmlFor="username" className="text-[13.5px] text-muted">
+                  Letterboxd username
                 </label>
                 <input
                   ref={usernameRef}
@@ -1552,145 +1557,53 @@ function ConfigureInner() {
                   id="username"
                   name="username"
                   autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   placeholder="your-username"
                   disabled={isLoading}
-                  className="mt-2 block w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-base text-white sm:text-sm placeholder-zinc-500 transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="field-input"
                 />
               </div>
 
-              <div>
-                <div className="flex items-center justify-between gap-3">
-                  <label htmlFor="password" className="block text-[13px] font-medium text-zinc-300">
+              {fullAccess && (
+                <div className="grid gap-2">
+                  <label htmlFor="password" className="text-[13.5px] text-muted">
                     Password
                   </label>
-                </div>
-                <input
-                  ref={passwordRef}
-                  type="password"
-                  id="password"
-                  name="password"
-                  autoComplete="current-password"
-                  onChange={(e) => setPasswordPreview(e.target.value)}
-                  placeholder="**************"
-                  disabled={isLoading}
-                  className="mt-2 block w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-base text-white sm:text-sm placeholder-zinc-500 transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-              </div>
-
-              {hasPassword && (
-                <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-medium text-white">Stay Signed In</p>
-                    <p className="mt-0.5 text-[11px] text-zinc-500">
-                      Supporters only. Skips the Letterboxd login next visit.
-                    </p>
-                  </div>
-                  <Toggle enabled={rememberMe} onToggle={() => setRememberMe(!rememberMe)} />
+                  <input
+                    ref={passwordRef}
+                    type="password"
+                    id="password"
+                    name="password"
+                    autoComplete="current-password"
+                    onChange={(e) => setPasswordPreview(e.target.value)}
+                    disabled={isLoading}
+                    className="field-input"
+                  />
+                  <p className="text-[13px] leading-relaxed text-dim">
+                    Used once to sign in. We keep an encrypted token, never your password.
+                  </p>
                 </div>
               )}
 
-              <div className="rounded-xl border border-zinc-800 bg-zinc-800/30 px-3.5 py-2.5">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Mode</p>
-                <p className="mt-1 text-[13px] text-zinc-200">
-                  {hasPassword ? "Full access" : "Username only"}
-                </p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  {hasPassword
-                    ? "Includes diary, friends activity and all Letterboxd actions from Stremio."
-                    : "Includes popular films, Top 250, watchlist and lists."}
-                </p>
-              </div>
+              {fullAccess && hasPassword && (
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Stay signed in</p>
+                    <p className="text-[13px] text-dim">Supporters only</p>
+                  </div>
+                  <Toggle enabled={rememberMe} onToggle={() => setRememberMe(!rememberMe)} label="Stay signed in" />
+                </div>
+              )}
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-[15px] font-semibold text-black transition-all hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isLoading ? (
-                  <>
-                    <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Connecting...
-                  </>
-                ) : (
-                  "Generate my addon"
-                )}
+              <button type="submit" disabled={isLoading} className="btn btn-primary w-full">
+                {isLoading ? "Connecting…" : "Continue"}
               </button>
-
-              <p className="cursor-default text-center text-xs text-zinc-500">
-                Your password is only used to authenticate with Letterboxd.
-                <br className="hidden sm:inline" />{" "}
-                We store an encrypted refresh token, not your raw password.
-              </p>
             </form>
-          </div>
-        </div>
-
-        <div className="flex items-end justify-center">
-          <Footer absolute={false} />
+          )}
         </div>
       </div>
-      {show2FA && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="film-grain animate-fade-in w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-7 shadow-2xl">
-            <h3 className="text-center text-lg font-semibold text-white">Two-Factor Authentication</h3>
-            <p className="mt-2 text-center text-xs text-zinc-400">
-              Enter the 6-digit code from your authenticator app.
-            </p>
-            <form
-              className="mt-5 space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSubmit2FA();
-              }}
-            >
-              <input
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                placeholder="000000"
-                value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                autoFocus
-                disabled={is2FALoading}
-                className="block w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-center text-2xl font-mono tracking-[0.3em] text-white placeholder-zinc-600 transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={is2FALoading || totpCode.length !== 6}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-[15px] font-semibold text-black transition-all hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {is2FALoading ? (
-                  <>
-                    <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Verifying...
-                  </>
-                ) : (
-                  "Verify"
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShow2FA(false);
-                  setTotpCode("");
-                }}
-                className="w-full text-center text-xs text-zinc-500 transition-colors hover:text-zinc-300"
-              >
-                Cancel
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
       {renderErrorToastStack()}
-    </div>
+    </Frame>
   );
 }
-

@@ -120,11 +120,11 @@ export function AccountLinkSection({
   };
 
   return (
-    <div className="mt-7">
+    <div>
       <div className="flex items-center gap-1.5">
-        <h3 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">Accounts</h3>
+        <h3 className="text-[15px] font-medium text-foreground">Accounts</h3>
         <span
-          className="flex h-3.5 w-3.5 cursor-help items-center justify-center text-zinc-600 transition-colors hover:text-zinc-300"
+          className="flex h-3.5 w-3.5 cursor-help items-center justify-center text-dim transition-colors hover:text-zinc-300"
           title="Link once and your catalogs update without reinstalling the addon. Your keys stay in this browser and never reach our servers."
         >
           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,7 +176,7 @@ export function AccountLinkSection({
                 setBannerDismissed(true);
               }}
               aria-label="Dismiss supporter banner"
-              className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-zinc-500 transition-colors hover:text-zinc-200"
+              className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-dim transition-colors hover:text-zinc-200"
             >
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -205,7 +205,7 @@ export function AccountLinkSection({
               className="h-24 w-24 flex-shrink-0 self-start rounded-lg bg-white p-1.5 sm:self-auto"
             />
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-[11px] text-dim">
                 Scan the code, or open{" "}
                 <a
                   href={stremioCode.link}
@@ -228,7 +228,7 @@ export function AccountLinkSection({
 
       {pairing === "nuvio" && nuvioCode && (
         <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-dim">
             Open{" "}
             <a
               href={nuvioCode.link}
@@ -275,9 +275,9 @@ export function AccountLinkSection({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-[12px] font-medium text-zinc-200">Manage subscription</span>
-            <span className="block text-[10.5px] text-zinc-500">Billing, invoices, cancel</span>
+            <span className="block text-[10.5px] text-dim">Billing, invoices, cancel</span>
           </span>
-          <svg className="h-3.5 w-3.5 flex-shrink-0 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-3.5 w-3.5 flex-shrink-0 text-dim" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M9 18l6-6-6-6" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </a>
@@ -293,12 +293,12 @@ function LinkedRow({ label, sublabel, onUnlink }: { label: string; sublabel: str
     <div className="mt-3 flex items-center gap-3 rounded-lg bg-zinc-800/35 px-3.5 py-2.5">
       <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" />
       <p className="min-w-0 flex-1 text-[13px] text-zinc-300">
-        {label} <span className="text-zinc-500">· {sublabel}</span>
+        {label} <span className="text-dim">· {sublabel}</span>
       </p>
       <button
         type="button"
         onClick={onUnlink}
-        className="flex-shrink-0 text-[11px] text-zinc-500 transition-colors hover:text-zinc-200"
+        className="flex-shrink-0 text-[11px] text-dim transition-colors hover:text-zinc-200"
       >
         Unlink
       </button>
@@ -309,8 +309,8 @@ function LinkedRow({ label, sublabel, onUnlink }: { label: string; sublabel: str
 function WaitingRow({ onCancel }: { onCancel: () => void }) {
   return (
     <div className="mt-3 flex items-center justify-between gap-2 border-t border-zinc-800 pt-3">
-      <span className="flex items-center gap-2 text-[11px] text-zinc-500">
-        <svg className="h-3 w-3 animate-spin text-zinc-600" viewBox="0 0 24 24" fill="none">
+      <span className="flex items-center gap-2 text-[11px] text-dim">
+        <svg className="h-3 w-3 animate-spin text-dim" viewBox="0 0 24 24" fill="none">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path
             className="opacity-75"

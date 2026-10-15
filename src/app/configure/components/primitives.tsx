@@ -31,7 +31,7 @@ export function SortableCatalogRow({ id, children }: { id: string; children: Rea
         {...listeners}
         {...attributes}
         tabIndex={-1}
-        className="flex-shrink-0 cursor-grab text-zinc-600 hover:text-zinc-400 active:cursor-grabbing touch-none"
+        className="flex-shrink-0 cursor-grab text-dim hover:text-zinc-400 active:cursor-grabbing touch-none"
         aria-label="Drag to reorder"
       >
         <GripIcon />
@@ -87,7 +87,7 @@ export function EditableName({
           if (stopPropagation) e.stopPropagation();
           onStartEditing();
         }}
-        className="flex-shrink-0 text-zinc-600 transition-colors hover:text-zinc-300"
+        className="flex-shrink-0 text-dim transition-colors hover:text-zinc-300"
       >
         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={PENCIL_ICON} />
@@ -97,15 +97,20 @@ export function EditableName({
   );
 }
 
-export function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+export function Toggle({ enabled, onToggle, label }: { enabled: boolean; onToggle: () => void; label?: string }) {
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={enabled}
+      aria-label={label}
       onClick={onToggle}
-      className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${enabled ? "bg-white" : "bg-zinc-700"}`}
+      className={`relative h-6 w-11 flex-shrink-0 rounded-full border transition-colors ${
+        enabled ? "border-foreground bg-foreground" : "border-control bg-zinc-800"
+      }`}
     >
       <span
-        className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full transition-transform ${enabled ? "translate-x-5 bg-black" : "translate-x-0 bg-zinc-400"}`}
+        className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full transition-transform ${enabled ? "translate-x-5 bg-black" : "translate-x-0 bg-zinc-400"}`}
       />
     </button>
   );
