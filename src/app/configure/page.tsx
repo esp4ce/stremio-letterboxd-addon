@@ -1381,11 +1381,17 @@ function ConfigureInner() {
   if (manifestUrl && !showConfig && !showPublicConfig && !forceMainForm) {
     return (
       <Frame step={3}>
-        <div className="animate-fade-in mx-auto w-full max-w-[640px]">
-          <h1 className="text-center text-[28px] font-medium leading-[1.08] tracking-[-0.035em] sm:text-[40px]">
+        <div className="mx-auto w-full max-w-[760px]">
+          <div className="validate-mark mx-auto flex h-20 w-20 items-center justify-center" role="img" aria-label="Done">
+            <svg className="h-20 w-20 text-foreground" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <circle className="validate-ring" cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" transform="rotate(-90 32 32)" />
+              <path className="validate-check" d="M20 33l8 8 16-17" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <h1 className="mt-6 text-center text-[28px] font-medium leading-[1.08] tracking-[-0.035em] sm:text-[48px]">
             Your addon is ready.
           </h1>
-          <p className="mt-3 text-center text-[16px] text-muted">
+          <p className="mt-4 text-center text-[18px] text-muted">
             {result
               ? `Welcome, ${result.user.displayName || result.user.username}.`
               : usernameValidated
@@ -1393,10 +1399,10 @@ function ConfigureInner() {
                 : "Install it once, then pick it up in Stremio."}
           </p>
 
-          <div className="surface mt-8 grid gap-6 p-5 sm:p-8">
+          <div className="surface mt-10 grid gap-7 p-6 sm:p-10">
             {syncOutcome === "synced" ? (
               <div>
-                <p className="rounded-control border border-line px-4 py-3 text-center text-[16px]" role="status">
+                <p className="rounded-control border border-line px-4 py-4 text-center text-[18px]" role="status">
                   Updated in Stremio.
                 </p>
                 <p className="mt-3 text-center text-[14px] text-dim">
@@ -1408,7 +1414,7 @@ function ConfigureInner() {
               </div>
             ) : (
               <div className="grid gap-3">
-                <button type="button" onClick={handleInstallStremio} className="btn btn-primary w-full">
+                <button type="button" onClick={handleInstallStremio} className="btn btn-primary w-full py-4 text-[16px]">
                   Install in Stremio
                 </button>
                 {syncOutcome === "not-installed" && (
@@ -1420,7 +1426,7 @@ function ConfigureInner() {
             )}
 
             <div className="grid gap-2">
-              <label htmlFor="manifest-url" className="text-[14px] text-muted">
+              <label htmlFor="manifest-url" className="text-[16px] text-muted">
                 Manifest URL
               </label>
               <div className="flex gap-2">
@@ -1430,9 +1436,9 @@ function ConfigureInner() {
                   readOnly
                   value={manifestUrl}
                   spellCheck={false}
-                  className="field-input min-w-0 text-[14px]"
+                  className="field-input h-12 min-w-0 text-[16px]"
                 />
-                <button type="button" onClick={handleCopy} className="btn btn-ghost shrink-0">
+                <button type="button" onClick={handleCopy} className="btn btn-ghost shrink-0 px-5">
                   {copied ? "Copied" : "Copy"}
                 </button>
               </div>
@@ -1440,7 +1446,7 @@ function ConfigureInner() {
 
             {resumeLink && (
               <div className="grid gap-2">
-                <label htmlFor="resume-link" className="text-[14px] text-muted">
+                <label htmlFor="resume-link" className="text-[16px] text-muted">
                   Edit link, reopens this setup on any device
                 </label>
                 <div className="flex gap-2">
@@ -1450,9 +1456,9 @@ function ConfigureInner() {
                     readOnly
                     value={resumeLink}
                     spellCheck={false}
-                    className="field-input min-w-0 text-[14px]"
+                    className="field-input h-12 min-w-0 text-[16px]"
                   />
-                  <button type="button" onClick={handleCopyResumeLink} className="btn btn-ghost shrink-0">
+                  <button type="button" onClick={handleCopyResumeLink} className="btn btn-ghost shrink-0 px-5">
                     {resumeCopied ? "Copied" : "Copy"}
                   </button>
                 </div>
@@ -1593,9 +1599,10 @@ function ConfigureInner() {
                     autoComplete="current-password"
                     onChange={(e) => setPasswordPreview(e.target.value)}
                     disabled={isLoading}
-                    placeholder={wide ? PASSWORD_NOTE : PASSWORD_NOTE_SHORT}
-                    className="field-input truncate"
+                    placeholder="Password"
+                    className="field-input"
                   />
+                  <p className="text-[14px] text-dim">{wide ? PASSWORD_NOTE : PASSWORD_NOTE_SHORT}</p>
                 </div>
               )}
 
