@@ -225,7 +225,14 @@ function Frame({
 
 export default function Configure() {
   return (
-    <Suspense fallback={<div className="fixed inset-0 bg-background" />}>
+    <Suspense
+      fallback={
+        <Frame step={1}>
+          <h1 className="sr-only">Connect your Letterboxd account to Stremio and Nuvio</h1>
+          <div className="min-h-[420px]" aria-busy="true" />
+        </Frame>
+      }
+    >
       <ConfigureInner />
     </Suspense>
   );
@@ -1223,7 +1230,12 @@ function ConfigureInner() {
 
   // Session restore in flight: hold the frame instead of flashing the login form
   if (isRestoringSession) {
-    return <div className="fixed inset-0 bg-background" />;
+    return (
+      <Frame step={1}>
+        <h1 className="sr-only">Connect your Letterboxd account to Stremio and Nuvio</h1>
+        <div className="min-h-[420px]" aria-busy="true" />
+      </Frame>
+    );
   }
 
   // One-time thank-you right after a confirmed checkout. Leaving it drops it for good.

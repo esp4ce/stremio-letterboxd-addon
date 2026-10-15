@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "../../lib/seo";
 
-export const metadata: Metadata = {
-  title: "Configure",
+export const metadata: Metadata = pageMetadata({
+  title: "Install Letterboxd Addon for Stremio & Nuvio | Stremboxd",
   description:
-    "Set up your personalized Stremboxd addon in seconds. Enter your Letterboxd username, pick your catalogs (watchlist, diary, liked films, custom lists) and install directly into Stremio.",
-  alternates: { canonical: "/configure" },
-  openGraph: {
-    title: "Configure Your Stremboxd Addon",
-    description:
-      "Set up your Letterboxd integration for Stremio and Nuvio. Pick your catalogs, enable ratings, add custom lists, and install in one click.",
-    url: "https://stremboxd.com/configure",
-  },
-};
+    "Connect your Letterboxd account, pick your catalogs and install the addon in Stremio or Nuvio. Username only or full access, with 2FA support.",
+  path: "/configure",
+});
 
 export default function ConfigureLayout({
   children,

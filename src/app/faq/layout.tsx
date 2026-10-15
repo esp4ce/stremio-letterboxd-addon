@@ -1,18 +1,13 @@
 import type { Metadata } from "next";
 import { SECTIONS } from "./data";
+import { pageMetadata } from "../../lib/seo";
 
-export const metadata: Metadata = {
-  title: "FAQ",
+export const metadata: Metadata = pageMetadata({
+  title: "Stremboxd FAQ: Letterboxd Addon for Stremio & Nuvio",
   description:
-    "Answers to common questions about installing and using Stremboxd, the Letterboxd addon for Stremio. Installation, features, troubleshooting, and privacy.",
-  alternates: { canonical: "/faq" },
-  openGraph: {
-    title: "Stremboxd FAQ",
-    description:
-      "Common questions about installing and using the Letterboxd addon for Stremio.",
-    url: "https://stremboxd.com/faq",
-  },
-};
+    "Answers about the Letterboxd addon for Stremio and Nuvio: install, public or full access, catalogs, poster ratings, Supporter, troubleshooting and privacy.",
+  path: "/faq",
+});
 
 const faqJsonLd = {
   "@context": "https://schema.org",

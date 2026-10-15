@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import ConsoleMessage from "./components/ConsoleMessage";
 import PostHogProvider from "./components/PostHogProvider";
+import { HOME_TITLE, KEYWORDS, SITE_DESCRIPTION, SITE_NAME, SITE_URL, siteJsonLd } from "../lib/seo";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -17,34 +18,21 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-const SITE_TITLE = "Stremboxd – Sync Letterboxd with Stremio";
-const SITE_DESCRIPTION =
-  "Sync your Letterboxd watchlist, ratings, diary and lists with Stremio and Nuvio. Free unofficial addon for all platforms.";
+const SOCIAL_TITLE = `${HOME_TITLE} | ${SITE_NAME}`;
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://stremboxd.com"),
+  metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
   title: {
-    default: `${SITE_TITLE} | Watchlist, Ratings & Lists`,
-    template: "%s | Stremboxd",
+    default: SOCIAL_TITLE,
+    template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
-  keywords: [
-    "stremboxd",
-    "letterboxd",
-    "stremio",
-    "addon",
-    "stremio addon",
-    "letterboxd stremio",
-    "movies",
-    "watchlist",
-    "film ratings",
-    "diary",
-    "sync",
-    "streaming",
-    "media center",
-  ],
+  keywords: KEYWORDS,
   authors: [{ name: "esp4ce", url: "https://github.com/esp4ce" }],
   creator: "esp4ce",
+  category: "entertainment",
+  alternates: { canonical: "/" },
   icons: {
     icon: "/favicon.svg",
     apple: "/favicon.svg",
@@ -52,14 +40,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://stremboxd.com",
-    siteName: "Stremboxd",
-    title: SITE_TITLE,
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: SOCIAL_TITLE,
     description: SITE_DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: SITE_TITLE,
+    title: SOCIAL_TITLE,
     description: SITE_DESCRIPTION,
   },
 };
@@ -68,37 +56,6 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0a",
   width: "device-width",
   initialScale: 1,
-};
-
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Stremboxd",
-  applicationCategory: "MultimediaApplication",
-  operatingSystem: "All",
-  description: SITE_DESCRIPTION,
-  url: "https://stremboxd.com",
-  offers: [
-    { "@type": "Offer", name: "Free", price: "0", priceCurrency: "EUR" },
-    {
-      "@type": "Offer",
-      name: "Supporter",
-      price: "9.99",
-      priceCurrency: "EUR",
-      url: "https://stremboxd.com/#supporter",
-      priceSpecification: {
-        "@type": "UnitPriceSpecification",
-        price: "9.99",
-        priceCurrency: "EUR",
-        referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitCode: "ANN" },
-      },
-    },
-  ],
-  author: {
-    "@type": "Person",
-    name: "esp4ce",
-    url: "https://github.com/esp4ce",
-  },
 };
 
 export default function RootLayout({
@@ -119,7 +76,7 @@ export default function RootLayout({
       <body className={`${geist.variable} ${geistMono.variable} antialiased`}>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
         />
         <a
           href="#main"
