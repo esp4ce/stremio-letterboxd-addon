@@ -49,31 +49,27 @@ export function UserListsSection({
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
-        <h3 className="min-w-0 truncate text-[18px] font-medium text-foreground">
-          {user.displayName || user.username}&apos;s Lists
-        </h3>
-        <div className="flex flex-shrink-0 items-center gap-2">
-          <span className="text-[12px] text-dim">
-            {ownListCount} / {lists.length}
-          </span>
+        <p className="min-w-0 truncate text-[14px] text-dim">
+          {ownListCount} of {lists.length} selected
+        </p>
+        <div className="flex flex-shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={onSelectAll}
-            className="text-[12px] text-dim transition-colors hover:text-foreground"
+            className="rounded-control px-2 py-1.5 text-[14px] text-muted transition-colors hover:text-foreground"
           >
-            All
+            Select all
           </button>
-          <span className="text-[12px] text-dim">/</span>
           <button
             type="button"
             onClick={onDeselectAll}
-            className="text-[12px] text-dim transition-colors hover:text-foreground"
+            className="rounded-control px-2 py-1.5 text-[14px] text-muted transition-colors hover:text-foreground"
           >
             None
           </button>
         </div>
       </div>
-      <div className="config-scroll mt-3 grid max-h-[32dvh] grid-cols-1 sm:max-h-[20vh] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="config-scroll mt-3 grid max-h-[40dvh] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
         {lists.map((list) => {
           const ownCatId = `letterboxd-list-${list.id}`;
           return (

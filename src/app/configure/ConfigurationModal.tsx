@@ -90,7 +90,7 @@ interface PublicModeProps extends BaseProps {
 
 type ConfigurationModalProps = FullModeProps | PublicModeProps;
 
-type ConfigSection = "catalogs" | "lists" | "display" | "accounts";
+type ConfigSection = "catalogs" | "display" | "accounts";
 
 export default function ConfigurationModal(props: ConfigurationModalProps) {
   const { mode, user, lists, onBack, onSave, isSaving, externalListUrl, onExternalListUrlChange, onAddExternalList, isResolvingList } = props;
@@ -691,7 +691,6 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
 
   const sections: { id: ConfigSection; label: string }[] = [
     { id: "catalogs", label: "Catalogs" },
-    { id: "lists", label: "Lists" },
     { id: "display", label: "Display" },
     ...(!isPublic ? [{ id: "accounts" as const, label: "Accounts" }] : []),
   ];
@@ -730,6 +729,13 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
 
           <div className="panel-scroll min-w-0 p-4 sm:p-6 lg:overflow-y-auto">
             {current === "catalogs" && (
+              <div className="space-y-8">
+                <ExternalCatalogsSection
+                  externalListUrl={externalListUrl}
+                  onExternalListUrlChange={onExternalListUrlChange}
+                  onAddExternalList={onAddExternalList}
+                  isResolvingList={isResolvingList}
+                />
               <CatalogsSection
                 sortedActiveItems={sortedActiveItems}
                 disabledBaseItems={disabledBaseItems}
@@ -754,6 +760,47 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                 onToggleCatalog={toggleCatalog}
                 onToggleCatalogVariant={toggleCatalogVariant}
               />
+
+                {hasUsername && user && lists.length > 0 && (
+                  <details className="group rounded-card border border-line">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-[16px] font-medium [&::-webkit-details-marker]:hidden">
+                      <span className="min-w-0 truncate">{user.displayName || user.username}&apos;s lists</span>
+                      <span className="flex shrink-0 items-center gap-3 text-[14px] font-normal text-dim">
+                        <span className="tabular-nums">
+                          {selectedOwnListIds.length} / {lists.length}
+                        </span>
+                        <svg
+                          className="h-4 w-4 transition-transform group-open:rotate-180"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </span>
+                    </summary>
+                    <div className="border-t border-line p-4">
+                      <UserListsSection
+                        user={user}
+                        lists={lists}
+                        selectedListIds={selectedOwnListIds}
+                        editingCatalogId={editingCatalogId}
+                        editingName={editingName}
+                        onEditingNameChange={setEditingName}
+                        onStartEditingName={startEditingCatalogName}
+                        onSaveName={saveCatalogName}
+                        onCancelEditing={() => setEditingCatalogId(null)}
+                        getCatalogDisplayName={getCatalogDisplayName}
+                        isOwnListSelected={isOwnListSelected}
+                        onToggleOwnList={toggleOwnList}
+                        onSelectAll={selectAllOwnLists}
+                        onDeselectAll={deselectAllOwnLists}
+                      />
+                    </div>
+                  </details>
+                )}
+              </div>
             )}
 
             {current === "display" &&
@@ -786,35 +833,6 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                   />
                 </DisplayOptionsSection>
               ))}
-
-            {current === "lists" && (
-              <div className="space-y-8">
-                <ExternalCatalogsSection
-                  externalListUrl={externalListUrl}
-                  onExternalListUrlChange={onExternalListUrlChange}
-                  onAddExternalList={onAddExternalList}
-                  isResolvingList={isResolvingList}
-                />
-                {hasUsername && user && (
-                  <UserListsSection
-                    user={user}
-                    lists={lists}
-                    selectedListIds={selectedOwnListIds}
-                    editingCatalogId={editingCatalogId}
-                    editingName={editingName}
-                    onEditingNameChange={setEditingName}
-                    onStartEditingName={startEditingCatalogName}
-                    onSaveName={saveCatalogName}
-                    onCancelEditing={() => setEditingCatalogId(null)}
-                    getCatalogDisplayName={getCatalogDisplayName}
-                    isOwnListSelected={isOwnListSelected}
-                    onToggleOwnList={toggleOwnList}
-                    onSelectAll={selectAllOwnLists}
-                    onDeselectAll={deselectAllOwnLists}
-                  />
-                )}
-              </div>
-            )}
 
             {current === "accounts" && !isPublic && (
               <AccountLinkSection
