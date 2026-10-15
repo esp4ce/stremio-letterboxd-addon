@@ -66,7 +66,7 @@ export default function SiteHeader({ children }: { children?: ReactNode }) {
                     direction="up"
                     trackTarget="faq"
                     ariaCurrent={active === item.id ? "page" : undefined}
-                    className={`block rounded-control px-2.5 py-2 text-center text-[13px] transition-colors sm:px-3 sm:py-1.5 sm:text-[13.5px] ${
+                    className={`block rounded-control px-2.5 py-2 text-center text-[14px] transition-colors sm:px-3 sm:py-1.5 sm:text-[14px] ${
                       active === item.id ? "bg-raised text-foreground" : "text-muted hover:text-foreground"
                     }`}
                   >
@@ -76,7 +76,7 @@ export default function SiteHeader({ children }: { children?: ReactNode }) {
                   <a
                     href={item.href}
                     aria-current={active === item.id ? "page" : undefined}
-                    className={`block whitespace-nowrap rounded-control px-2.5 py-2 text-center text-[13px] transition-colors sm:px-3 sm:py-1.5 sm:text-[13.5px] ${
+                    className={`block whitespace-nowrap rounded-control px-2.5 py-2 text-center text-[14px] transition-colors sm:px-3 sm:py-1.5 sm:text-[14px] ${
                       active === item.id ? "bg-raised text-foreground" : "text-muted hover:text-foreground"
                     }`}
                   >

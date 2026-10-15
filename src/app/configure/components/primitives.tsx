@@ -74,13 +74,13 @@ export function EditableName({
           if (e.key === "Escape") onCancel();
         }}
         autoFocus
-        className="w-full rounded border border-zinc-600 bg-zinc-800 px-2 py-0.5 text-base text-white focus:border-zinc-400 focus:outline-none sm:text-[13px]"
+        className="w-full rounded border border-zinc-600 bg-zinc-800 px-2 py-0.5 text-base text-white focus:border-zinc-400 focus:outline-none sm:text-[14px]"
       />
     );
   }
   return (
     <div className="flex items-center gap-1.5">
-      <p className="min-w-0 break-words text-[13px] font-medium text-white sm:truncate">{displayName}</p>
+      <p className="min-w-0 break-words text-[14px] font-medium text-white sm:truncate">{displayName}</p>
       <button
         type="button"
         onClick={(e) => {

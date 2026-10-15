@@ -30,12 +30,12 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
   if (props.mode === "public") {
     return (
       <div>
-        <h3 className="text-[15px] font-medium text-foreground">Display Options</h3>
+        <h3 className="text-[16px] font-medium text-foreground">Display Options</h3>
         <div className="mt-3 space-y-2">
           <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
             <div className="min-w-0">
-              <p className="text-[13px] font-medium text-white">Show Letterboxd Ratings</p>
-              <p className="mt-0.5 text-[11px] text-dim">On posters and in stream info</p>
+              <p className="text-[14px] font-medium text-white">Show Letterboxd Ratings</p>
+              <p className="mt-0.5 text-[12px] text-dim">On posters and in stream info</p>
             </div>
             <Toggle
               enabled={props.showRatings}
@@ -44,8 +44,8 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
           </div>
           <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
             <div className="min-w-0">
-              <p className="text-[13px] font-medium text-white">Hide Unreleased Films</p>
-              <p className="mt-0.5 text-[11px] text-dim">Hide films that haven&apos;t been released yet</p>
+              <p className="text-[14px] font-medium text-white">Hide Unreleased Films</p>
+              <p className="mt-0.5 text-[12px] text-dim">Hide films that haven&apos;t been released yet</p>
             </div>
             <Toggle
               enabled={props.hideUnreleased}
@@ -54,8 +54,8 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
           </div>
           <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
             <div className="min-w-0">
-              <p className="text-[13px] font-medium text-white">Hide Films Without a Home Release</p>
-              <p className="mt-0.5 text-[11px] text-dim">Hide films not yet available digitally, physically or on TV</p>
+              <p className="text-[14px] font-medium text-white">Hide Films Without a Home Release</p>
+              <p className="mt-0.5 text-[12px] text-dim">Hide films not yet available digitally, physically or on TV</p>
             </div>
             <Toggle
               enabled={props.hideNoHomeRelease}
@@ -64,8 +64,8 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
           </div>
           <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
             <div className="min-w-0">
-              <p className="text-[13px] font-medium text-white">Letterboxd Search</p>
-              <p className="mt-0.5 text-[11px] text-dim">Search films directly via Letterboxd in Stremio</p>
+              <p className="text-[14px] font-medium text-white">Letterboxd Search</p>
+              <p className="mt-0.5 text-[12px] text-dim">Search films directly via Letterboxd in Stremio</p>
             </div>
             <Toggle
               enabled={props.publicSearch}
@@ -90,15 +90,15 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
 
   return (
     <div>
-      <h3 className="text-[15px] font-medium text-foreground">Display Options</h3>
+      <h3 className="text-[16px] font-medium text-foreground">Display Options</h3>
       <div className="mt-3 space-y-2">
         {items.map(({ key, label, description, defaultOn }) => {
           const enabled = defaultOn ? preferences[key] !== false : preferences[key] === true;
           return (
             <div key={key} className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
               <div className="min-w-0">
-                <p className="text-[13px] font-medium text-white">{label}</p>
-                <p className="mt-0.5 text-[11px] text-dim">{description}</p>
+                <p className="text-[14px] font-medium text-white">{label}</p>
+                <p className="mt-0.5 text-[12px] text-dim">{description}</p>
               </div>
               <Toggle
                 enabled={enabled}

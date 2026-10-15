@@ -75,7 +75,7 @@ body::after {
     white-space: nowrap;
     border-radius: var(--radius-control);
     padding: 0.7rem 1.15rem;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     font-weight: 500;
     line-height: 1.25;
     transition:
@@ -109,7 +109,7 @@ body::after {
   }
   .btn-sm {
     padding: 0.45rem 0.8rem;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
   }
   .link-quiet {
     color: var(--color-muted);

@@ -426,7 +426,7 @@ function ConfigureInner() {
               }`}
             />
             <div className="min-w-0 flex-1 pl-2 pr-8">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                 {toast.tone === "upsell" ? "Heads up" : toast.tone === "success" ? "Success" : "Error"}
               </p>
               <p className="mt-1 text-sm leading-relaxed text-zinc-100">{toast.message}</p>
@@ -1171,8 +1171,8 @@ function ConfigureInner() {
         <div className="text-center" role="status">
           {checkoutSlow ? (
             <>
-              <h1 className="text-[26px] font-medium tracking-[-0.03em]">Payment received.</h1>
-              <p className="mt-3 text-[15px] leading-relaxed text-muted">Thanks for supporting Stremboxd.</p>
+              <h1 className="text-[28px] font-medium tracking-[-0.03em]">Payment received.</h1>
+              <p className="mt-3 text-[16px] leading-relaxed text-muted">Thanks for supporting Stremboxd.</p>
               <p className="mt-2 text-sm leading-relaxed text-dim">
                 Founder access can take a minute to show up. Nothing else to do: reload this page in a little while.
               </p>
@@ -1182,8 +1182,8 @@ function ConfigureInner() {
             </>
           ) : checkoutNeedsLogin ? (
             <>
-              <h1 className="text-[26px] font-medium tracking-[-0.03em]">Payment received.</h1>
-              <p className="mt-3 text-[15px] leading-relaxed text-muted">Thanks for supporting Stremboxd.</p>
+              <h1 className="text-[28px] font-medium tracking-[-0.03em]">Payment received.</h1>
+              <p className="mt-3 text-[16px] leading-relaxed text-muted">Thanks for supporting Stremboxd.</p>
               <p className="mt-2 text-sm leading-relaxed text-dim">
                 This tab lost your session during checkout. Log back in to activate your supporter session.
               </p>
@@ -1193,7 +1193,7 @@ function ConfigureInner() {
             </>
           ) : (
             <>
-              <h1 className="text-[26px] font-medium tracking-[-0.03em]">Confirming your payment…</h1>
+              <h1 className="text-[28px] font-medium tracking-[-0.03em]">Confirming your payment…</h1>
               <p className="mt-3 text-sm leading-relaxed text-dim">
                 This can take a minute. If nothing happens, reload this page.
               </p>
@@ -1215,10 +1215,10 @@ function ConfigureInner() {
     return (
       <Frame width="max-w-md">
         <div className="surface animate-fade-in p-6 sm:p-8">
-          <h1 className="text-[26px] font-medium tracking-[-0.03em]">
+          <h1 className="text-[28px] font-medium tracking-[-0.03em]">
             {checkoutWelcome === "founder" ? "You\u2019re a Founder." : "You\u2019re a Supporter."}
           </h1>
-          <p className="mt-2 text-[15px] text-muted">Thank you. Your support pays the hosting.</p>
+          <p className="mt-2 text-[16px] text-muted">Thank you. Your support pays the hosting.</p>
 
           {!autoLogAlreadyOn && (
             <div className="mt-6">
@@ -1236,7 +1236,7 @@ function ConfigureInner() {
                   >
                     {autoLogState === "saving" ? "Turning on…" : "Turn on Auto-log to Diary"}
                   </button>
-                  <p className="mt-2 text-[13px] text-dim">
+                  <p className="mt-2 text-[14px] text-dim">
                     {autoLogState === "error"
                       ? "Couldn\u2019t turn it on right now. Try again, or later from your settings."
                       : "Films you finish in Stremio land in your diary, dated."}
@@ -1260,7 +1260,7 @@ function ConfigureInner() {
                       key={reason.value}
                       type="button"
                       onClick={() => handleReason(reason.value)}
-                      className="rounded-control border border-line-strong px-3 py-2 text-[13px] text-muted transition-colors hover:border-control hover:text-foreground"
+                      className="rounded-control border border-line-strong px-3 py-2 text-[14px] text-muted transition-colors hover:border-control hover:text-foreground"
                     >
                       {reason.label}
                     </button>
@@ -1271,7 +1271,7 @@ function ConfigureInner() {
           </div>
 
           {checkoutWelcome === "founder" && (
-            <p className="mt-4 text-[13px] text-dim">
+            <p className="mt-4 text-[14px] text-dim">
               If you also have a subscription, it keeps renewing until you cancel it from the portal.
             </p>
           )}
@@ -1373,10 +1373,10 @@ function ConfigureInner() {
       <Frame>
         <div className="animate-fade-in grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:gap-14">
           <div>
-            <h1 className="text-[32px] font-medium leading-[1.05] tracking-[-0.04em] sm:text-[44px]">
+            <h1 className="text-[28px] font-medium leading-[1.05] tracking-[-0.04em] sm:text-[40px]">
               Your addon is ready.
             </h1>
-            <p className="mt-3 max-w-[42ch] text-[15.5px] leading-relaxed text-muted">
+            <p className="mt-3 max-w-[42ch] text-[16px] leading-relaxed text-muted">
               {result
                 ? `Welcome, ${result.user.displayName || result.user.username}.`
                 : usernameValidated
@@ -1399,7 +1399,7 @@ function ConfigureInner() {
                 {result ? "Sign out" : "Start over"}
               </button>
             </div>
-            <p className="mt-8 max-w-[46ch] text-[13px] leading-relaxed text-dim">
+            <p className="mt-8 max-w-[46ch] text-[14px] leading-relaxed text-dim">
               Tip: use{" "}
               <a
                 href="https://stremio-addon-manager.vercel.app/"
@@ -1419,7 +1419,7 @@ function ConfigureInner() {
                 <p className="rounded-control border border-line px-4 py-3 text-sm text-foreground" role="status">
                   Updated in Stremio.
                 </p>
-                <p className="mt-2 text-[13px] text-dim">
+                <p className="mt-2 text-[14px] text-dim">
                   TV and mobile may need a restart.{" "}
                   <button type="button" onClick={handleInstallStremio} className="link-quiet">
                     Reinstall manually
@@ -1432,13 +1432,13 @@ function ConfigureInner() {
                   Install in Stremio
                 </button>
                 {syncOutcome === "not-installed" && (
-                  <p className="mt-3 text-[13px] text-muted">Install it once, then your changes sync automatically.</p>
+                  <p className="mt-3 text-[14px] text-muted">Install it once, then your changes sync automatically.</p>
                 )}
               </div>
             )}
 
             <div>
-              <label htmlFor="manifest-url" className="block text-[13px] text-muted">
+              <label htmlFor="manifest-url" className="block text-[14px] text-muted">
                 Manifest URL
               </label>
               <div className="mt-2 flex gap-2">
@@ -1448,7 +1448,7 @@ function ConfigureInner() {
                   readOnly
                   value={manifestUrl}
                   spellCheck={false}
-                  className="field-input min-w-0 text-[13px]"
+                  className="field-input min-w-0 text-[14px]"
                 />
                 <button type="button" onClick={handleCopy} className="btn btn-ghost shrink-0">
                   {copied ? "Copied" : "Copy"}
@@ -1458,7 +1458,7 @@ function ConfigureInner() {
 
             {resumeLink && (
               <div>
-                <label htmlFor="resume-link" className="block text-[13px] text-muted">
+                <label htmlFor="resume-link" className="block text-[14px] text-muted">
                   Edit link, reopens this setup on any device
                 </label>
                 <div className="mt-2 flex gap-2">
@@ -1468,7 +1468,7 @@ function ConfigureInner() {
                     readOnly
                     value={resumeLink}
                     spellCheck={false}
-                    className="field-input min-w-0 text-[13px]"
+                    className="field-input min-w-0 text-[14px]"
                   />
                   <button type="button" onClick={handleCopyResumeLink} className="btn btn-ghost shrink-0">
                     {resumeCopied ? "Copied" : "Copy"}
@@ -1488,11 +1488,11 @@ function ConfigureInner() {
     <Frame>
       <div className="animate-fade-in grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:gap-16">
         <div>
-          <h1 className="text-[32px] font-medium leading-[1.05] tracking-[-0.04em] sm:text-[44px]">
+          <h1 className="text-[28px] font-medium leading-[1.05] tracking-[-0.04em] sm:text-[40px]">
             {show2FA ? "One more step." : "Connect your Letterboxd."}
           </h1>
           {show2FA ? (
-            <p className="mt-3 max-w-[40ch] text-[15.5px] text-muted">Enter the code from your authenticator app.</p>
+            <p className="mt-3 max-w-[40ch] text-[16px] text-muted">Enter the code from your authenticator app.</p>
           ) : (
             <div className="mt-6 grid max-w-md gap-2.5" role="group" aria-label="Access mode">
               <button
@@ -1506,8 +1506,8 @@ function ConfigureInner() {
                   !fullAccess ? "border-foreground bg-surface" : "border-line hover:border-line-strong"
                 }`}
               >
-                <span className="text-[15px] font-medium">Username only</span>
-                <span className="text-[13.5px] text-dim">Watchlist, lists, Popular. No password.</span>
+                <span className="text-[16px] font-medium">Username only</span>
+                <span className="text-[14px] text-dim">Watchlist, lists, Popular. No password.</span>
               </button>
               <button
                 type="button"
@@ -1517,8 +1517,8 @@ function ConfigureInner() {
                   fullAccess ? "border-foreground bg-surface" : "border-line hover:border-line-strong"
                 }`}
               >
-                <span className="text-[15px] font-medium">Full access</span>
-                <span className="text-[13.5px] text-dim">
+                <span className="text-[16px] font-medium">Full access</span>
+                <span className="text-[14px] text-dim">
                   Adds diary, friends activity and actions from Stremio. Needs your password.
                 </span>
               </button>
@@ -1555,7 +1555,7 @@ function ConfigureInner() {
               }}
             >
               <div className="grid gap-2">
-                <label htmlFor="username" className="text-[13.5px] text-muted">
+                <label htmlFor="username" className="text-[14px] text-muted">
                   Letterboxd username
                 </label>
                 <input
@@ -1574,7 +1574,7 @@ function ConfigureInner() {
 
               {fullAccess && (
                 <div className="grid gap-2">
-                  <label htmlFor="password" className="text-[13.5px] text-muted">
+                  <label htmlFor="password" className="text-[14px] text-muted">
                     Password
                   </label>
                   <input
@@ -1586,7 +1586,7 @@ function ConfigureInner() {
                     onChange={(e) => setPasswordPreview(e.target.value)}
                     disabled={isLoading}
                     placeholder={wide ? PASSWORD_NOTE : PASSWORD_NOTE_SHORT}
-                    className="field-input truncate placeholder:text-[13px] sm:placeholder:text-sm"
+                    className="field-input truncate placeholder:text-[14px] sm:placeholder:text-sm"
                   />
                 </div>
               )}
@@ -1595,7 +1595,7 @@ function ConfigureInner() {
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-medium">Stay signed in</p>
-                    <p className="text-[13px] text-dim">Supporters only</p>
+                    <p className="text-[14px] text-dim">Supporters only</p>
                   </div>
                   <Toggle enabled={rememberMe} onToggle={() => setRememberMe(!rememberMe)} label="Stay signed in" />
                 </div>

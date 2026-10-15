@@ -71,9 +71,9 @@ export function CatalogsSection({
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-[15px] font-medium text-foreground">Catalogs</h3>
+        <h3 className="text-[16px] font-medium text-foreground">Catalogs</h3>
         {sortedActiveItems.length > 1 && (
-          <p className="text-[10px] text-dim">drag to reorder</p>
+          <p className="text-[12px] text-dim">drag to reorder</p>
         )}
       </div>
 
@@ -102,9 +102,9 @@ export function CatalogsSection({
                           onCancel={onCancelEditing}
                         />
                         <div className="flex items-center gap-2">
-                          <p className="text-[11px] text-dim">{getItemSubtext(item)}</p>
+                          <p className="text-[12px] text-dim">{getItemSubtext(item)}</p>
                           {variants.length > 0 && (
-                            <span className="text-[10px] text-dim">
+                            <span className="text-[12px] text-dim">
                               +{variants.length} sort{variants.length > 1 ? "s" : ""}
                             </span>
                           )}
@@ -136,14 +136,14 @@ export function CatalogsSection({
                               key={opt.key}
                               type="button"
                               onClick={() => onToggleCatalogVariant(item.id, opt.key)}
-                              className={`rounded-full border px-3 py-1 text-[11px] transition-colors ${active ? "border-white/30 bg-white/10 text-white" : "border-zinc-700 text-dim hover:border-zinc-500 hover:text-zinc-300"}`}
+                              className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${active ? "border-white/30 bg-white/10 text-white" : "border-zinc-700 text-dim hover:border-zinc-500 hover:text-zinc-300"}`}
                               title={opt.description}
                             >
                               {opt.label}
                             </button>
                           );
                         })}
-                        <p className="w-full mt-1 text-[10px] text-dim">Creates a separate catalog for each enabled option</p>
+                        <p className="w-full mt-1 text-[12px] text-dim">Creates a separate catalog for each enabled option</p>
                       </div>
                     )}
                   </div>
@@ -163,8 +163,8 @@ export function CatalogsSection({
             >
               <div className="w-4 flex-shrink-0" />
               <div className="min-w-0 flex-1 pr-2">
-                <p className="truncate text-[13px] font-medium text-zinc-400">{def.label}</p>
-                <p className="text-[11px] text-dim">{def.description}</p>
+                <p className="truncate text-[14px] font-medium text-zinc-400">{def.label}</p>
+                <p className="text-[12px] text-dim">{def.description}</p>
               </div>
               <Toggle enabled={false} onToggle={() => onToggleCatalog(def.key)} />
             </div>

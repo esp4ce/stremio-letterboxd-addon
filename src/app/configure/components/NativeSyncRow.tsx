@@ -49,7 +49,7 @@ export function NativeSyncRow({ preferences, onPreferencesChange, signedIn, enti
     <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
       <div className="min-w-0">
         <div ref={detailsRef} className="relative flex items-center gap-1.5">
-          <p className="text-[13px] font-medium text-white">Auto-log to Diary</p>
+          <p className="text-[14px] font-medium text-white">Auto-log to Diary</p>
           <button
             type="button"
             onClick={() => setDetailsOpen((open) => !open)}
@@ -71,12 +71,12 @@ export function NativeSyncRow({ preferences, onPreferencesChange, signedIn, enti
             id={detailsId}
             role="status"
             hidden={!detailsOpen}
-            className="absolute top-full left-0 z-20 mt-2 w-60 max-w-[calc(100vw-5rem)] rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-[11px] leading-relaxed text-zinc-300 shadow-xl"
+            className="absolute top-full left-0 z-20 mt-2 w-60 max-w-[calc(100vw-5rem)] rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-[12px] leading-relaxed text-zinc-300 shadow-xl"
           >
             {DETAILS}
           </p>
         </div>
-        <p className="mt-0.5 text-[11px] text-dim">Films watched in Stremio land in your public diary</p>
+        <p className="mt-0.5 text-[12px] text-dim">Films watched in Stremio land in your public diary</p>
       </div>
       <Toggle enabled={control.kind === "toggle" && control.enabled} onToggle={onToggle} />
     </div>

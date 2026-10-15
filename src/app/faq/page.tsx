@@ -87,7 +87,7 @@ export default function FAQ() {
               placeholder="Search all questions…"
               autoComplete="off"
               spellCheck={false}
-              className="h-12 w-full bg-transparent pl-11 pr-4 text-[15px] text-foreground placeholder:text-dim focus:outline-none focus-visible:bg-raised/40"
+              className="h-12 w-full bg-transparent pl-11 pr-4 text-[16px] text-foreground placeholder:text-dim focus:outline-none focus-visible:bg-raised/40"
             />
           </div>
 
@@ -111,7 +111,7 @@ export default function FAQ() {
                   }`}
                 >
                   <span>{section.title}</span>
-                  <span className="font-mono text-[11.5px] text-dim">{section.items.length}</span>
+                  <span className="font-mono text-[12px] text-dim">{section.items.length}</span>
                 </a>
               );
             })}
@@ -137,15 +137,15 @@ export default function FAQ() {
                     onClick={() => setOpen(isOpen && window.matchMedia("(max-width: 1023px)").matches ? null : index)}
                     aria-expanded={isOpen}
                     aria-controls={panelId}
-                    className={`block w-full rounded-control px-3 py-3 text-left text-[14.5px] leading-snug transition-colors ${
+                    className={`block w-full rounded-control px-3 py-3 text-left text-[14px] leading-snug transition-colors ${
                       isCurrent ? "lg:bg-raised lg:text-foreground" : ""
                     } ${isOpen ? "text-foreground" : "text-muted hover:text-foreground"}`}
                   >
-                    {searching && <span className="mb-0.5 block font-mono text-[11px] text-dim">{entry.category}</span>}
+                    {searching && <span className="mb-0.5 block font-mono text-[12px] text-dim">{entry.category}</span>}
                     {entry.item.q}
                   </button>
                   {/* Inline answer for small screens; desktop reads it in the right-hand pane. */}
-                  <div id={panelId} hidden={!isOpen} className="px-3 pb-4 text-[14.5px] leading-relaxed text-muted lg:hidden">
+                  <div id={panelId} hidden={!isOpen} className="px-3 pb-4 text-[14px] leading-relaxed text-muted lg:hidden">
                     {entry.item.a}
                   </div>
                 </li>
@@ -163,7 +163,7 @@ export default function FAQ() {
                 <h2 className="mt-2 max-w-[24ch] text-[28px] font-medium leading-[1.15] tracking-[-0.03em]">
                   {desktopEntry.item.q}
                 </h2>
-                <div className="mt-4 max-w-[56ch] text-[15.5px] leading-relaxed text-muted [&_a]:text-foreground">
+                <div className="mt-4 max-w-[56ch] text-[16px] leading-relaxed text-muted [&_a]:text-foreground">
                   {desktopEntry.item.a}
                 </div>
               </article>

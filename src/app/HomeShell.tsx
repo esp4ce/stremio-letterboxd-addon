@@ -73,7 +73,7 @@ export default function HomeShell() {
                 <br />
                 inside Stremio.
               </h1>
-              <p className="mt-4 max-w-[40ch] text-base leading-relaxed text-muted sm:text-[17px]">
+              <p className="mt-4 max-w-[40ch] text-base leading-relaxed text-muted sm:text-[18px]">
                 Watchlist, diary, friends and lists as catalogs in Stremio and Nuvio. Free, unofficial, and
                 staying that way.
               </p>
@@ -100,10 +100,10 @@ export default function HomeShell() {
               {FLOW.map((step) => (
                 <li key={step.title} className="relative py-4 pl-8 lg:py-5 lg:pl-10">
                   <span aria-hidden="true" className="absolute -left-[5px] top-[27px] h-[9px] w-[9px] rounded-full bg-foreground lg:top-[33px]" />
-                  <p className="text-[18px] font-medium leading-snug lg:text-[22px]">
+                  <p className="text-[18px] font-medium leading-snug lg:text-[24px]">
                     {step.title === "Stremboxd" ? <span translate="no">{step.title}</span> : step.title}
                   </p>
-                  <p className="mt-0.5 text-[15px] text-dim lg:text-[17px]">{step.text}</p>
+                  <p className="mt-0.5 text-[16px] text-dim lg:text-[18px]">{step.text}</p>
                 </li>
               ))}
             </ol>
@@ -112,25 +112,25 @@ export default function HomeShell() {
           <ul className="mb-6 grid overflow-hidden rounded-card border border-line bg-surface/70 sm:grid-cols-3">
             <li className="border-b border-line sm:border-b-0 sm:border-r">
               <a href="/#free" className="grid h-full gap-1 px-4 py-4 transition-colors hover:bg-raised sm:px-5">
-                <span className="text-[15px] font-medium">What is free stays free</span>
-                <span className="text-[13px] text-dim">The full list and our commitment</span>
+                <span className="text-[16px] font-medium">What is free stays free</span>
+                <span className="text-[14px] text-dim">The full list and our commitment</span>
               </a>
             </li>
             <li className="border-b border-line sm:border-b-0 sm:border-r">
               <a href="/#supporter" className="grid h-full gap-1 px-4 py-4 transition-colors hover:bg-raised sm:px-5">
-                <span className="text-[13px] text-dim">Supporter</span>
-                <span className="text-[22px] font-medium tracking-[-0.03em] tabular-nums">
+                <span className="text-[14px] text-dim">Supporter</span>
+                <span className="text-[24px] font-medium tracking-[-0.03em] tabular-nums">
                   {OFFERS.supporter.price}
-                  <span className="ml-1.5 text-[13px] font-normal tracking-normal text-dim">{OFFERS.supporter.period}</span>
+                  <span className="ml-1.5 text-[14px] font-normal tracking-normal text-dim">{OFFERS.supporter.period}</span>
                 </span>
               </a>
             </li>
             <li>
               <a href="/#supporter" className="grid h-full gap-1 px-4 py-4 transition-colors hover:bg-raised sm:px-5">
-                <span className="text-[13px] text-dim">Founder</span>
-                <span className="text-[22px] font-medium tracking-[-0.03em] tabular-nums">
+                <span className="text-[14px] text-dim">Founder</span>
+                <span className="text-[24px] font-medium tracking-[-0.03em] tabular-nums">
                   {OFFERS.founder.price}
-                  <span className="ml-1.5 text-[13px] font-normal tracking-normal text-dim">{OFFERS.founder.period}</span>
+                  <span className="ml-1.5 text-[14px] font-normal tracking-normal text-dim">{OFFERS.founder.period}</span>
                 </span>
               </a>
             </li>
@@ -144,7 +144,7 @@ export default function HomeShell() {
               <h2 className="text-[28px] font-medium leading-[1.08] tracking-[-0.035em] sm:text-[40px]">
                 What is free today stays free.
               </h2>
-              <p className="mt-3 max-w-[56ch] text-[15.5px] leading-relaxed text-muted">
+              <p className="mt-3 max-w-[56ch] text-[16px] leading-relaxed text-muted">
                 This is a commitment, not a promotion.
               </p>
             </div>
@@ -156,7 +156,7 @@ export default function HomeShell() {
                   className={`flex flex-col justify-center p-5 sm:p-6 lg:p-8 ${index < COMMITMENTS.length - 1 ? "border-b border-line sm:border-b-0 sm:border-r" : ""}`}
                 >
                   <h3 className="text-[18px] font-medium tracking-[-0.02em] lg:text-[24px]">{item.title}</h3>
-                  <p className="mt-1.5 text-[14.5px] leading-relaxed text-dim lg:mt-2 lg:text-[16px]">{item.text}</p>
+                  <p className="mt-1.5 text-[14px] leading-relaxed text-dim lg:mt-2 lg:text-[16px]">{item.text}</p>
                 </li>
               ))}
             </ul>
@@ -168,7 +168,7 @@ export default function HomeShell() {
                   className="flex items-center justify-between gap-4 border-b border-line py-4 text-[16px] lg:text-[18px]"
                 >
                   <span>{item}</span>
-                  <span className="font-mono text-[11.5px] text-dim">free</span>
+                  <span className="font-mono text-[12px] text-dim">free</span>
                 </li>
               ))}
             </ul>

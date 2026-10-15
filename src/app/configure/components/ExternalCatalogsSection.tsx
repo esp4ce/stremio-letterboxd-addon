@@ -15,10 +15,10 @@ export function ExternalCatalogsSection({
 }: ExternalCatalogsSectionProps) {
   return (
     <div>
-      <h3 className="text-[15px] font-medium text-foreground">
+      <h3 className="text-[16px] font-medium text-foreground">
         External Catalogs
       </h3>
-      <p className="mt-1 break-words text-[11px] text-dim">
+      <p className="mt-1 break-words text-[12px] text-dim">
         Lists, watchlists, or filmographies: letterboxd.com/user/list/... · /watchlist/ · /director/name/ · /actor/name/ · /studio/name/
       </p>
 
@@ -28,7 +28,7 @@ export function ExternalCatalogsSection({
           value={externalListUrl}
           onChange={(e) => onExternalListUrlChange(e.target.value)}
           placeholder="letterboxd.com/user/list/name/ or /user/watchlist/"
-          className="block w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-base text-white placeholder:text-dim sm:text-[13px] transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+          className="block w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-base text-white placeholder:text-dim sm:text-[14px] transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -40,7 +40,7 @@ export function ExternalCatalogsSection({
           type="button"
           onClick={onAddExternalList}
           disabled={isResolvingList || !externalListUrl.trim()}
-          className="flex-shrink-0 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-[13px] text-zinc-300 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex-shrink-0 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-[14px] text-zinc-300 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isResolvingList ? "..." : "Add"}
         </button>

@@ -131,7 +131,7 @@ export default function SupporterOffer() {
         <h2 className="text-[28px] font-medium leading-[1.08] tracking-[-0.035em] text-foreground sm:text-[40px]">
           Support <span translate="no">Stremboxd</span>.
         </h2>
-        <p className="mt-3 max-w-[46ch] text-[15.5px] leading-relaxed text-muted">
+        <p className="mt-3 max-w-[46ch] text-[16px] leading-relaxed text-muted">
           Supporting pays the hosting and adds features that run without you.
         </p>
       </div>
@@ -175,14 +175,14 @@ export default function SupporterOffer() {
               className="grid grid-cols-1 gap-2 border-b border-line py-4 sm:grid-cols-3 sm:items-center sm:gap-x-6"
             >
               <InfoBubble info={row.info}>
-                <h4 className="text-[15px] font-medium text-foreground">{row.feature}</h4>
+                <h4 className="text-[16px] font-medium text-foreground">{row.feature}</h4>
               </InfoBubble>
               <p className="flex gap-3 text-sm text-dim sm:block">
-                <span className="w-[72px] shrink-0 font-mono text-[11px] sm:hidden">Free</span>
+                <span className="w-[72px] shrink-0 font-mono text-[12px] sm:hidden">Free</span>
                 <span>{row.free}</span>
               </p>
               <p className="flex gap-3 text-sm text-foreground sm:block">
-                <span className="w-[72px] shrink-0 font-mono text-[11px] text-dim sm:hidden">Supporter</span>
+                <span className="w-[72px] shrink-0 font-mono text-[12px] text-dim sm:hidden">Supporter</span>
                 <span>{row.supporter}</span>
               </p>
             </li>
@@ -218,13 +218,13 @@ function PlanCard({
   return (
     <div className="surface flex min-w-0 flex-col gap-6 p-5 sm:p-7">
       <div className="flex min-w-0 flex-col gap-2">
-        <h3 className="text-[17px] font-medium text-foreground">{name}</h3>
+        <h3 className="text-[18px] font-medium text-foreground">{name}</h3>
         <p className="flex flex-wrap items-baseline gap-x-2">
-          <span className="text-[32px] font-medium leading-none tracking-[-0.04em] tabular-nums">{price}</span>
+          <span className="text-[28px] font-medium leading-none tracking-[-0.04em] tabular-nums">{price}</span>
           <span className="text-sm text-dim">{period}</span>
         </p>
         <InfoBubble info={info}>
-          <p className="min-w-0 text-[13px] text-dim">{detail}</p>
+          <p className="min-w-0 text-[14px] text-dim">{detail}</p>
         </InfoBubble>
       </div>
       <button type="button" onClick={onClick} disabled={disabled} className="btn btn-primary mt-auto w-full">
@@ -249,7 +249,7 @@ function ToastStack({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id
             className={`absolute inset-y-0 left-0 w-0.5 ${toast.tone === "info" ? "bg-amber-500/80" : "bg-red-500/80"}`}
           />
           <div className="min-w-0 flex-1 pl-2 pr-8">
-            <p className="font-mono text-[11px] text-dim">{toast.tone === "info" ? "Heads up" : "Error"}</p>
+            <p className="font-mono text-[12px] text-dim">{toast.tone === "info" ? "Heads up" : "Error"}</p>
             <p className="mt-1 text-sm leading-relaxed text-foreground">{toast.message}</p>
           </div>
           <button

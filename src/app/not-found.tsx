@@ -9,7 +9,7 @@ export default function NotFound() {
         <TransitionLink href="/" direction="down" className="text-7xl font-semibold tracking-tight sm:text-9xl transition-opacity hover:opacity-70">
           404
         </TransitionLink>
-        <p className="text-lg font-light text-zinc-400 sm:text-xl">
+        <p className="text-lg font-light text-zinc-400 sm:text-lg">
           ★½. Didn&apos;t finish it.
         </p>
         <Link

@@ -699,7 +699,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground lg:h-dvh">
       <SiteHeader>
-        <span className="hidden max-w-[40vw] truncate text-[13.5px] text-dim sm:inline">
+        <span className="hidden max-w-[40vw] truncate text-[14px] text-dim sm:inline">
           {user ? user.displayName || user.username : "Public mode"}
         </span>
       </SiteHeader>
@@ -827,7 +827,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
           <aside className="sticky bottom-0 flex min-h-0 flex-col gap-4 border-t border-line bg-background p-4 lg:static lg:border-l lg:border-t-0 lg:bg-transparent lg:p-5">
             <div className="hidden min-h-0 flex-1 flex-col lg:flex">
               <p className="font-mono text-xs text-dim">Your addon</p>
-              <dl className="mt-3 divide-y divide-line border-y border-line text-[13.5px]">
+              <dl className="mt-3 divide-y divide-line border-y border-line text-[14px]">
                 <div className="flex justify-between py-2.5">
                   <dt className="text-muted">Catalogs</dt>
                   <dd className="tabular-nums">{activeCount} on</dd>
@@ -842,10 +842,10 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                 </div>
               </dl>
               <p className="mt-5 font-mono text-xs text-dim">In Stremio, in this order</p>
-              <ol className="panel-scroll mt-2 min-h-0 flex-1 overflow-y-auto text-[13.5px]">
+              <ol className="panel-scroll mt-2 min-h-0 flex-1 overflow-y-auto text-[14px]">
                 {sortedActiveItems.map((item, index) => (
                   <li key={item.id} className="flex gap-3 border-b border-line py-2 text-muted">
-                    <span className="w-5 shrink-0 text-right font-mono text-[11.5px] tabular-nums text-dim">{index + 1}</span>
+                    <span className="w-5 shrink-0 text-right font-mono text-[12px] tabular-nums text-dim">{index + 1}</span>
                     <span className="min-w-0 truncate">{getItemDisplayName(item)}</span>
                   </li>
                 ))}
@@ -854,7 +854,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
             <button type="button" onClick={onSave} disabled={isSaving} className="btn btn-primary w-full">
               {isSaving ? "Saving…" : saveLabel}
             </button>
-            <button type="button" onClick={onBack} className="link-quiet justify-self-center py-1 text-[13px]">
+            <button type="button" onClick={onBack} className="link-quiet justify-self-center py-1 text-[14px]">
               {isPublic ? "Change username" : "Use another account"}
             </button>
           </aside>

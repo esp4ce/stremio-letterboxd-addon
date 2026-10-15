@@ -38,8 +38,8 @@ export function UserListsSection({
   if (lists.length === 0) {
     return (
       <div>
-        <h3 className="text-[15px] font-medium text-foreground">Your Lists</h3>
-        <p className="mt-3 text-[13px] text-dim">No lists found on this account</p>
+        <h3 className="text-[16px] font-medium text-foreground">Your Lists</h3>
+        <p className="mt-3 text-[14px] text-dim">No lists found on this account</p>
       </div>
     );
   }
@@ -49,25 +49,25 @@ export function UserListsSection({
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
-        <h3 className="min-w-0 truncate text-[15px] font-medium text-foreground">
+        <h3 className="min-w-0 truncate text-[16px] font-medium text-foreground">
           {user.displayName || user.username}&apos;s Lists
         </h3>
         <div className="flex flex-shrink-0 items-center gap-2">
-          <span className="text-[11px] text-dim">
+          <span className="text-[12px] text-dim">
             {ownListCount} / {lists.length}
           </span>
           <button
             type="button"
             onClick={onSelectAll}
-            className="text-[11px] text-dim transition-colors hover:text-zinc-200"
+            className="text-[12px] text-dim transition-colors hover:text-zinc-200"
           >
             All
           </button>
-          <span className="text-[11px] text-zinc-700">/</span>
+          <span className="text-[12px] text-zinc-700">/</span>
           <button
             type="button"
             onClick={onDeselectAll}
-            className="text-[11px] text-dim transition-colors hover:text-zinc-200"
+            className="text-[12px] text-dim transition-colors hover:text-zinc-200"
           >
             None
           </button>
@@ -100,7 +100,7 @@ export function UserListsSection({
                   stopPropagation
                 />
               </div>
-              <span className="flex-shrink-0 text-[11px] text-dim">{list.filmCount}</span>
+              <span className="flex-shrink-0 text-[12px] text-dim">{list.filmCount}</span>
             </div>
           );
         })}
