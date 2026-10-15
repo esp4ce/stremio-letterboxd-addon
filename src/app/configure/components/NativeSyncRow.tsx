@@ -46,10 +46,10 @@ export function NativeSyncRow({ preferences, onPreferencesChange, signedIn, enti
   };
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
+    <div className="flex items-center justify-between gap-4 rounded-lg bg-raised px-3.5 py-3">
       <div className="min-w-0">
         <div ref={detailsRef} className="relative flex items-center gap-1.5">
-          <p className="text-[14px] font-medium text-white">Auto-log to Diary</p>
+          <p className="text-[14px] font-medium text-foreground">Auto-log to Diary</p>
           <button
             type="button"
             onClick={() => setDetailsOpen((open) => !open)}
@@ -60,7 +60,7 @@ export function NativeSyncRow({ preferences, onPreferencesChange, signedIn, enti
             aria-controls={detailsId}
             aria-label="About Auto-log to Diary"
             title={detailsOpen ? undefined : DETAILS}
-            className={`-m-2 flex flex-shrink-0 cursor-help items-center justify-center rounded-full p-2 transition-colors hover:text-zinc-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 ${detailsOpen ? "text-zinc-300" : "text-dim"}`}
+            className={`-m-2 flex flex-shrink-0 cursor-help items-center justify-center rounded-full p-2 transition-colors hover:text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-control ${detailsOpen ? "text-foreground" : "text-dim"}`}
           >
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="12" r="9" strokeWidth={2} />
@@ -71,7 +71,7 @@ export function NativeSyncRow({ preferences, onPreferencesChange, signedIn, enti
             id={detailsId}
             role="status"
             hidden={!detailsOpen}
-            className="absolute top-full left-0 z-20 mt-2 w-60 max-w-[calc(100vw-5rem)] rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-[12px] leading-relaxed text-zinc-300 shadow-xl"
+            className="absolute top-full left-0 z-20 mt-2 w-60 max-w-[calc(100vw-5rem)] rounded-lg border border-line-strong bg-background px-3 py-2 text-[12px] leading-relaxed text-foreground shadow-xl"
           >
             {DETAILS}
           </p>

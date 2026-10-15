@@ -117,7 +117,7 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
             <TransitionLink
               href="/#supporter"
               direction="up"
-              className="text-zinc-300 underline underline-offset-2 hover:text-white"
+              className="text-foreground underline underline-offset-2 hover:text-foreground"
             >
               See the Supporter offer
             </TransitionLink>
@@ -138,7 +138,7 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
             <TransitionLink
               href="/#supporter"
               direction="up"
-              className="text-zinc-300 underline underline-offset-2 hover:text-white"
+              className="text-foreground underline underline-offset-2 hover:text-foreground"
             >
               See the Founder offer
             </TransitionLink>
@@ -156,7 +156,7 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
             <TransitionLink
               href="/configure"
               direction="up"
-              className="text-zinc-300 underline underline-offset-2 hover:text-white"
+              className="text-foreground underline underline-offset-2 hover:text-foreground"
             >
               configure page
             </TransitionLink>{" "}

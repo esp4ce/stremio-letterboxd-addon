@@ -61,7 +61,7 @@ export default function FAQ() {
 
       <main id="main" className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-4 pb-6 sm:px-6 lg:px-8 lg:min-h-0">
         <h1 className="sr-only">Frequently asked questions</h1>
-        <div className="mt-4 grid flex-1 grid-cols-1 overflow-hidden rounded-card border border-line lg:mt-8 lg:min-h-0 lg:grid-cols-[240px_minmax(0,400px)_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
+        <div className="mt-4 grid flex-1 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-card border border-line lg:mt-8 lg:min-h-0 lg:grid-cols-[240px_minmax(0,400px)_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
           <div className="relative border-b border-line lg:col-span-3">
             <label htmlFor={`${baseId}-search`} className="sr-only">
               Search the FAQ

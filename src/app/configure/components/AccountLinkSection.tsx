@@ -124,7 +124,7 @@ export function AccountLinkSection({
       <div className="flex items-center gap-1.5">
         <h3 className="text-[18px] font-medium text-foreground">Accounts</h3>
         <span
-          className="flex h-3.5 w-3.5 cursor-help items-center justify-center text-dim transition-colors hover:text-zinc-300"
+          className="flex h-3.5 w-3.5 cursor-help items-center justify-center text-dim transition-colors hover:text-foreground"
           title="Link once and your catalogs update without reinstalling the addon. Your keys stay in this browser and never reach our servers."
         >
           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +133,7 @@ export function AccountLinkSection({
           </svg>
         </span>
         {entitled && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-600 bg-gradient-to-br from-zinc-700 to-zinc-900 px-2 py-0.5 text-[12px] font-semibold text-white">
+          <span className="inline-flex items-center gap-1 rounded-full border border-control bg-gradient-to-br from-line-strong to-surface px-2 py-0.5 text-[12px] font-semibold text-foreground">
             <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2L12 16.4 5.7 21l2.3-7.2-6-4.6h7.6z" />
             </svg>
@@ -143,15 +143,15 @@ export function AccountLinkSection({
       </div>
 
       {!entitled && !bannerDismissed && (
-        <div className="relative mt-2 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60 px-3.5 py-3">
+        <div className="relative mt-2 overflow-hidden rounded-xl border border-line bg-surface px-3.5 py-3">
           <div className="flex items-center gap-3">
-            <div className="hidden h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-300 sm:flex">
+            <div className="hidden h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-line-strong bg-raised text-foreground sm:flex">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <rect x="5" y="11" width="14" height="9" rx="2" strokeWidth={2} />
                 <path d="M8 11V7a4 4 0 018 0v4" strokeWidth={2} strokeLinecap="round" />
               </svg>
             </div>
-            <p className="min-w-0 flex-1 text-[12px] leading-snug text-zinc-300">
+            <p className="min-w-0 flex-1 text-[12px] leading-snug text-foreground">
               {stremioLinked || nuvioLinked ? (
                 <>
                   Auto-sync is off. Changes won&apos;t reach{" "}
@@ -165,7 +165,7 @@ export function AccountLinkSection({
             <TransitionLink
               href="/#supporter"
               direction="up"
-              className="flex-shrink-0 whitespace-nowrap rounded-lg bg-white px-3 py-2 text-[12px] font-semibold text-black transition-colors hover:bg-zinc-200"
+              className="flex-shrink-0 whitespace-nowrap rounded-lg bg-foreground px-3 py-2 text-[12px] font-semibold text-primary-fg transition-colors hover:bg-foreground"
             >
               Upgrade
             </TransitionLink>
@@ -176,7 +176,7 @@ export function AccountLinkSection({
                 setBannerDismissed(true);
               }}
               aria-label="Dismiss supporter banner"
-              className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-dim transition-colors hover:text-zinc-200"
+              className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-dim transition-colors hover:text-foreground"
             >
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -195,14 +195,14 @@ export function AccountLinkSection({
       )}
 
       {pairing === "stremio" && stremioCode && (
-        <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+        <div className="mt-3 rounded-xl border border-line bg-surface p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             {/* Stremio serves the QR image itself, so no client-side QR library is needed. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={stremioCode.qrcode}
               alt="QR code linking to Stremio"
-              className="h-24 w-24 flex-shrink-0 self-start rounded-lg bg-white p-1.5 sm:self-auto"
+              className="h-24 w-24 flex-shrink-0 self-start rounded-lg bg-foreground p-1.5 sm:self-auto"
             />
             <div className="min-w-0 flex-1">
               <p className="text-[12px] text-dim">
@@ -211,13 +211,13 @@ export function AccountLinkSection({
                   href={stremioCode.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-zinc-300 underline underline-offset-2 transition-colors hover:text-white"
+                  className="text-foreground underline underline-offset-2 transition-colors hover:text-foreground"
                 >
                   link.stremio.com
                 </a>{" "}
                 and enter this code:
               </p>
-              <p className="ph-no-capture mt-2 rounded-lg bg-black/40 px-3 py-2 text-center font-mono text-2xl tracking-[0.3em] text-white sm:text-left">
+              <p className="ph-no-capture mt-2 rounded-lg bg-background/70 px-3 py-2 text-center font-mono text-2xl tracking-[0.3em] text-foreground sm:text-left">
                 {stremioCode.code}
               </p>
             </div>
@@ -227,20 +227,20 @@ export function AccountLinkSection({
       )}
 
       {pairing === "nuvio" && nuvioCode && (
-        <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+        <div className="mt-3 rounded-xl border border-line bg-surface p-4">
           <p className="text-[12px] text-dim">
             Open{" "}
             <a
               href={nuvioCode.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-zinc-300 underline underline-offset-2 transition-colors hover:text-white"
+              className="text-foreground underline underline-offset-2 transition-colors hover:text-foreground"
             >
               nuvio.tv/link
             </a>{" "}
             and enter this code:
           </p>
-          <p className="ph-no-capture mt-2 rounded-lg bg-black/40 px-3 py-2 text-center font-mono text-2xl tracking-[0.3em] text-white">
+          <p className="ph-no-capture mt-2 rounded-lg bg-background/70 px-3 py-2 text-center font-mono text-2xl tracking-[0.3em] text-foreground">
             {nuvioCode.code}
           </p>
           <WaitingRow onCancel={cancelLinking} />
@@ -265,16 +265,16 @@ export function AccountLinkSection({
       {entitled && (
         <a
           href={`${BACKEND_URL}/billing/portal`}
-          className="mt-3 flex items-center gap-2.5 rounded-lg border border-zinc-800 bg-zinc-900/40 px-3.5 py-2.5 transition-colors hover:border-zinc-700 hover:bg-zinc-900"
+          className="mt-3 flex items-center gap-2.5 rounded-lg border border-line bg-surface px-3.5 py-2.5 transition-colors hover:border-line-strong hover:bg-surface"
         >
-          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-zinc-800 text-zinc-400">
+          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-raised text-muted">
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <rect x="2" y="5" width="20" height="14" rx="2" strokeWidth={2} />
               <path d="M2 10h20" strokeWidth={2} />
             </svg>
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[12px] font-medium text-zinc-200">Manage subscription</span>
+            <span className="block text-[12px] font-medium text-foreground">Manage subscription</span>
             <span className="block text-[12px] text-dim">Billing, invoices, cancel</span>
           </span>
           <svg className="h-3.5 w-3.5 flex-shrink-0 text-dim" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -290,15 +290,15 @@ export function AccountLinkSection({
 
 function LinkedRow({ label, sublabel, onUnlink }: { label: string; sublabel: string; onUnlink: () => void }) {
   return (
-    <div className="mt-3 flex items-center gap-3 rounded-lg bg-zinc-800/35 px-3.5 py-2.5">
+    <div className="mt-3 flex items-center gap-3 rounded-lg bg-raised px-3.5 py-2.5">
       <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" />
-      <p className="min-w-0 flex-1 text-[14px] text-zinc-300">
+      <p className="min-w-0 flex-1 text-[14px] text-foreground">
         {label} <span className="text-dim">· {sublabel}</span>
       </p>
       <button
         type="button"
         onClick={onUnlink}
-        className="flex-shrink-0 text-[12px] text-dim transition-colors hover:text-zinc-200"
+        className="flex-shrink-0 text-[12px] text-dim transition-colors hover:text-foreground"
       >
         Unlink
       </button>
@@ -308,7 +308,7 @@ function LinkedRow({ label, sublabel, onUnlink }: { label: string; sublabel: str
 
 function WaitingRow({ onCancel }: { onCancel: () => void }) {
   return (
-    <div className="mt-3 flex items-center justify-between gap-2 border-t border-zinc-800 pt-3">
+    <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-3">
       <span className="flex items-center gap-2 text-[12px] text-dim">
         <svg className="h-3 w-3 animate-spin text-dim" viewBox="0 0 24 24" fill="none">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -323,7 +323,7 @@ function WaitingRow({ onCancel }: { onCancel: () => void }) {
       <button
         type="button"
         onClick={onCancel}
-        className="flex-shrink-0 rounded-md border border-zinc-700 px-2.5 py-1 text-[12px] text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+        className="flex-shrink-0 rounded-md border border-line-strong px-2.5 py-1 text-[12px] text-muted transition-colors hover:border-control hover:text-foreground"
       >
         Cancel
       </button>
@@ -345,7 +345,7 @@ function LinkButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex-1 whitespace-nowrap rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-[14px] text-zinc-300 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+      className="flex-1 whitespace-nowrap rounded-lg border border-line-strong bg-raised px-4 py-2.5 text-[14px] text-foreground transition-colors hover:bg-line-strong disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
     >
       {children}
     </button>

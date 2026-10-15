@@ -59,15 +59,15 @@ export function UserListsSection({
           <button
             type="button"
             onClick={onSelectAll}
-            className="text-[12px] text-dim transition-colors hover:text-zinc-200"
+            className="text-[12px] text-dim transition-colors hover:text-foreground"
           >
             All
           </button>
-          <span className="text-[12px] text-zinc-700">/</span>
+          <span className="text-[12px] text-dim">/</span>
           <button
             type="button"
             onClick={onDeselectAll}
-            className="text-[12px] text-dim transition-colors hover:text-zinc-200"
+            className="text-[12px] text-dim transition-colors hover:text-foreground"
           >
             None
           </button>
@@ -79,13 +79,13 @@ export function UserListsSection({
           return (
             <div
               key={list.id}
-              className="flex cursor-pointer items-center gap-3 rounded-lg bg-zinc-800/35 px-3.5 py-2.5 transition-colors hover:bg-zinc-800/55"
+              className="flex cursor-pointer items-center gap-3 rounded-lg bg-raised px-3.5 py-2.5 transition-colors hover:bg-raised"
             >
               <input
                 type="checkbox"
                 checked={isOwnListSelected(list.id)}
                 onChange={() => onToggleOwnList(list.id)}
-                className="h-4 w-4 rounded border-zinc-600 bg-zinc-700 text-white accent-white"
+                className="h-4 w-4 rounded border-control bg-line-strong text-foreground accent-white"
               />
               <div className="min-w-0 flex-1">
                 <EditableName

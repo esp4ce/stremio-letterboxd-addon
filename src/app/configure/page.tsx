@@ -215,7 +215,7 @@ function Frame({ children, width = "max-w-[1600px]" }: { children: ReactNode; wi
 
 export default function Configure() {
   return (
-    <Suspense fallback={<div className="fixed inset-0 bg-[#0a0a0a]" />}>
+    <Suspense fallback={<div className="fixed inset-0 bg-background" />}>
       <ConfigureInner />
     </Suspense>
   );
@@ -327,7 +327,7 @@ function ConfigureInner() {
         <TransitionLink
           href="/#supporter"
           direction="up"
-          className="whitespace-nowrap text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition-colors hover:text-zinc-200"
+          className="whitespace-nowrap text-muted underline decoration-line-strong underline-offset-2 transition-colors hover:text-foreground"
         >
           See supporter plan →
         </TransitionLink>
@@ -414,7 +414,7 @@ function ConfigureInner() {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className="pointer-events-auto animate-fade-in relative overflow-hidden rounded-xl border border-zinc-700/80 bg-black/95 px-4 py-3.5 shadow-2xl"
+            className="pointer-events-auto animate-fade-in relative overflow-hidden rounded-xl border border-line-strong bg-background px-4 py-3.5 shadow-2xl"
           >
             <span
               className={`absolute inset-y-0 left-0 w-0.5 ${
@@ -426,15 +426,15 @@ function ConfigureInner() {
               }`}
             />
             <div className="min-w-0 flex-1 pl-2 pr-8">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-dim">
                 {toast.tone === "upsell" ? "Heads up" : toast.tone === "success" ? "Success" : "Error"}
               </p>
-              <p className="mt-1 text-sm leading-relaxed text-zinc-100">{toast.message}</p>
+              <p className="mt-1 text-sm leading-relaxed text-foreground">{toast.message}</p>
             </div>
             <button
               type="button"
               onClick={() => dismissToast(toast.id)}
-              className="absolute right-2.5 top-2.5 text-zinc-500 transition-colors hover:text-zinc-200"
+              className="absolute right-2.5 top-2.5 text-dim transition-colors hover:text-foreground"
               aria-label="Dismiss error notification"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1206,7 +1206,7 @@ function ConfigureInner() {
 
   // Session restore in flight: hold the frame instead of flashing the login form
   if (isRestoringSession) {
-    return <div className="fixed inset-0 bg-[#0a0a0a]" />;
+    return <div className="fixed inset-0 bg-background" />;
   }
 
   // One-time thank-you right after a confirmed checkout. Leaving it drops it for good.

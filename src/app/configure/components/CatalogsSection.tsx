@@ -117,7 +117,7 @@ export function CatalogsSection({
                             e.stopPropagation();
                             onToggleVariantExpand(isExpanded ? null : item.id);
                           }}
-                          className={`flex-shrink-0 rounded p-1 text-dim transition-colors hover:text-zinc-300 ${isExpanded ? "bg-zinc-700/50 text-zinc-300" : ""}`}
+                          className={`flex-shrink-0 rounded p-1 text-dim transition-colors hover:text-foreground ${isExpanded ? "bg-line-strong text-foreground" : ""}`}
                           title="Sort variants"
                         >
                           <svg className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,7 +128,7 @@ export function CatalogsSection({
                       {renderActiveItemAction(item)}
                     </SortableCatalogRow>
                     {isExpanded && hasVariants && (
-                      <div className="ml-6 mt-1 mb-1 flex flex-wrap gap-1.5 rounded-lg bg-zinc-800/20 px-3 py-2" onPointerDown={(e) => e.stopPropagation()}>
+                      <div className="ml-6 mt-1 mb-1 flex flex-wrap gap-1.5 rounded-lg bg-raised px-3 py-2" onPointerDown={(e) => e.stopPropagation()}>
                         {availableVariantOptions.map((opt) => {
                           const active = variants.includes(opt.key);
                           return (
@@ -136,7 +136,7 @@ export function CatalogsSection({
                               key={opt.key}
                               type="button"
                               onClick={() => onToggleCatalogVariant(item.id, opt.key)}
-                              className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${active ? "border-white/30 bg-white/10 text-white" : "border-zinc-700 text-dim hover:border-zinc-500 hover:text-zinc-300"}`}
+                              className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${active ? "border-foreground/30 bg-foreground/10 text-foreground" : "border-line-strong text-dim hover:border-control hover:text-foreground"}`}
                               title={opt.description}
                             >
                               {opt.label}
@@ -159,11 +159,11 @@ export function CatalogsSection({
           {disabledBaseItems.map((def) => (
             <div
               key={def.key}
-              className="flex items-center gap-2 rounded-lg bg-zinc-800/15 px-3 py-2.5 opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-raised px-3 py-2.5 opacity-50"
             >
               <div className="w-4 flex-shrink-0" />
               <div className="min-w-0 flex-1 pr-2">
-                <p className="truncate text-[14px] font-medium text-zinc-400">{def.label}</p>
+                <p className="truncate text-[14px] font-medium text-muted">{def.label}</p>
                 <p className="text-[12px] text-dim">{def.description}</p>
               </div>
               <Toggle enabled={false} onToggle={() => onToggleCatalog(def.key)} />

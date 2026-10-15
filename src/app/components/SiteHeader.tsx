@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore, type ReactNode } from "react";
 import TransitionLink from "./TransitionLink";
+import ThemeToggle from "./ThemeToggle";
 
 type NavId = "overview" | "free" | "supporter" | "faq";
 
-const NAV: { id: NavId; label: string; href: string }[] = [
+const NAV: { id: NavId; label: string; href: string; short?: string }[] = [
   { id: "overview", label: "Overview", href: "/" },
-  { id: "free", label: "Free for good", href: "/#free" },
+  { id: "free", label: "Free for good", href: "/#free", short: "Free" },
   { id: "supporter", label: "Supporter", href: "/#supporter" },
   { id: "faq", label: "FAQ", href: "/faq" },
 ];
@@ -80,7 +81,14 @@ export default function SiteHeader({ children }: { children?: ReactNode }) {
                       active === item.id ? "bg-raised text-foreground" : "text-muted hover:text-foreground"
                     }`}
                   >
-                    {item.label}
+                    {item.short ? (
+                      <>
+                        <span className="min-[400px]:hidden">{item.short}</span>
+                        <span className="hidden min-[400px]:inline">{item.label}</span>
+                      </>
+                    ) : (
+                      item.label
+                    )}
                   </a>
                 )}
               </li>
@@ -90,6 +98,7 @@ export default function SiteHeader({ children }: { children?: ReactNode }) {
 
         <div className="order-2 ml-auto flex items-center gap-3 sm:order-3 sm:ml-0 sm:flex-1 sm:justify-end sm:gap-4">
           {children}
+          <ThemeToggle />
           {!onConfigure && (
             <TransitionLink
               href="/configure"

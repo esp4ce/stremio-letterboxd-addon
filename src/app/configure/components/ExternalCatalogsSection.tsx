@@ -28,7 +28,7 @@ export function ExternalCatalogsSection({
           value={externalListUrl}
           onChange={(e) => onExternalListUrlChange(e.target.value)}
           placeholder="letterboxd.com/user/list/name/ or /user/watchlist/"
-          className="block w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-base text-white placeholder:text-dim sm:text-[14px] transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+          className="block w-full rounded-lg border border-line-strong bg-raised px-3 py-2.5 text-base text-foreground placeholder:text-dim sm:text-[14px] transition-colors focus:border-control focus:outline-none focus:ring-1 focus:ring-control"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -40,7 +40,7 @@ export function ExternalCatalogsSection({
           type="button"
           onClick={onAddExternalList}
           disabled={isResolvingList || !externalListUrl.trim()}
-          className="flex-shrink-0 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-[14px] text-zinc-300 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex-shrink-0 rounded-lg border border-line-strong bg-raised px-4 py-2.5 text-[14px] text-foreground transition-colors hover:bg-line-strong disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isResolvingList ? "..." : "Add"}
         </button>

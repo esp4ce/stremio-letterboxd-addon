@@ -63,7 +63,7 @@ export function OtpInput({
             commit(pasted);
             refs.current[Math.min(pasted.length, 5)]?.focus();
           }}
-          className="h-12 w-full min-w-0 rounded-control border border-control bg-[#101013] text-center font-mono text-lg font-medium text-foreground focus:border-foreground focus:outline-none"
+          className="h-12 w-full min-w-0 rounded-control border border-control bg-field text-center font-mono text-lg font-medium text-foreground focus:border-foreground focus:outline-none"
         />
       ))}
     </div>

@@ -1,30 +1,104 @@
 @import "tailwindcss";
 
-/* Design tokens. One dark theme, one accent (white), two corner radii. */
-:root {
+/*
+ * Design tokens. Dark is the default; light follows the system setting unless the
+ * visitor picked a theme with the header toggle (data-theme on <html>).
+ * [data-theme] on any element re-scopes the tokens, so a subtree can force a theme.
+ */
+:root,
+[data-theme="dark"] {
   --background: #0a0a0a;
   --foreground: #ececee;
+  --surface: #111113;
+  --raised: #17171a;
+  --line: #242428;
+  --line-strong: #34343a;
+  --control: #6c6c75;
+  --muted: #a2a2ab;
+  --dim: #868690;
+  --field: #101013;
+  --primary: #f2f2f4;
+  --primary-fg: #0a0a0a;
+  --primary-hover: #ffffff;
+  --card-from: #121215;
+  --card-to: #0e0e10;
+  --beam-core: rgba(255, 255, 255, 0.08);
+  --beam-edge: rgba(255, 255, 255, 0.012);
+  --beam-pool: rgba(255, 255, 255, 0.055);
+  --grain-opacity: 0.5;
+  --scroll-thumb: #2a2a30;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --background: #f7f7f8;
+    --foreground: #101012;
+    --surface: #ffffff;
+    --raised: #ededf0;
+    --line: #e1e1e6;
+    --line-strong: #cbcbd2;
+    --control: #85858f;
+    --muted: #52525b;
+    --dim: #686872;
+    --field: #ffffff;
+    --primary: #101012;
+    --primary-fg: #f7f7f8;
+    --primary-hover: #000000;
+    --card-from: #ffffff;
+    --card-to: #f2f2f4;
+    --beam-core: rgba(0, 0, 0, 0.055);
+    --beam-edge: rgba(0, 0, 0, 0.008);
+    --beam-pool: rgba(0, 0, 0, 0.04);
+    --grain-opacity: 0.35;
+    --scroll-thumb: #cbcbd2;
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"],
+[data-theme="light"] {
+  --background: #f7f7f8;
+  --foreground: #101012;
+  --surface: #ffffff;
+  --raised: #ededf0;
+  --line: #e1e1e6;
+  --line-strong: #cbcbd2;
+  --control: #85858f;
+  --muted: #52525b;
+  --dim: #686872;
+  --field: #ffffff;
+  --primary: #101012;
+  --primary-fg: #f7f7f8;
+  --primary-hover: #000000;
+  --card-from: #ffffff;
+  --card-to: #f2f2f4;
+  --beam-core: rgba(0, 0, 0, 0.055);
+  --beam-edge: rgba(0, 0, 0, 0.008);
+  --beam-pool: rgba(0, 0, 0, 0.04);
+  --grain-opacity: 0.35;
+  --scroll-thumb: #cbcbd2;
+  color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-surface: #111113;
-  --color-raised: #17171a;
-  --color-line: #242428;
-  --color-line-strong: #34343a;
-  --color-control: #6c6c75;
-  --color-muted: #a2a2ab;
-  --color-dim: #868690;
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-control: var(--control);
+  --color-muted: var(--muted);
+  --color-dim: var(--dim);
+  --color-field: var(--field);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
   --radius-control: 10px;
   --radius-card: 14px;
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
-}
-
-html {
-  color-scheme: dark;
 }
 
 body {
@@ -55,14 +129,14 @@ body::after {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.5;
+  opacity: var(--grain-opacity);
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
 }
 
 /* Focus: one visible ring everywhere keyboard users land. */
 :focus-visible {
-  outline: 2px solid #f2f2f4;
+  outline: 2px solid var(--foreground);
   outline-offset: 2px;
 }
 
@@ -88,22 +162,22 @@ body::after {
     transform: translateY(1px) scale(0.99);
   }
   .btn-primary {
-    background: #f2f2f4;
-    color: #0a0a0a;
+    background: var(--primary);
+    color: var(--primary-fg);
   }
   .btn-primary:hover {
-    background: #fff;
+    background: var(--primary-hover);
   }
   .btn-ghost {
-    border: 1px solid var(--color-line-strong);
-    color: #f2f2f4;
+    border: 1px solid var(--line-strong);
+    color: var(--foreground);
   }
   .btn-ghost:hover {
-    background: var(--color-raised);
+    background: var(--raised);
   }
   .btn[disabled] {
-    background: #1c1c20;
-    color: var(--color-dim);
+    background: var(--raised);
+    color: var(--dim);
     border-color: transparent;
     cursor: not-allowed;
   }
@@ -112,60 +186,49 @@ body::after {
     font-size: 0.875rem;
   }
   .link-quiet {
-    color: var(--color-muted);
+    color: var(--muted);
     text-decoration: underline;
-    text-decoration-color: #3a3a40;
+    text-decoration-color: var(--line-strong);
     text-underline-offset: 3px;
     transition: color 0.2s;
   }
   .link-quiet:hover {
-    color: #f2f2f4;
+    color: var(--foreground);
   }
   .field-input {
     width: 100%;
     height: 2.75rem;
     border-radius: var(--radius-control);
-    border: 1px solid var(--color-control);
-    background: #101013;
+    border: 1px solid var(--control);
+    background: var(--field);
     padding: 0 0.9rem;
-    color: #f2f2f4;
+    color: var(--foreground);
     font-size: 1rem;
     transition: border-color 0.2s;
   }
   .field-input::placeholder {
-    color: var(--color-dim);
+    color: var(--dim);
   }
   .field-input:focus {
     outline: none;
-    border-color: #f2f2f4;
+    border-color: var(--foreground);
   }
   .surface {
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--line);
     border-radius: var(--radius-card);
-    background: linear-gradient(180deg, #121215, #0e0e10);
+    background: linear-gradient(180deg, var(--card-from), var(--card-to));
   }
 }
 
-/* Light beam behind the hero: one cone and one soft pool, no colour. */
+/* Light beam behind the hero: one cone and one soft pool. */
 .beam {
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   background:
-    conic-gradient(from 198deg at 88% -16%, transparent 0deg, rgba(255, 255, 255, 0.08) 14deg, rgba(255, 255, 255, 0.012) 30deg, transparent 38deg),
-    radial-gradient(60% 50% at 82% 0%, rgba(255, 255, 255, 0.055), transparent 70%);
-}
-
-/* Legacy surfaces still used by the configuration screens. */
-.film-grain::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.4;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    conic-gradient(from 198deg at 88% -16%, transparent 0deg, var(--beam-core) 14deg, var(--beam-edge) 30deg, transparent 38deg),
+    radial-gradient(60% 50% at 82% 0%, var(--beam-pool), transparent 70%);
 }
 
 @keyframes fade-in {
@@ -214,7 +277,7 @@ body::after {
 .panel-scroll {
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: #2a2a30 transparent;
+  scrollbar-color: var(--scroll-thumb) transparent;
 }
 
 .config-scroll::-webkit-scrollbar {
@@ -226,7 +289,7 @@ body::after {
 }
 
 .config-scroll::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+  background: var(--scroll-thumb);
   border-radius: 3px;
 }
 
@@ -254,4 +317,15 @@ body::after {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Used by the admin dashboard only. */
+.film-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
 }

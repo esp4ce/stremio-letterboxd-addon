@@ -32,9 +32,9 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
       <div>
         <h3 className="text-[18px] font-medium text-foreground">Display Options</h3>
         <div className="mt-3 space-y-2">
-          <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-lg bg-raised px-3.5 py-3">
             <div className="min-w-0">
-              <p className="text-[14px] font-medium text-white">Show Letterboxd Ratings</p>
+              <p className="text-[14px] font-medium text-foreground">Show Letterboxd Ratings</p>
               <p className="mt-0.5 text-[12px] text-dim">On posters and in stream info</p>
             </div>
             <Toggle
@@ -42,9 +42,9 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
               onToggle={() => props.onShowRatingsChange(!props.showRatings)}
             />
           </div>
-          <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-lg bg-raised px-3.5 py-3">
             <div className="min-w-0">
-              <p className="text-[14px] font-medium text-white">Hide Unreleased Films</p>
+              <p className="text-[14px] font-medium text-foreground">Hide Unreleased Films</p>
               <p className="mt-0.5 text-[12px] text-dim">Hide films that haven&apos;t been released yet</p>
             </div>
             <Toggle
@@ -52,9 +52,9 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
               onToggle={() => props.onHideUnreleasedChange(!props.hideUnreleased)}
             />
           </div>
-          <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-lg bg-raised px-3.5 py-3">
             <div className="min-w-0">
-              <p className="text-[14px] font-medium text-white">Hide Films Without a Home Release</p>
+              <p className="text-[14px] font-medium text-foreground">Hide Films Without a Home Release</p>
               <p className="mt-0.5 text-[12px] text-dim">Hide films not yet available digitally, physically or on TV</p>
             </div>
             <Toggle
@@ -62,9 +62,9 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
               onToggle={() => props.onHideNoHomeReleaseChange(!props.hideNoHomeRelease)}
             />
           </div>
-          <div className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-lg bg-raised px-3.5 py-3">
             <div className="min-w-0">
-              <p className="text-[14px] font-medium text-white">Letterboxd Search</p>
+              <p className="text-[14px] font-medium text-foreground">Letterboxd Search</p>
               <p className="mt-0.5 text-[12px] text-dim">Search films directly via Letterboxd in Stremio</p>
             </div>
             <Toggle
@@ -95,9 +95,9 @@ export function DisplayOptionsSection(props: DisplayOptionsProps) {
         {items.map(({ key, label, description, defaultOn }) => {
           const enabled = defaultOn ? preferences[key] !== false : preferences[key] === true;
           return (
-            <div key={key} className="flex items-center justify-between gap-4 rounded-lg bg-zinc-800/35 px-3.5 py-3">
+            <div key={key} className="flex items-center justify-between gap-4 rounded-lg bg-raised px-3.5 py-3">
               <div className="min-w-0">
-                <p className="text-[14px] font-medium text-white">{label}</p>
+                <p className="text-[14px] font-medium text-foreground">{label}</p>
                 <p className="mt-0.5 text-[12px] text-dim">{description}</p>
               </div>
               <Toggle
