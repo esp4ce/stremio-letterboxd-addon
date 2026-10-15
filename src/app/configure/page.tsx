@@ -215,7 +215,7 @@ function Frame({ children, width = "max-w-5xl" }: { children: ReactNode; width?:
           Back to home
         </TransitionLink>
       </SiteHeader>
-      <main className={`mx-auto flex w-full ${width} flex-1 flex-col justify-center px-4 py-6 sm:px-6`}>{children}</main>
+      <main id="main" className={`mx-auto flex w-full ${width} flex-1 flex-col justify-center px-4 py-6 sm:px-6`}>{children}</main>
       <Footer absolute={false} />
     </div>
   );

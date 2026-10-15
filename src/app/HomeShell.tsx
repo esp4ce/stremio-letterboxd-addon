@@ -111,7 +111,7 @@ export default function HomeShell() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 sm:px-6">
+      <main id="main" className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 sm:px-6">
         {/* Overview */}
         <section hidden={pane !== "overview"} className="animate-fade-in flex flex-1 flex-col">
           <div className="grid flex-1 items-center gap-10 py-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-14 lg:py-8">

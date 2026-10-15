@@ -65,7 +65,7 @@ export default function FAQ() {
         </TransitionLink>
       </SiteHeader>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-6 sm:px-6 lg:min-h-0">
+      <main id="main" className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-6 sm:px-6 lg:min-h-0">
         <div className="flex flex-col gap-4 pb-5 pt-4 sm:flex-row sm:items-end sm:justify-between">
           <h1 className="text-[30px] font-medium leading-none tracking-[-0.035em] sm:text-[40px]">FAQ</h1>
           <div className="w-full sm:max-w-xs">
