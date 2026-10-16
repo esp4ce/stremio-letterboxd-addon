@@ -318,13 +318,18 @@ export interface UniqueUsersCount {
   total: number;
 }
 
-export function getTotalUniqueUsers(days: number = 30): UniqueUsersCount {
-  const db = getDb();
-  const since = sinceDate(days);
+/**
+ * Registered users per tier, read from the users table: it is permanent, unlike
+ * events, so the totals survive the event purge.
+ */
+export function getTotalUniqueUsers(): UniqueUsersCount {
+  const rows = getDb()
+    .prepare('SELECT tier, COUNT(*) AS count FROM users GROUP BY tier')
+    .all() as Array<{ tier: number; count: number }>;
 
-  const tier2 = countQuery(db, `SELECT COUNT(DISTINCT e.user_id) as count FROM events e JOIN users u ON e.user_id = u.id WHERE u.tier = 2 AND e.created_at >= ?`, since);
-  const tier1 = countQuery(db, `SELECT COUNT(DISTINCT e.user_id) as count FROM events e JOIN users u ON e.user_id = u.id WHERE u.tier = 1 AND e.created_at >= ?`, since);
-
+  const countFor = (tier: number) => rows.find((row) => row.tier === tier)?.count ?? 0;
+  const tier1 = countFor(1);
+  const tier2 = countFor(2);
   return { tier1, tier2, total: tier1 + tier2 };
 }
 
@@ -479,6 +484,10 @@ export function getCatalogBreakdown(days: number = 30): CatalogBreakdownEntry[] 
 // they run. A short window keeps those scans cheap.
 export const EVENT_RETENTION_DAYS = 14;
 
+// Rare and cheap, but they record who joined and why supporters back the
+// project: never purged, whatever their age.
+const PERMANENT_EVENTS = ['install', 'login', 'supporter_reason'] as const satisfies readonly EventType[];
+
 /**
  * Delete events older than the retention window in bounded batches, yielding
  * to the event loop between batches so the purge never freezes the API.
@@ -489,13 +498,16 @@ export async function purgeOldEventsInBatches(
 ): Promise<number> {
   const db = getDb();
   const cutoffDate = sinceDate(daysToKeep);
+  const keepPlaceholders = PERMANENT_EVENTS.map(() => '?').join(', ');
   const deleteBatch = db.prepare(
-    'DELETE FROM events WHERE rowid IN (SELECT rowid FROM events WHERE created_at < ? LIMIT ?)',
+    `DELETE FROM events WHERE rowid IN (
+       SELECT rowid FROM events WHERE created_at < ? AND event NOT IN (${keepPlaceholders}) LIMIT ?
+     )`,
   );
 
   let total = 0;
   for (;;) {
-    const { changes } = deleteBatch.run(cutoffDate, batchSize);
+    const { changes } = deleteBatch.run(cutoffDate, ...PERMANENT_EVENTS, batchSize);
     total += changes;
     if (changes < batchSize) return total;
     await new Promise<void>((resolve) => setImmediate(resolve));

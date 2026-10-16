@@ -200,7 +200,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
       });
 
       return {
-        uniqueUsers: getTotalUniqueUsers(clampedDays),
+        uniqueUsers: getTotalUniqueUsers(),
         peakHours: getPeakHours(clampedDays),
         topFilms: topFilms.map(enrichFilm),
         topLists,

@@ -39,6 +39,20 @@ describe('purgeOldEventsInBatches', () => {
     expect(order).toEqual(['other work', 'purge done']);
   });
 
+  it('never purges the low-volume events that record who joined and why they support', async () => {
+    const insert = getDb().prepare('INSERT INTO events (event, created_at) VALUES (?, ?)');
+    for (const event of ['install', 'login', 'supporter_reason', 'catalog_popular', 'stream']) {
+      insert.run(event, iso(200));
+    }
+
+    const deleted = await purgeOldEventsInBatches(14, 5);
+
+    const kept = (getDb().prepare('SELECT event FROM events ORDER BY event').all() as Array<{ event: string }>)
+      .map((row) => row.event);
+    expect(deleted).toBe(2);
+    expect(kept).toEqual(['install', 'login', 'supporter_reason']);
+  });
+
   it('returns 0 and touches nothing when everything is recent', async () => {
     insertEvents(4, 2);
 
