@@ -22,6 +22,26 @@ export function isAllowedPosterUrl(url: string): boolean {
   }
 }
 
+const POSTER_LABEL_MAX_LENGTH = 24;
+const POSTER_LABEL_FALLBACK = 'Friend';
+// Only what the overlay font (DejaVu Sans) can draw. Anything else would render
+// as tofu boxes, and keeping this set free of < > " ' & makes the label safe to
+// embed in the SVG overlay.
+const NON_RENDERABLE_LABEL_CHARS = /[^\p{Script=Latin}\p{N}\s.,\-_·•…★☆♥]/gu;
+
+/** Third-party display name -> short, SVG-safe, renderable overlay label. */
+export function sanitizePosterLabel(raw: string): string {
+  const cleaned = raw
+    .normalize('NFC')
+    .replace(NON_RENDERABLE_LABEL_CHARS, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!cleaned) return POSTER_LABEL_FALLBACK;
+  return cleaned.length > POSTER_LABEL_MAX_LENGTH
+    ? `${cleaned.slice(0, POSTER_LABEL_MAX_LENGTH - 1)}…`
+    : cleaned;
+}
+
 // Semaphore to limit concurrent poster image fetches (CDN rate-limiting protection)
 const MAX_CONCURRENT_FETCHES = 8;
 let activeFetches = 0;
@@ -49,9 +69,11 @@ function releaseFetchSlot(): void {
  */
 export async function generateRatedPoster(
   posterUrl: string,
-  rating: number
+  rating?: number,
+  by?: string
 ): Promise<Buffer> {
-  const cacheKey = `${posterUrl}:${rating}`;
+  const label = by ? sanitizePosterLabel(by) : undefined;
+  const cacheKey = `${posterUrl}:${rating ?? ''}:${label ?? ''}`;
   const cached = posterCache.get(cacheKey);
   if (cached) return cached;
 
@@ -88,29 +110,32 @@ export async function generateRatedPoster(
   const width = metadata.width ?? 300;
   const height = metadata.height ?? 450;
 
-  // Pill badge: dark background, Letterboxd 3-dot logo left, rating right
+  // Pill badges: dark background, shared geometry
   const badgeH = Math.round(width * 0.13);
   const margin = Math.round(width * 0.04);
   const rx = Math.round(badgeH * 0.5);
-  const r = Math.round(badgeH * 0.27);        // circle radius
-  const gap = Math.round(r * 1.55);            // center-to-center (slight overlap)
   const hPad = Math.round(badgeH * 0.3);
   const fontSize = Math.round(badgeH * 0.50);
-  const ratingText = rating.toFixed(1);
-  const logoSectionW = hPad + r + gap * 2 + r + hPad;
-  const ratingW = Math.round(fontSize * ratingText.length * 0.65);
-  const badgeW = logoSectionW + ratingW + hPad;
-  const badgeX = width - badgeW - margin;
-  const badgeY = height - badgeH - margin;
-  const cy = Math.round(badgeY + badgeH / 2);
-  const cx1 = badgeX + hPad + r;
-  const cx2 = cx1 + gap;
-  const cx3 = cx2 + gap;
-  const textX = badgeX + logoSectionW + ratingW / 2;
-  const textY = cy + Math.round(fontSize * 0.36);
+  const fontFamily = 'DejaVu Sans, Arial, Helvetica, sans-serif';
 
-  const svgOverlay = `
-    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+  // Bottom-right: Letterboxd 3-dot logo left, community rating right
+  let ratingBadge = '';
+  if (rating !== undefined) {
+    const r = Math.round(badgeH * 0.27);        // circle radius
+    const gap = Math.round(r * 1.55);            // center-to-center (slight overlap)
+    const ratingText = rating.toFixed(1);
+    const logoSectionW = hPad + r + gap * 2 + r + hPad;
+    const ratingW = Math.round(fontSize * ratingText.length * 0.65);
+    const badgeW = logoSectionW + ratingW + hPad;
+    const badgeX = width - badgeW - margin;
+    const badgeY = height - badgeH - margin;
+    const cy = Math.round(badgeY + badgeH / 2);
+    const cx1 = badgeX + hPad + r;
+    const cx2 = cx1 + gap;
+    const cx3 = cx2 + gap;
+    const textX = badgeX + logoSectionW + ratingW / 2;
+    const textY = cy + Math.round(fontSize * 0.36);
+    ratingBadge = `
       <!-- Dark pill background -->
       <rect x="${badgeX}" y="${badgeY}" width="${badgeW}" height="${badgeH}"
             rx="${rx}" ry="${rx}" fill="#1a1a1a" fill-opacity="0.92"/>
@@ -124,8 +149,38 @@ export async function generateRatedPoster(
             stroke="white" stroke-opacity="0.2" stroke-width="1"/>
       <!-- Rating -->
       <text x="${textX}" y="${textY}"
-            font-family="DejaVu Sans, Arial, Helvetica, sans-serif" font-size="${fontSize}"
-            font-weight="bold" fill="white" text-anchor="middle">${ratingText}</text>
+            font-family="${fontFamily}" font-size="${fontSize}"
+            font-weight="bold" fill="white" text-anchor="middle">${ratingText}</text>`;
+  }
+
+  // Top-left: friend attribution (Friends Activity). `label` is already
+  // sanitized, so it is safe inside the SVG.
+  let friendBadge = '';
+  if (label) {
+    const friendFont = Math.round(badgeH * 0.42);
+    const dotR = Math.round(badgeH * 0.14);
+    const maxW = width - margin * 2;
+    const textW = Math.min(
+      Math.round(friendFont * label.length * 0.62),
+      maxW - hPad * 3 - dotR * 2,
+    );
+    const badgeW = hPad + dotR * 2 + Math.round(hPad * 0.6) + textW + hPad;
+    const badgeX = margin;
+    const badgeY = margin;
+    const cy = Math.round(badgeY + badgeH / 2);
+    const textX = badgeX + hPad + dotR * 2 + Math.round(hPad * 0.6);
+    const textY = cy + Math.round(friendFont * 0.36);
+    friendBadge = `
+      <rect x="${badgeX}" y="${badgeY}" width="${badgeW}" height="${badgeH}"
+            rx="${rx}" ry="${rx}" fill="#1a1a1a" fill-opacity="0.92"/>
+      <circle cx="${badgeX + hPad + dotR}" cy="${cy}" r="${dotR}" fill="#00C030"/>
+      <text x="${textX}" y="${textY}"
+            font-family="${fontFamily}" font-size="${friendFont}"
+            font-weight="bold" fill="white">${label}</text>`;
+  }
+
+  const svgOverlay = `
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">${ratingBadge}${friendBadge}
     </svg>`;
 
   const result = await image

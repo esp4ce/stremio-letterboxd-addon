@@ -376,6 +376,67 @@ describe('transformActivityToMetas', () => {
     const metas = await transformActivityToMetas(items, 'me');
     expect(metas).toHaveLength(0);
   });
+
+  describe('friend badge on the poster (#159)', () => {
+    const posterBy = (poster: string | undefined) =>
+      new URL(poster!).searchParams.get('by');
+
+    it('names the friend and their rating on a rating activity', async () => {
+      const metas = await transformActivityToMetas(
+        [makeActivityItem({ type: 'FilmRatingActivity', rating: 3.5 })],
+        'me',
+      );
+      expect(posterBy(metas[0]!.poster)).toBe('Friend One · ★★★½');
+    });
+
+    it('names only the friend on a watchlist activity', async () => {
+      const metas = await transformActivityToMetas(
+        [makeActivityItem({ type: 'WatchlistActivity' })],
+        'me',
+      );
+      expect(posterBy(metas[0]!.poster)).toBe('Friend One');
+    });
+
+    it('adds a heart for a liked diary entry', async () => {
+      const metas = await transformActivityToMetas(
+        [
+          makeActivityItem({
+            type: 'DiaryEntryActivity',
+            film: undefined,
+            diaryEntry: { like: true, rating: 4.0, diaryDetails: {}, film: makeFilm() },
+          }),
+        ],
+        'me',
+      );
+      expect(posterBy(metas[0]!.poster)).toBe('Friend One · ★★★★ ♥');
+    });
+
+    it('still badges the friend when community ratings are turned off', async () => {
+      const metas = await transformActivityToMetas(
+        [makeActivityItem({ type: 'WatchlistActivity' })],
+        'me',
+        false,
+      );
+      const url = new URL(metas[0]!.poster!);
+      expect(url.pathname).toBe('/poster');
+      expect(url.searchParams.get('by')).toBe('Friend One');
+      expect(url.searchParams.has('rating')).toBe(false);
+    });
+
+    it('keeps the rating visible when the friend name is long', async () => {
+      const metas = await transformActivityToMetas(
+        [
+          makeActivityItem({
+            type: 'FilmRatingActivity',
+            rating: 3.5,
+            member: { id: 'm9', username: 'x', displayName: 'Alexandrina Montgomery-Smith' },
+          }),
+        ],
+        'me',
+      );
+      expect(posterBy(metas[0]!.poster)!.endsWith(' · ★★★½')).toBe(true);
+    });
+  });
 });
 
 describe('transformSearchResultsToMetas', () => {

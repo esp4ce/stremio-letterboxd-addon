@@ -166,18 +166,25 @@ export async function stremioRoutes(app: FastifyInstance) {
     '/poster',
     { config: { rateLimit: false } },
     async (
-      request: FastifyRequest<{ Querystring: { url?: string; rating?: string } }>,
+      request: FastifyRequest<{ Querystring: { url?: string; rating?: string; by?: string } }>,
       reply,
     ) => {
-      const { url, rating: ratingStr } = request.query;
+      const { url, rating: ratingStr, by } = request.query;
 
-      if (!url || !ratingStr) {
+      if (!url || (!ratingStr && !by)) {
         return reply.status(400).send({ error: 'Missing url or rating parameter' });
       }
 
-      const rating = parseFloat(ratingStr);
-      if (isNaN(rating) || rating < 0 || rating > 5) {
-        return reply.status(400).send({ error: 'Rating must be between 0 and 5' });
+      let rating: number | undefined;
+      if (ratingStr) {
+        rating = parseFloat(ratingStr);
+        if (isNaN(rating) || rating < 0 || rating > 5) {
+          return reply.status(400).send({ error: 'Rating must be between 0 and 5' });
+        }
+      }
+
+      if (by !== undefined && (typeof by !== 'string' || by.length > 200)) {
+        return reply.status(400).send({ error: 'Invalid by parameter' });
       }
 
       if (!isAllowedPosterUrl(url)) {
@@ -185,7 +192,7 @@ export async function stremioRoutes(app: FastifyInstance) {
       }
 
       try {
-        const imageBuffer = await generateRatedPoster(url, rating);
+        const imageBuffer = await generateRatedPoster(url, rating, by);
         return reply
           .header('Content-Type', 'image/jpeg')
           .header('Cache-Control', 'public, max-age=2592000, immutable')

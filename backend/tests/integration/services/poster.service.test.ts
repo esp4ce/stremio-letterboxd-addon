@@ -134,6 +134,65 @@ describe('poster service (via route)', () => {
       expect(res.statusCode).toBe(200);
     });
 
+    describe('friend attribution badge (by)', () => {
+      const POSTER = 'https://image.tmdb.org/t/p/w500/friend-badge.jpg';
+      let bigJpeg: Buffer;
+
+      beforeAll(async () => {
+        bigJpeg = await sharp({
+          create: { width: 300, height: 450, channels: 3, background: '#336699' },
+        })
+          .jpeg()
+          .toBuffer();
+      });
+
+      const serve = () =>
+        server.use(
+          http.get(POSTER, () =>
+            HttpResponse.arrayBuffer(new Uint8Array(bigJpeg).buffer, {
+              headers: { 'Content-Type': 'image/jpeg' },
+            }),
+          ),
+        );
+      const get = (query: string) =>
+        app.inject({ method: 'GET', url: `/poster?url=${encodeURIComponent(POSTER)}&${query}` });
+
+      it('serves a poster with only a friend name (no community rating)', async () => {
+        serve();
+        const res = await get('by=Joel');
+        expect(res.statusCode).toBe(200);
+        expect(res.headers['content-type']).toContain('image/jpeg');
+      });
+
+      it('draws the friend badge: result differs from the rating-only poster', async () => {
+        serve();
+        const plain = await get('rating=4.0');
+        const withFriend = await get(`rating=4.0&by=${encodeURIComponent('Joel Haver')}`);
+        expect(withFriend.statusCode).toBe(200);
+        expect(withFriend.rawPayload.equals(plain.rawPayload)).toBe(false);
+      });
+
+      it('does not serve one friend\'s poster to another (cache key includes by)', async () => {
+        serve();
+        const a = await get('rating=3.0&by=Alice');
+        const b = await get('rating=3.0&by=Bob');
+        expect(a.statusCode).toBe(200);
+        expect(b.statusCode).toBe(200);
+        expect(a.rawPayload.equals(b.rawPayload)).toBe(false);
+      });
+
+      it('survives markup and unrenderable characters in the name', async () => {
+        serve();
+        const res = await get(`rating=2.0&by=${encodeURIComponent('<svg onload=x>"&日本語')}`);
+        expect(res.statusCode).toBe(200);
+      });
+
+      it('still requires a rating or a friend', async () => {
+        const res = await get('x=1');
+        expect(res.statusCode).toBe(400);
+      });
+    });
+
     it('still rejects lookalike hosts', async () => {
       for (const u of [
         'https://images.metahub.space.evil.com/x',

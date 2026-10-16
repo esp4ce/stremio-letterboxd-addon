@@ -89,11 +89,16 @@ export function getPosterUrl(film: FilmLike): string | undefined {
 }
 
 /**
- * Build poster URL with rating badge overlay via proxy
+ * Build poster URL with rating badge overlay via proxy.
+ * `by` adds the friend attribution badge (Friends Activity only); it is enough
+ * on its own, so a film without a community rating still gets one.
  */
-export function buildPosterUrl(originalPoster: string | undefined, rating?: number): string | undefined {
-  if (!originalPoster || !rating) return originalPoster;
-  return `${serverConfig.publicUrl}/poster?url=${encodeURIComponent(originalPoster)}&rating=${rating.toFixed(1)}`;
+export function buildPosterUrl(originalPoster: string | undefined, rating?: number, by?: string): string | undefined {
+  if (!originalPoster || (!rating && !by)) return originalPoster;
+  let url = `${serverConfig.publicUrl}/poster?url=${encodeURIComponent(originalPoster)}`;
+  if (rating) url += `&rating=${rating.toFixed(1)}`;
+  if (by) url += `&by=${encodeURIComponent(by)}`;
+  return url;
 }
 
 /**
@@ -337,9 +342,12 @@ async function transformActivityItemToMeta(item: ActivityItem, showRatings = tru
   // Build description based on activity type
   const memberName = item.member.displayName || item.member.username;
   let description: string | undefined;
+  // Short friend badge drawn on the poster: the only surface every client shows (#159)
+  let badgeSuffix = '';
 
   if (item.type === 'FilmRatingActivity' && item.rating) {
     description = `Rated ${formatStarsOnly(item.rating)} by ${memberName}`;
+    badgeSuffix = ` · ${formatStarsOnly(item.rating)}`;
   } else if (item.type === 'WatchlistActivity') {
     description = `Added to watchlist by ${memberName}`;
   } else if (item.type === 'DiaryEntryActivity') {
@@ -352,6 +360,7 @@ async function transformActivityItemToMeta(item: ActivityItem, showRatings = tru
     parts.push(`by ${memberName}`);
     if (diary?.diaryDetails?.diaryDate) parts.push(`on ${diary.diaryDetails.diaryDate}`);
     description = parts.join(' ');
+    badgeSuffix = `${diary?.rating ? ` · ${formatStarsOnly(diary.rating)}` : ''}${diary?.like ? ' ♥' : ''}`;
     // Append review text if available (skip spoilers)
     if (diary?.review?.lbml && !diary.review.containsSpoilers) {
       description += `\n"${diary.review.lbml}"`;
@@ -364,12 +373,24 @@ async function transformActivityItemToMeta(item: ActivityItem, showRatings = tru
     id: imdbId,
     type: 'movie',
     name: film.name,
-    poster: showRatings ? buildPosterUrl(getPosterUrl(film), film.rating) : getPosterUrl(film),
+    poster: buildPosterUrl(
+      getPosterUrl(film),
+      showRatings ? film.rating : undefined,
+      friendBadgeLabel(memberName, badgeSuffix),
+    ),
     year: film.releaseYear,
     genres: film.genres?.map((g) => g.name),
     director: film.directors?.map((d) => d.name),
     description,
   };
+}
+
+const FRIEND_BADGE_NAME_MAX = 14;
+
+/** Name is clipped on its own so a long name never pushes the stars out of the badge. */
+function friendBadgeLabel(name: string, suffix: string): string {
+  const clipped = name.length > FRIEND_BADGE_NAME_MAX ? `${name.slice(0, FRIEND_BADGE_NAME_MAX - 1)}…` : name;
+  return `${clipped}${suffix}`;
 }
 
 /**
