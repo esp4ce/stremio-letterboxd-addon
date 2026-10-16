@@ -7,8 +7,10 @@ import { backupOptionsFromEnv, startBackupScheduler } from './lib/backup.js';
 import { startNativeSyncWorker } from './modules/native-sync/native-sync.worker.js';
 import { config, catalogConfig } from './config/index.js';
 import { logger, createChildLogger } from './lib/logger.js';
-import { cleanupOldEvents } from './lib/metrics.js';
+import { purgeOldEventsInBatches } from './lib/metrics.js';
 import { shutdownPosthog } from './lib/posthog.js';
+
+const EVENT_PURGE_EVERY_MS = 6 * 60 * 60 * 1000;
 
 async function main() {
   logger.info('Starting Stremio Addon Backend...');
@@ -21,12 +23,6 @@ async function main() {
       'Database initialization failed — refusing to start on an outdated schema.'
     );
     process.exit(1);
-  }
-
-  // Cleanup old events (keep last 90 days)
-  const deletedCount = cleanupOldEvents(90);
-  if (deletedCount > 0) {
-    logger.info({ deletedCount }, 'Cleaned up old events');
   }
 
   configure({
@@ -61,8 +57,19 @@ async function main() {
   const stopBackups = startBackupScheduler(getDb, backupOptionsFromEnv(config));
   const stopNativeSync = startNativeSyncWorker();
 
+  const runEventPurge = () => {
+    purgeOldEventsInBatches()
+      .then((deletedCount) => {
+        if (deletedCount > 0) logger.info({ deletedCount }, 'Cleaned up old events');
+      })
+      .catch((err: unknown) => logger.warn({ err }, 'Event purge failed'));
+  };
+  const eventPurgeTimer = setInterval(runEventPurge, EVENT_PURGE_EVERY_MS);
+  eventPurgeTimer.unref();
+
   const shutdown = async (signal: string) => {
     logger.info({ signal }, 'Received shutdown signal');
+    clearInterval(eventPurgeTimer);
     stopBackups();
     const nativeSyncStopped = stopNativeSync();
     await app.close();
@@ -81,6 +88,7 @@ async function main() {
       { port: config.PORT, url: config.PUBLIC_URL, https: config.ENABLE_HTTPS },
       'Server started'
     );
+    runEventPurge();
   } catch (error) {
     logger.fatal({ error }, 'Failed to start server');
     process.exit(1);

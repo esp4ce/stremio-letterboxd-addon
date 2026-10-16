@@ -474,11 +474,30 @@ export function getCatalogBreakdown(days: number = 30): CatalogBreakdownEntry[] 
   ).all(since) as CatalogBreakdownEntry[];
 }
 
-export function cleanupOldEvents(daysToKeep: number = 90): number {
+// Metrics are only read through the dashboard, whose queries scan every event
+// in the window synchronously (better-sqlite3) and freeze the whole API while
+// they run. A short window keeps those scans cheap.
+export const EVENT_RETENTION_DAYS = 14;
+
+/**
+ * Delete events older than the retention window in bounded batches, yielding
+ * to the event loop between batches so the purge never freezes the API.
+ */
+export async function purgeOldEventsInBatches(
+  daysToKeep: number = EVENT_RETENTION_DAYS,
+  batchSize: number = 2000,
+): Promise<number> {
   const db = getDb();
   const cutoffDate = sinceDate(daysToKeep);
+  const deleteBatch = db.prepare(
+    'DELETE FROM events WHERE rowid IN (SELECT rowid FROM events WHERE created_at < ? LIMIT ?)',
+  );
 
-  const result = db.prepare('DELETE FROM events WHERE created_at < ?').run(cutoffDate);
-
-  return result.changes;
+  let total = 0;
+  for (;;) {
+    const { changes } = deleteBatch.run(cutoffDate, batchSize);
+    total += changes;
+    if (changes < batchSize) return total;
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  }
 }
