@@ -7,6 +7,7 @@ import Footer from "../components/Footer";
 import SiteHeader from "../components/SiteHeader";
 import { OtpInput } from "./components/OtpInput";
 import { ConfigureSteps } from "./components/ConfigureSteps";
+import { LoginSkeleton } from "./components/LoginSkeleton";
 import ConfigurationModal from "./ConfigurationModal";
 import { Toggle } from "./components/primitives";
 import type { UserPreferences } from "../../types/preferences";
@@ -30,6 +31,7 @@ const SUPPORTER_REASONS: Array<{ value: SupporterReason; label: string }> = [
   { value: "other", label: "Something else" },
 ];
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
+const SESSION_RESTORE_TIMEOUT_MS = 8_000;
 
 interface LoginResponse {
   manifestUrl: string;
@@ -228,8 +230,7 @@ export default function Configure() {
     <Suspense
       fallback={
         <Frame step={1}>
-          <h1 className="sr-only">Connect your Letterboxd account to Stremio and Nuvio</h1>
-          <div className="min-h-[420px]" aria-busy="true" />
+          <LoginSkeleton />
         </Frame>
       }
     >
@@ -549,6 +550,8 @@ function ConfigureInner() {
         const response = await fetch(`${BACKEND_URL}/auth/session`, {
           credentials: "include",
           headers: authHeaders(),
+          // A stalled API must not keep the page on its placeholder forever.
+          signal: AbortSignal.timeout(SESSION_RESTORE_TIMEOUT_MS),
         });
 
         if (response.ok && !cancelled) {
@@ -1232,8 +1235,7 @@ function ConfigureInner() {
   if (isRestoringSession) {
     return (
       <Frame step={1}>
-        <h1 className="sr-only">Connect your Letterboxd account to Stremio and Nuvio</h1>
-        <div className="min-h-[420px]" aria-busy="true" />
+        <LoginSkeleton />
       </Frame>
     );
   }
