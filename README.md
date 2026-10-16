@@ -6,7 +6,7 @@
 Watchlist, diary, friends, lists, ratings — all in one addon.
 
 [![CI](https://github.com/esp4ce/stremio-letterboxd-addon/actions/workflows/ci.yml/badge.svg)](https://github.com/esp4ce/stremio-letterboxd-addon/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+[![License: PolyForm Strict](https://img.shields.io/badge/license-PolyForm%20Strict-blue?style=flat-square)](LICENSE)
 [![Stremio](https://img.shields.io/badge/Stremio-addon-8A05BE?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyek0xMCAxNi41di05bDYgNC41LTYgNC41eiIvPjwvc3ZnPg==)](https://stremboxd.com/configure)
 
 [**Configure →**](https://stremboxd.com/configure) · [Website](https://stremboxd.com) · [Supporter](https://stremboxd.com/#supporter) · [FAQ](https://stremboxd.com/faq)
@@ -80,4 +80,4 @@ Everything here stays free. Supporting pays the hosting and adds automatic diary
 
 ## License
 
-[MIT](LICENSE)
+[PolyForm Strict 1.0.0](LICENSE) — source-available: the code is public to read, not to reuse.
