@@ -30,12 +30,22 @@ function wordsOverlap(nameWords: string[], slugWords: string[]): boolean {
 }
 
 /** Match a list name against a URL slug using word-subset matching */
+// Letterboxd cuts list slugs at ~43 chars, so a long name yields a slug that
+// is only a prefix of the name's own slug (#158).
+const TRUNCATED_SLUG_MIN_LENGTH = 40;
+
 export function matchesSlug(listName: string, urlSlug: string): boolean {
   const nameWords = extractWords(listName);
   const slugWords = urlSlug.split('-').filter((w) => w.length > 0);
 
   if (slugWords.length === 0) return false;
   if (wordsOverlap(nameWords, slugWords)) return true;
+  if (
+    urlSlug.length >= TRUNCATED_SLUG_MIN_LENGTH &&
+    `${nameWords.join('-')}-`.startsWith(`${slugWords.join('-')}-`)
+  ) {
+    return true;
+  }
 
   // Retry without trailing number — Letterboxd dedup suffix ("monster-high-1")
   const stripped = urlSlug.replace(/-\d+$/, '');

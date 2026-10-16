@@ -43,6 +43,30 @@ describe('matchesSlug', () => {
     expect(matchesSlug('Top 250 Films by Women Directors', 'top-directors')).toBe(false);
   });
 
+  it('matche un slug tronqué par Letterboxd (~43 car.) sur un nom très long (#158)', () => {
+    expect(
+      matchesSlug(
+        'Psychosexual dramas, nihilistic fever dreams & surrealism with a touch of humour',
+        'psychosexual-dramas-nihilistic-fever-dreams'
+      )
+    ).toBe(true);
+    expect(
+      matchesSlug(
+        'Japanese Films That Will Blow Your Mind And Make You Reevaluate The Possibilities Of The Cinematic Artform',
+        'japanese-films-that-will-blow-your-mind-and'
+      )
+    ).toBe(true);
+  });
+
+  it('un slug tronqué ne matche pas une autre liste au même début (#158)', () => {
+    expect(
+      matchesSlug(
+        'Japanese Films That Will Blow Your Mind Away Forever Because Of Many Reasons And More',
+        'japanese-films-that-will-blow-your-mind-and'
+      )
+    ).toBe(false);
+  });
+
   it('rejette une liste totalement différente', () => {
     expect(matchesSlug('Unrelated List', 'top-250-films-by-women-directors')).toBe(false);
   });
