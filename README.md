@@ -46,13 +46,14 @@ Watchlist, diary, friends, lists, ratings — all in one addon.
 
 ## Supporter
 
-Everything above is free and stays free. A supporter subscription adds three things:
+Everything above is free and stays free. A supporter subscription adds four things:
 
 | | Free | Supporter |
 |---|---|---|
 | **Auto-sync** | Reinstall the addon after changes | Already in Stremio and Nuvio |
 | **Auto-log to Diary** | Mark films watched with quick actions | Films you finish in Stremio land in your diary |
 | **Session** | Log in again, every time | Persistent, stays signed in |
+| **Titles in your language** | English titles and synopses | Titles and synopses in French, Spanish, Portuguese, Italian, German, Dutch or Turkish |
 
 9,99&nbsp;€ / year, or 3&nbsp;€ / month. Covers hosting. [**See Supporter →**](https://stremboxd.com/#supporter)
 
