@@ -4,6 +4,7 @@ export const SITE_URL = "https://stremboxd.com";
 export const SITE_NAME = "Stremboxd";
 export const REPO_URL = "https://github.com/esp4ce/stremio-letterboxd-addon";
 export const REDDIT_URL = "https://www.reddit.com/r/stremboxd/";
+export const ADDON_CATALOG_URL = "https://stremio-addons.net/addons/stremboxd";
 
 export const HOME_TITLE = "Letterboxd Addon for Stremio & Nuvio";
 export const SITE_DESCRIPTION =
