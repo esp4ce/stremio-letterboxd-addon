@@ -19,7 +19,7 @@ describe('GET /billing/portal', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    mswServer.listen({ onUnhandledRequest: 'bypass' });
+    mswServer.listen({ onUnhandledFrame: 'bypass' });
     initDb();
     app = await buildApp();
     await app.ready();

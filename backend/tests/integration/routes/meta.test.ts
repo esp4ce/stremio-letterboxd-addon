@@ -35,7 +35,7 @@ describe('GET /:config/meta/movie/:id.json', () => {
   let validConfig: string;
 
   beforeAll(async () => {
-    server.listen({ onUnhandledRequest: 'bypass' });
+    server.listen({ onUnhandledFrame: 'bypass' });
     initDb();
     app = await buildApp();
     await app.ready();

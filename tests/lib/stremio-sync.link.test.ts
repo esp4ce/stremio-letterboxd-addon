@@ -3,7 +3,7 @@ import { http, HttpResponse, delay } from "msw";
 import { mswServer, LINK_API } from "../helpers/stremio-msw";
 import { createLinkCode, pollAuthKey } from "../../src/lib/stremio-sync";
 
-beforeAll(() => mswServer.listen({ onUnhandledRequest: "error" }));
+beforeAll(() => mswServer.listen({ onUnhandledFrame: "error" }));
 afterEach(() => mswServer.resetHandlers());
 afterAll(() => mswServer.close());
 

@@ -20,7 +20,7 @@ const cinemetaHandler = http.get('https://v3-cinemeta.strem.io/meta/movie/:id.js
 
 const server = setupServer(cinemetaHandler);
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => server.close());
 
 interface Calls {

@@ -46,7 +46,7 @@ const server = setupServer(listHandler, authHandler);
 
 beforeAll(() => {
   configure({ clientId: catalogConfig.clientId, clientSecret: catalogConfig.clientSecret, userAgent: catalogConfig.userAgent });
-  server.listen({ onUnhandledRequest: 'error' });
+  server.listen({ onUnhandledFrame: 'error' });
 });
 afterAll(() => server.close());
 

@@ -34,7 +34,7 @@ describe('letterboxd routes', () => {
   let userToken: string;
 
   beforeAll(async () => {
-    mswServer.listen({ onUnhandledRequest: 'bypass' });
+    mswServer.listen({ onUnhandledFrame: 'bypass' });
     initDb();
     app = await buildApp();
     await app.ready();

@@ -21,7 +21,7 @@ function meta(id: string, year?: number): StremioMeta {
   return { id, type: 'movie', name: id, year: year ?? 2019 };
 }
 
-beforeAll(() => mswServer.listen({ onUnhandledRequest: 'bypass' }));
+beforeAll(() => mswServer.listen({ onUnhandledFrame: 'bypass' }));
 afterEach(() => mswServer.resetHandlers());
 afterAll(() => mswServer.close());
 beforeEach(() => {
