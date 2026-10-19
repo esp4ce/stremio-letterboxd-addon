@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isValidTimeZone } from '../native-sync/job-rules.js';
+import { METADATA_LANGUAGES } from '../stremio/metadata-language.constants.js';
 
 export const loginBodySchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -53,6 +54,7 @@ export const userPreferencesSchema = z.object({
   sortVariants: z.record(z.string(), z.array(z.string())).optional(),
   nativeSync: z.boolean().optional(),
   timezone: z.string().max(64).refine(isValidTimeZone).optional().catch(undefined),
+  metadataLanguage: z.enum(METADATA_LANGUAGES).optional(),
 });
 
 // The session token travels in an httpOnly cookie, never in the response body.
