@@ -5,7 +5,7 @@ import { syncAddon, storeAuthKey, readAuthKey } from "../../src/lib/stremio-sync
 
 const MANIFEST_URL = "https://api.example.test/stremio/user-1/manifest.json";
 
-beforeAll(() => mswServer.listen({ onUnhandledRequest: "error" }));
+beforeAll(() => mswServer.listen({ onUnhandledFrame: "error" }));
 afterEach(() => {
   mswServer.resetHandlers();
   localStorage.clear();

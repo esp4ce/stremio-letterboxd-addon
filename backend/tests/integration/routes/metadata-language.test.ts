@@ -41,7 +41,7 @@ describe('Metadata Language on account catalogs', () => {
 
   beforeAll(async () => {
     configure({ clientId: catalogConfig.clientId, clientSecret: catalogConfig.clientSecret, userAgent: catalogConfig.userAgent });
-    mswServer.listen({ onUnhandledRequest: 'error' });
+    mswServer.listen({ onUnhandledFrame: 'error' });
     initDb();
     app = await buildApp();
     await app.ready();

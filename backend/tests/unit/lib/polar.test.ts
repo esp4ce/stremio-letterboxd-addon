@@ -12,7 +12,7 @@ import {
 const POLAR = 'https://sandbox-api.polar.sh';
 
 describe('polar client', () => {
-  beforeAll(() => mswServer.listen({ onUnhandledRequest: 'bypass' }));
+  beforeAll(() => mswServer.listen({ onUnhandledFrame: 'bypass' }));
   afterEach(() => mswServer.resetHandlers());
   afterAll(() => mswServer.close());
 

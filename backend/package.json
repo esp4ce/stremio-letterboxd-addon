@@ -31,7 +31,7 @@
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^26.6.5",
     "@vitest/coverage-v8": "^5.0.5",
-    "msw": "^2.15.0",
+    "msw": "^3.0.3",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^5.0.2"

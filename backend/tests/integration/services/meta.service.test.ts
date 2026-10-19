@@ -34,7 +34,7 @@ const server = setupServer(
 describe('meta service', () => {
   beforeAll(() => {
     initDb();
-    server.listen({ onUnhandledRequest: 'bypass' });
+    server.listen({ onUnhandledFrame: 'bypass' });
   });
 
   afterAll(() => {

@@ -33,7 +33,7 @@ const cinemetaHandler = http.get('https://v3-cinemeta.strem.io/meta/movie/:id.js
 
 const server = setupServer(cinemetaHandler);
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => server.close());
 
 /** Build a page of metas for a given list, with unique IMDb IDs per list. */

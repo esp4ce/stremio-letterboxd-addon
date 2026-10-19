@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { mswServer, STREMIO_API } from "../helpers/stremio-msw";
 import { getStremioAccountLocale } from "../../src/lib/stremio-sync";
 
-beforeAll(() => mswServer.listen({ onUnhandledRequest: "error" }));
+beforeAll(() => mswServer.listen({ onUnhandledFrame: "error" }));
 afterEach(() => mswServer.resetHandlers());
 afterAll(() => mswServer.close());
 

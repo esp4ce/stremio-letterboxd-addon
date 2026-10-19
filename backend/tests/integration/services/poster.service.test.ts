@@ -95,7 +95,7 @@ describe('poster service (via route)', () => {
       })
         .jpeg()
         .toBuffer();
-      server.listen({ onUnhandledRequest: 'bypass' });
+      server.listen({ onUnhandledFrame: 'bypass' });
     });
 
     afterAll(() => server.close());
