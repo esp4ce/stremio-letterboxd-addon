@@ -14,6 +14,7 @@ import { createChildLogger } from '../../lib/logger.js';
 import { fetchPageHtml, extractListIdFromListPage } from '../../lib/html-scraper.js';
 import { callWithAppToken } from '../../lib/app-client.js';
 import { matchesSlug } from '../../lib/slug-match.js';
+import { listIdFromSlug } from '../../lib/list-id.js';
 
 const logger = createChildLogger('letterboxd-service');
 
@@ -126,7 +127,7 @@ export interface ParsedListUrl {
 export function parseLetterboxdListUrl(input: string): ParsedListUrl | null {
   // Match URLs like: https://letterboxd.com/username/list/slug-name/
   const match = input.match(
-    /(?:https?:\/\/)?(?:www\.)?letterboxd\.com\/([a-zA-Z0-9_-]+)\/list\/([a-zA-Z0-9_-]+)/
+    /(?:https?:\/\/)?(?:www\.)?letterboxd\.com\/([a-zA-Z0-9_-]+)\/list\/([a-zA-Z0-9_:-]+)/
   );
   if (!match) return null;
   return { username: match[1]!, slug: match[2]! };
@@ -145,6 +146,17 @@ export async function resolveExternalList(
   slug: string
 ): Promise<ResolvedExternalList | null> {
   logger.info({ username, slug }, 'Resolving external list');
+
+  const slugListId = listIdFromSlug(slug);
+  if (slugListId) {
+    try {
+      const list = await callWithAppToken((token) => rawGetList(token, slugListId));
+      const ownerName = list.owner?.displayName || list.owner?.username || username;
+      return { id: list.id, name: list.name, owner: ownerName, filmCount: list.filmCount };
+    } catch (err) {
+      logger.warn({ listId: slugListId, err }, 'List ID derived from slug failed, falling back');
+    }
+  }
 
   // Strategy 1: Scrape the public HTML page to extract the list LID (most reliable)
   const listUrl = `https://letterboxd.com/${username}/list/${slug}/`;

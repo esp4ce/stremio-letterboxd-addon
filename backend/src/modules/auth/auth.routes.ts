@@ -25,6 +25,7 @@ import {
 } from '../../lib/html-scraper.js';
 import { contributorNameCache, contributorCacheKey, CONTRIBUTOR_KIND_SHORT } from '../../lib/cache.js';
 import { matchesSlug } from '../../lib/slug-match.js';
+import { listIdFromSlug } from '../../lib/list-id.js';
 import {
   searchMemberByUsername as rawSearchMemberByUsername,
   getMember as rawGetMember,
@@ -349,13 +350,17 @@ export async function authRoutes(app: FastifyInstance) {
           return reply.status(400).send({ error: 'Invalid Letterboxd list URL' });
         }
 
-        const pageHtml = await fetchPageHtml(normalizedUrl);
+        const [, username, rawListSlug] = urlMatch;
+        const listSlug = rawListSlug!.split(/[?#]/)[0]!.replace(/\/$/, '').toLowerCase();
 
-        if (pageHtml) {
-          const listId = extractListIdFromListPage(pageHtml);
+        const slugListId = listIdFromSlug(listSlug);
+        const pageHtml = slugListId ? null : await fetchPageHtml(normalizedUrl);
+
+        if (slugListId || pageHtml) {
+          const listId = slugListId ?? extractListIdFromListPage(pageHtml!);
 
           if (listId) {
-            request.log.info({ listId, url: normalizedUrl }, 'Strategy 1: extracted list ID from HTML');
+            request.log.info({ listId, url: normalizedUrl }, 'Strategy 1: resolved list ID');
             try {
               const list = await callWithAppToken((token) =>
                 rawGetList(token, listId)
@@ -392,9 +397,6 @@ export async function authRoutes(app: FastifyInstance) {
         }
 
         // Strategy 2 (fallback): Resolve member → get all lists → match by words
-        const [, username, rawListSlug] = urlMatch;
-        const listSlug = rawListSlug!.split(/[?#]/)[0]!.replace(/\/$/, '').toLowerCase();
-
         request.log.info({ username, listSlug }, 'Strategy 2: resolving member and fetching lists');
 
         const member = await resolveMemberByUsername(username!);
