@@ -24,7 +24,7 @@ const FREE_ITEMS = [
 
 const COMMITMENTS = [
   { title: "No paywall later", text: "Nothing on this list will move behind one." },
-  { title: "Open source", text: "The code is public on GitHub." },
+  { title: "Source available", text: "The code is public on GitHub." },
   { title: "Supporters pay the hosting", text: "Optional, and it adds features on top." },
 ];
 

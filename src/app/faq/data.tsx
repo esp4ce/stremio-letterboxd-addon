@@ -207,7 +207,7 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
     items: [
       {
         q: "Is this addon official?",
-        a: "No. This is an unofficial open-source addon, not affiliated with or endorsed by Letterboxd.",
+        a: "No. This is an unofficial source-available addon, not affiliated with or endorsed by Letterboxd.",
       },
       {
         q: "What data do you store?",
@@ -219,7 +219,7 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
       },
       {
         q: "Is it free?",
-        a: "The addon is free and open-source: catalogs, lists, ratings and actions cost nothing. Three extra features, auto-log to diary, auto-sync and a persistent session, need a supporter subscription.",
+        a: "The addon is free and source-available: catalogs, lists, ratings and actions cost nothing. Three extra features, auto-log to diary, auto-sync and a persistent session, need a supporter subscription.",
       },
     ],
   },
