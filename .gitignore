@@ -99,3 +99,7 @@ docs/superpowers/
 # Playwright MCP cache
 .playwright-mcp/
 .env*
+docs/
+AGENTS.md
+CONTEXT.md
+skills-lock.json
