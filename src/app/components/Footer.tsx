@@ -1,8 +1,9 @@
-import { REDDIT_URL, REPO_URL } from "../../lib/seo";
+import { ADDON_CATALOG_URL, REDDIT_URL, REPO_URL } from "../../lib/seo";
 
 const LINKS = [
   { href: REPO_URL, label: "GitHub" },
   { href: REDDIT_URL, label: "Reddit" },
+  { href: ADDON_CATALOG_URL, label: "Addon catalog" },
 ];
 
 export default function Footer() {

@@ -28,4 +28,5 @@ export interface UserPreferences {
   search?: boolean;
   nativeSync?: boolean;
   timezone?: string;
+  metadataLanguage?: string;
 }

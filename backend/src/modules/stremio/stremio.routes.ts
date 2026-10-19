@@ -50,6 +50,7 @@ import { getFullPublicCatalogFromCache } from './catalog/catalog-cache-keys.js';
 import { sendHtml, buildErrorPage, buildActionSuccessPage, buildRatingPage } from './action/action-html.js';
 import { createClientForUser, SessionExpiredError } from './user-client.service.js';
 import { isNativeSyncActive } from '../native-sync/native-sync.gate.js';
+import { localizeFilmPage, resolveMetadataLanguage } from './metadata-language.js';
 
 const logger = createChildLogger('stremio-routes');
 
@@ -568,7 +569,9 @@ export async function stremioRoutes(app: FastifyInstance) {
       const rawMeta = await getRawCinemetaMeta(imdbId);
       if (!rawMeta) return { meta: null };
 
-      const meta: Record<string, unknown> = { ...rawMeta };
+      let meta: Record<string, unknown> = { ...rawMeta };
+      const metadataLanguage = await resolveMetadataLanguage(userId, getUserPreferences(user));
+      if (metadataLanguage) meta = await localizeFilmPage(meta, imdbId, metadataLanguage);
       try {
         const client = await createClientForUser(user);
         const letterboxdResult = await findFilmByImdb(client, imdbId);

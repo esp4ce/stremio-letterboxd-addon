@@ -262,6 +262,25 @@ export const tmdbAdultCache = createCache<TmdbAdultInfo>({
   ttl: 7 * 24 * 60 * 60 * 1000, // 7 days — adult status never changes
 });
 
+// Title + synopsis in a Metadata Language, keyed `${imdbId}:${language}`
+export interface LocalizedMetadata {
+  tmdbId: number;
+  title: string;
+  overview: string;
+  originalTitle: string;
+  originalLanguage: string;
+}
+export const localizedMetadataCache = createCache<LocalizedMetadata>({
+  maxSize: 5000,
+  ttl: 7 * 24 * 60 * 60 * 1000, // 7 days — titles and synopses rarely change
+});
+
+// Logo path in a Metadata Language, keyed `${tmdbId}:${iso639}`; '' means TMDB has none
+export const localizedLogoCache = createCache<string>({
+  maxSize: 2000,
+  ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
+});
+
 // Track cache keys per user for efficient invalidation (LRU doesn't support prefix scan)
 const userCatalogKeys = new Map<string, Set<string>>();
 
@@ -374,6 +393,8 @@ export const allCaches = [
   { name: 'tmdbToImdb', cache: tmdbToImdbCache },
   { name: 'imdbToTmdb', cache: imdbToTmdbCache },
   { name: 'releaseDates', cache: releaseDatesCache },
+  { name: 'localizedMetadata', cache: localizedMetadataCache },
+  { name: 'localizedLogo', cache: localizedLogoCache },
   { name: 'userClient', cache: userClientCache },
   { name: 'popularCatalog', cache: popularCatalogCache },
   { name: 'top250Catalog', cache: top250CatalogCache },
@@ -410,6 +431,8 @@ export function getCacheStats(): CacheStats {
     recommendation: { size: recommendationCache.size, max: recommendationCache.max },
     tmdbToImdb: { size: tmdbToImdbCache.size, max: tmdbToImdbCache.max },
     imdbToTmdb: { size: imdbToTmdbCache.size, max: imdbToTmdbCache.max },
+    localizedMetadata: { size: localizedMetadataCache.size, max: localizedMetadataCache.max },
+    localizedLogo: { size: localizedLogoCache.size, max: localizedLogoCache.max },
     releaseDates: { size: releaseDatesCache.size, max: releaseDatesCache.max },
   };
 }

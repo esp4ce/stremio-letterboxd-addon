@@ -112,7 +112,7 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
           <>
             It unlocks auto-log to diary (every film you finish in Stremio lands in your Letterboxd diary, dated —
             Stremio Desktop and Web for now), auto-sync (your Stremio/Nuvio addon updates itself whenever you save
-            preferences, no reinstall needed) and a persistent session (no need to log back in every visit).
+            preferences, no reinstall needed), a persistent session (no need to log back in every visit) and titles in your language (film titles and synopses in Stremio in French, Spanish, Portuguese, Italian, German, Dutch or Turkish).
             Everything else stays free.{" "}
             <TransitionLink
               href="/#supporter"
@@ -124,13 +124,13 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
           </>
         ),
         aText:
-          "It unlocks auto-log to diary (every film you finish in Stremio lands in your Letterboxd diary, dated — Stremio Desktop and Web for now), auto-sync (your Stremio/Nuvio addon updates itself whenever you save preferences, no reinstall needed) and a persistent session (no need to log back in every visit). Everything else stays free. See the Supporter offer at stremboxd.com/pricing.",
+          "It unlocks auto-log to diary (every film you finish in Stremio lands in your Letterboxd diary, dated — Stremio Desktop and Web for now), auto-sync (your Stremio/Nuvio addon updates itself whenever you save preferences, no reinstall needed), a persistent session (no need to log back in every visit) and titles in your language (film titles and synopses in Stremio in French, Spanish, Portuguese, Italian, German, Dutch or Turkish). Everything else stays free. See the Supporter offer at stremboxd.com/pricing.",
       },
       {
         q: "What is a Founder?",
         a: (
           <>
-            A one-time payment of 59 € for supporter access (auto-log to diary, auto-sync, persistent session) for the
+            A one-time payment of 59 € for supporter access (auto-log to diary, auto-sync, persistent session, titles in your language) for the
             lifetime of the service. Only 20 Founder seats exist; once they are gone, the offer closes for good.
             Stremboxd depends on access to Letterboxd and Stremio, so if it shuts down, Founder access ends with it. If
             you already have a subscription, it keeps renewing until you cancel it from the portal.{" "}
@@ -144,7 +144,7 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
           </>
         ),
         aText:
-          "A one-time payment of 59 € for supporter access (auto-log to diary, auto-sync, persistent session) for the lifetime of the service. Only 20 Founder seats exist; once they are gone, the offer closes for good. Stremboxd depends on access to Letterboxd and Stremio, so if it shuts down, Founder access ends with it. If you already have a subscription, it keeps renewing until you cancel it from the portal. See the Founder offer at stremboxd.com/pricing.",
+          "A one-time payment of 59 € for supporter access (auto-log to diary, auto-sync, persistent session, titles in your language) for the lifetime of the service. Only 20 Founder seats exist; once they are gone, the offer closes for good. Stremboxd depends on access to Letterboxd and Stremio, so if it shuts down, Founder access ends with it. If you already have a subscription, it keeps renewing until you cancel it from the portal. See the Founder offer at stremboxd.com/pricing.",
       },
       {
         q: "Do I need an account to subscribe?",
@@ -207,7 +207,7 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
     items: [
       {
         q: "Is this addon official?",
-        a: "No. This is an unofficial open-source addon, not affiliated with or endorsed by Letterboxd.",
+        a: "No. This is an unofficial source-available addon, not affiliated with or endorsed by Letterboxd.",
       },
       {
         q: "What data do you store?",
@@ -219,7 +219,7 @@ export const SECTIONS: { title: string; items: FAQItem[] }[] = [
       },
       {
         q: "Is it free?",
-        a: "The addon is free and open-source: catalogs, lists, ratings and actions cost nothing. Three extra features, auto-log to diary, auto-sync and a persistent session, need a supporter subscription.",
+        a: "The addon is free and source-available: catalogs, lists, ratings and actions cost nothing. Four extra features, auto-log to diary, auto-sync, a persistent session and titles in your language, need a supporter subscription.",
       },
     ],
   },

@@ -53,6 +53,7 @@ import {
   parseExtra,
 } from './catalog-filter.js';
 import { filterFilmsByReleaseData } from './release-filter.js';
+import { localizeMetas, resolveMetadataLanguage } from '../metadata-language.js';
 import { createClientForUser, getWatchedImdbIds, SessionExpiredError } from '../user-client.service.js';
 import { fetchPopularCatalogPublic, fetchTop250CatalogPublic, fetchWatchlistCatalogPublic, fetchLikedFilmsCatalogPublic, fetchListCatalogPublic, resolveMemberId, fetchContributorCatalogPublic } from './public-catalog-fetcher.service.js';
 
@@ -667,7 +668,12 @@ export async function handleCatalogRequest(
       if (!query) return { metas: [] };
       trackEvent('catalog_search', userId);
       const results = await callWithAppToken((token) => rawSearchFilms(token, query, { perPage: 20 }));
-      const metas = transformSearchResultsToMetas(results.items);
+      let metas = transformSearchResultsToMetas(results.items);
+      const searchLanguage = await resolveMetadataLanguage(user.id, preferences);
+      if (searchLanguage) {
+        // Search results carry an English synopsis, not Stremboxd text: let the translation replace it.
+        metas = await localizeMetas(metas.map((m) => ({ ...m, description: undefined })), searchLanguage);
+      }
       return { metas: await enrichMetasWithCinemeta(metas) };
     } else {
       logger.warn({ catalogId: baseCatalogId }, 'Unknown catalog requested');
@@ -711,6 +717,10 @@ export async function handleCatalogRequest(
       result = {
         metas: await filterFilmsByReleaseData(result.metas, { hideUnreleased, hideNoHomeRelease }),
       };
+    }
+    const metadataLanguage = await resolveMetadataLanguage(user.id, preferences);
+    if (metadataLanguage) {
+      result = { metas: await localizeMetas(result.metas, metadataLanguage) };
     }
     result = { metas: await enrichMetasWithCinemeta(result.metas) };
     return result;

@@ -114,6 +114,65 @@ export async function findTmdbIdByImdbId(
   return data.movie_results?.[0]?.id ?? null;
 }
 
+export interface TmdbLocalizedMovie {
+  tmdbId: number;
+  title: string;
+  overview: string;
+  originalTitle: string;
+  originalLanguage: string;
+}
+
+interface TmdbLocalizedFindResponse {
+  movie_results?: Array<{
+    id: number;
+    title?: string;
+    overview?: string;
+    original_title?: string;
+    original_language?: string;
+  }>;
+}
+
+/**
+ * Title and synopsis of a movie in `language`, resolved from its IMDb ID in one
+ * /find call. A missing translation comes back as the original title and an
+ * empty overview — callers decide the fallback.
+ */
+export async function findLocalizedMovie(
+  imdbId: string,
+  language: string,
+  apiKey: string,
+): Promise<TmdbLocalizedMovie | null> {
+  const url = `${TMDB_BASE_URL}/find/${encodeURIComponent(imdbId)}?api_key=${apiKey}&external_source=imdb_id&language=${encodeURIComponent(language)}`;
+  const data = await tmdbFetch<TmdbLocalizedFindResponse>(url);
+  const movie = data.movie_results?.[0];
+  if (!movie) return null;
+  return {
+    tmdbId: movie.id,
+    title: movie.title ?? '',
+    overview: movie.overview ?? '',
+    originalTitle: movie.original_title ?? '',
+    originalLanguage: movie.original_language ?? '',
+  };
+}
+
+interface TmdbImagesResponse {
+  logos?: Array<{ file_path: string }>;
+}
+
+/**
+ * Path of the best-voted logo in `language` (ISO 639-1, e.g. "fr"), or null when
+ * TMDB has none in that language.
+ */
+export async function findLocalizedLogoPath(
+  tmdbId: number,
+  language: string,
+  apiKey: string,
+): Promise<string | null> {
+  const url = `${TMDB_BASE_URL}/movie/${tmdbId}/images?api_key=${apiKey}&include_image_language=${encodeURIComponent(language)}`;
+  const data = await tmdbFetch<TmdbImagesResponse>(url);
+  return data.logos?.[0]?.file_path ?? null;
+}
+
 export interface TmdbReleaseDateEntry {
   /** Type TMDB : 1 Premiere, 2 Theatrical (limited), 3 Theatrical, 4 Digital, 5 Physical, 6 TV */
   type: number;
