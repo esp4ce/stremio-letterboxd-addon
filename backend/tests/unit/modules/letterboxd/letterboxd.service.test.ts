@@ -40,6 +40,11 @@ describe('parseLetterboxdListUrl', () => {
     expect(result).toEqual({ username: 'testuser', slug: 'my-list' });
   });
 
+  it('garde le slug filmlist:<n> entier (#158)', () => {
+    const result = parseLetterboxdListUrl('https://letterboxd.com/etolkin/list/filmlist:28697007/');
+    expect(result).toEqual({ username: 'etolkin', slug: 'filmlist:28697007' });
+  });
+
   it('retourne null pour une URL non-list', () => {
     expect(parseLetterboxdListUrl('https://letterboxd.com/testuser/films/')).toBeNull();
   });
@@ -241,6 +246,22 @@ describe('resolveExternalList', () => {
 
     const result = await resolveExternalList(mockClient, 'testuser', 'my-curated-list');
     expect(result?.id).toBe('list-fallback');
+  });
+
+  it('slug filmlist:<n> : résout le LID sans HTML ni recherche par nom (#158)', async () => {
+    vi.mocked(htmlScraper.fetchPageHtml).mockResolvedValue(null);
+    vi.mocked(appClientModule.callWithAppToken).mockResolvedValue({
+      id: 'jq61y',
+      name: '🐉🎭✨ 𝕍𝕀𝕊𝕌𝔸𝕃𝕃𝕐',
+      filmCount: 833,
+      owner: { displayName: 'etolkin', username: 'etolkin' },
+    });
+
+    const result = await resolveExternalList(mockClient, 'etolkin', 'filmlist:28697007');
+
+    expect(result).toMatchObject({ id: 'jq61y', filmCount: 833 });
+    expect(htmlScraper.fetchPageHtml).not.toHaveBeenCalled();
+    expect(mockClient.searchMemberByUsername).not.toHaveBeenCalled();
   });
 
   it('stratégie 2 : ne confond pas deux listes au nommage template très proche (#135)', async () => {
