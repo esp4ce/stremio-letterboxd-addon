@@ -97,6 +97,20 @@ export async function syncAddon(authKey: string, manifestUrl: string): Promise<S
   return "synced";
 }
 
+/**
+ * The locale stored on the Stremio account (e.g. "fr-FR"). It is not the language
+ * Stremio's interface is set to. undefined when it can't be read — callers treat it
+ * as a hint only.
+ */
+export async function getStremioAccountLocale(authKey: string): Promise<string | undefined> {
+  try {
+    const envelope = await postEnvelope<{ lang?: string }>("getUser", { type: "GetUser", authKey });
+    return envelope.result?.lang || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function createLinkCode(): Promise<LinkCode> {
   const envelope = await getEnvelope<LinkCode>(`${LINK_API}/create`);
   if (!envelope.result) {

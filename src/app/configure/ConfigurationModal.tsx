@@ -28,6 +28,8 @@ import SiteHeader from "../components/SiteHeader";
 import { ConfigureSteps } from "./components/ConfigureSteps";
 import Footer from "../components/Footer";
 import { NativeSyncRow } from "./components/NativeSyncRow";
+import { MetadataLanguageRow } from "./components/MetadataLanguageRow";
+import type { MetadataLanguage } from "../../lib/metadata-language";
 
 interface BaseProps {
   user?: { username: string; displayName: string | null };
@@ -54,6 +56,8 @@ interface FullModeProps extends BaseProps {
   isNuvioLinked: boolean;
   onNuvioLinkedChange: (linked: boolean) => void;
   entitled: boolean;
+  /** Language guessed from the Stremio account or browser, offered but never applied */
+  suggestedMetadataLanguage?: MetadataLanguage | null;
 }
 
 interface PublicModeProps extends BaseProps {
@@ -817,6 +821,7 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                   onPublicSearchChange={publicProps.onPublicSearchChange}
                 >
                   <NativeSyncRow preferences={null} signedIn={false} entitled={false} onBlocked={props.onUpsell} />
+                  <MetadataLanguageRow preferences={null} signedIn={false} entitled={false} onBlocked={props.onUpsell} />
                 </DisplayOptionsSection>
               ) : (
                 <DisplayOptionsSection
@@ -829,6 +834,14 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                     onPreferencesChange={fullProps.onPreferencesChange}
                     signedIn
                     entitled={fullProps.entitled}
+                    onBlocked={props.onUpsell}
+                  />
+                  <MetadataLanguageRow
+                    preferences={fullProps.preferences}
+                    onPreferencesChange={fullProps.onPreferencesChange}
+                    signedIn
+                    entitled={fullProps.entitled}
+                    suggestion={fullProps.suggestedMetadataLanguage}
                     onBlocked={props.onUpsell}
                   />
                 </DisplayOptionsSection>

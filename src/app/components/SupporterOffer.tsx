@@ -26,6 +26,12 @@ const COMPARISON: { feature: string; free: string; supporter: string; info?: str
     free: "Log in again, every time",
     supporter: "You’re already in",
   },
+  {
+    feature: "Titles in your language",
+    free: "English titles and synopses",
+    supporter: "Film titles and synopses in your language",
+    info: "French, Spanish, Portuguese, Italian, German, Dutch and Turkish, from TMDB. Where no translation exists, English is kept.",
+  },
 ];
 
 const TOAST_DURATION = 4000;

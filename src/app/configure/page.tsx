@@ -11,7 +11,8 @@ import { LoginSkeleton } from "./components/LoginSkeleton";
 import ConfigurationModal from "./ConfigurationModal";
 import { Toggle } from "./components/primitives";
 import type { UserPreferences } from "../../types/preferences";
-import { readAuthKey, syncAddon, type SyncResult } from "../../lib/stremio-sync";
+import { getStremioAccountLocale, readAuthKey, syncAddon, type SyncResult } from "../../lib/stremio-sync";
+import { suggestMetadataLanguage, suggestMetadataLanguageFrom, type MetadataLanguage } from "../../lib/metadata-language";
 import { readSession as readNuvioSession, syncAddon as syncNuvioAddon } from "../../lib/nuvio-sync";
 import { track } from "../../lib/analytics";
 import { authHeaders, getInMemorySessionToken, setInMemorySessionToken } from "../../lib/session-token";
@@ -281,6 +282,25 @@ function ConfigureInner() {
   const [isNuvioLinked, setIsNuvioLinked] = useState(false);
   const [syncOutcome, setSyncOutcome] = useState<SyncResult | null>(null);
   const [entitled, setEntitled] = useState(false);
+  const [suggestedMetadataLanguage, setSuggestedMetadataLanguage] = useState<MetadataLanguage | null>(null);
+
+  // Only a Supporter can pick a Metadata Language: guess one from their Stremio account,
+  // else the browser. It is shown as a suggestion, never saved without a click.
+  useEffect(() => {
+    if (!entitled) return;
+    let cancelled = false;
+    (async () => {
+      const authKey = isStremioLinked ? readAuthKey() : null;
+      const accountLocale = authKey ? await getStremioAccountLocale(authKey) : undefined;
+      if (cancelled) return;
+      setSuggestedMetadataLanguage(
+        suggestMetadataLanguage(accountLocale) ?? suggestMetadataLanguageFrom(navigator.languages),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [entitled, isStremioLinked]);
 
   // Public (username-only) state
   const [usernameValidated, setUsernameValidated] = useState<UsernameValidation | null>(null);
@@ -1336,6 +1356,7 @@ function ConfigureInner() {
           isNuvioLinked={isNuvioLinked}
           onNuvioLinkedChange={setIsNuvioLinked}
           entitled={entitled}
+          suggestedMetadataLanguage={suggestedMetadataLanguage}
           externalListUrl={externalListUrl}
           onExternalListUrlChange={setExternalListUrl}
           onAddExternalList={handleResolveExternalList}
