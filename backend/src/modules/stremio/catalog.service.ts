@@ -10,7 +10,7 @@ const logger = createChildLogger('catalog-service');
 
 export interface StremioMeta {
   id: string;
-  type: 'movie';
+  type: 'movie' | 'series';
   name: string;
   poster?: string;
   year?: number;
@@ -31,7 +31,7 @@ export interface StremioMeta {
 /** Shape shared by WatchlistFilm and LogEntryFilm */
 interface FilmLike {
   poster?: { sizes?: Array<{ width: number; url: string }> };
-  links?: Array<{ type: string; id: string }>;
+  links?: Array<{ type: string; id: string; url?: string }>;
 }
 
 /**
@@ -43,11 +43,28 @@ export function getImdbId(film: FilmLike): string | null {
 }
 
 /**
- * Extract TMDB ID from Letterboxd film links
+ * True when Letterboxd links the film to a TMDB *TV* entry (miniseries listed as
+ * films). TMDB TV and movie IDs are separate namespaces, so these must never hit
+ * a /movie/ endpoint, and clients must resolve them as series (#165).
+ */
+export function isTmdbTvTitle(film: FilmLike): boolean {
+  const tmdbLink = film.links?.find((link) => link.type === 'tmdb');
+  return !!tmdbLink?.url && /themoviedb\.org\/tv\//.test(tmdbLink.url);
+}
+
+/**
+ * Stremio meta type for a Letterboxd film
+ */
+export function getMetaType(film: FilmLike): StremioMeta['type'] {
+  return isTmdbTvTitle(film) ? 'series' : 'movie';
+}
+
+/**
+ * Extract TMDB movie ID from Letterboxd film links (null for TMDB TV links)
  */
 export function getTmdbId(film: FilmLike): number | null {
   const tmdbLink = film.links?.find((link) => link.type === 'tmdb');
-  if (!tmdbLink?.id) return null;
+  if (!tmdbLink?.id || isTmdbTvTitle(film)) return null;
   const parsed = parseInt(tmdbLink.id, 10);
   return isNaN(parsed) ? null : parsed;
 }
@@ -196,7 +213,7 @@ export async function transformToStremioMeta(film: WatchlistFilm, showRatings = 
 
   return {
     id: imdbId,
-    type: 'movie',
+    type: getMetaType(film),
     name: film.name,
     poster: showRatings ? buildPosterUrl(getPosterUrl(film), film.rating) : getPosterUrl(film),
     year: film.releaseYear,
@@ -246,7 +263,7 @@ export async function transformLogEntryToMeta(entry: LogEntry, showRatings = tru
 
   return {
     id: imdbId,
-    type: 'movie',
+    type: getMetaType(entry.film),
     name: entry.film.name,
     poster: showRatings ? buildPosterUrl(getPosterUrl(entry.film), entry.rating) : getPosterUrl(entry.film),
     year: entry.film.releaseYear,
@@ -292,7 +309,7 @@ export async function transformListEntryToMeta(entry: ListEntry, showRatings = t
 
   return {
     id: imdbId,
-    type: 'movie',
+    type: getMetaType(film),
     name: film.name,
     poster: showRatings ? buildPosterUrl(getPosterUrl(film), film.rating) : getPosterUrl(film),
     year: film.releaseYear,
@@ -371,7 +388,7 @@ async function transformActivityItemToMeta(item: ActivityItem, showRatings = tru
 
   return {
     id: imdbId,
-    type: 'movie',
+    type: getMetaType(film),
     name: film.name,
     poster: buildPosterUrl(
       getPosterUrl(film),
@@ -440,7 +457,7 @@ export function transformSearchResultsToMetas(films: LetterboxdFilm[]): StremioM
 
     metas.push({
       id: imdbId,
-      type: 'movie',
+      type: getMetaType(film),
       name: film.name,
       poster: getPosterUrl(film),
       year: film.releaseYear,
@@ -512,6 +529,12 @@ export async function enrichMetasWithCinemeta(metas: StremioMeta[]): Promise<Str
   // Phase 1: apply from cache (instant)
   const uncached: StremioMeta[] = [];
   for (const meta of metas) {
+    // Cinemeta movie data for a series ID belongs to another title (#165)
+    if (meta.type === 'series') {
+      if (!meta.description && meta._rankSuffix) meta.description = meta._rankSuffix;
+      delete meta._rankSuffix;
+      continue;
+    }
     if (cinemetaCache.get(meta.id)) {
       applyCachedCinemeta(meta);
     } else {

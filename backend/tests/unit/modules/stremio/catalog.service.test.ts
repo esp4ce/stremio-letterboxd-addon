@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { WatchlistFilm, LogEntry, ActivityItem, LetterboxdFilm } from '../../../../src/modules/letterboxd/letterboxd.client.js';
+import type { WatchlistFilm, LogEntry, ListEntry, ActivityItem, LetterboxdFilm } from '../../../../src/modules/letterboxd/letterboxd.client.js';
 import {
   getImdbId,
   getTmdbId,
@@ -12,6 +12,8 @@ import {
   transformActivityToMetas,
   transformSearchResultsToMetas,
   applyAdultPosterFixes,
+  transformListEntryToMeta,
+  enrichMetasWithCinemeta,
 } from '../../../../src/modules/stremio/catalog.service.js';
 
 // ---------------------------------------------------------------------------
@@ -23,6 +25,10 @@ vi.mock('../../../../src/lib/tmdb-client.js', () => ({
   getTmdbMovieDetails: vi.fn().mockResolvedValue({ adult: false, poster_path: null }),
 }));
 
+vi.mock('../../../../src/modules/stremio/meta.service.js', () => ({
+  getFullFilmInfoFromCinemeta: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock('../../../../src/config/index.js', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../../../src/config/index.js')>();
   return {
@@ -32,6 +38,8 @@ vi.mock('../../../../src/config/index.js', async (importOriginal) => {
 });
 
 import { getTmdbExternalIds, getTmdbMovieDetails } from '../../../../src/lib/tmdb-client.js';
+import { getFullFilmInfoFromCinemeta } from '../../../../src/modules/stremio/meta.service.js';
+const mockGetFullFilmInfoFromCinemeta = vi.mocked(getFullFilmInfoFromCinemeta);
 const mockGetTmdbExternalIds = vi.mocked(getTmdbExternalIds);
 const mockGetTmdbMovieDetails = vi.mocked(getTmdbMovieDetails);
 
@@ -556,5 +564,68 @@ describe('applyAdultPosterFixes', () => {
     await applyAdultPosterFixes([film], [meta], false);
 
     expect(meta.poster).toBe('https://img.example.com/other.jpg');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// #165 — TV miniseries listed as films on Letterboxd carry a TMDB *TV* link.
+// TMDB TV and movie IDs are separate namespaces: /movie/61617 is an adult film,
+// /tv/61617 is Over the Garden Wall. Links below are the real upstream payload.
+// ---------------------------------------------------------------------------
+
+const OVER_THE_GARDEN_WALL_LINKS = [
+  { type: 'letterboxd', id: 'eqFw', url: 'https://letterboxd.com/film/over-the-garden-wall-2014/' },
+  { type: 'imdb', id: 'tt3718778', url: 'https://www.imdb.com/title/tt3718778/' },
+  { type: 'tmdb', id: '61617', url: 'https://www.themoviedb.org/tv/61617' },
+];
+
+describe('TV miniseries with a TMDB TV link (#165)', () => {
+  it('getTmdbId ignores a TMDB TV link', () => {
+    expect(getTmdbId(makeFilm({ links: OVER_THE_GARDEN_WALL_LINKS }))).toBeNull();
+  });
+
+  it('getTmdbId keeps a TMDB movie link', () => {
+    expect(getTmdbId(makeFilm({ links: [{ type: 'tmdb', id: '42', url: 'https://www.themoviedb.org/movie/42' }] }))).toBe(42);
+  });
+
+  it('applyAdultPosterFixes never looks up the colliding TMDB movie', async () => {
+    mockGetTmdbMovieDetails.mockResolvedValueOnce({ adult: true, poster_path: '/colliding-adult.jpg' });
+    const film = makeFilm({ links: OVER_THE_GARDEN_WALL_LINKS });
+    const meta = { id: 'tt3718778', type: 'series' as const, name: 'Over the Garden Wall', poster: 'https://img.example.com/300.jpg' };
+
+    await applyAdultPosterFixes([film], [meta], false);
+
+    expect(mockGetTmdbMovieDetails).not.toHaveBeenCalled();
+    expect(meta.poster).toBe('https://img.example.com/300.jpg');
+  });
+
+  it('builds a series meta so clients open the series detail page', async () => {
+    const meta = await transformToStremioMeta(makeFilm({ links: OVER_THE_GARDEN_WALL_LINKS }), false);
+    expect(meta).toMatchObject({ id: 'tt3718778', type: 'series' });
+  });
+
+  it('keeps regular films as movies', async () => {
+    const meta = await transformToStremioMeta(makeFilm(), false);
+    expect(meta?.type).toBe('movie');
+  });
+
+  it('marks diary, list, activity and search metas as series too', async () => {
+    const tvFilm = makeFilm({ links: OVER_THE_GARDEN_WALL_LINKS });
+    const logMeta = await transformLogEntryToMeta(makeLogEntry({ film: { ...makeLogEntry().film, links: OVER_THE_GARDEN_WALL_LINKS } }), false);
+    const listMeta = await transformListEntryToMeta({ film: tvFilm } as unknown as ListEntry, false);
+    const [activityMeta] = await transformActivityToMetas([makeActivityItem({ film: tvFilm })], 'me', false);
+    const [searchMeta] = transformSearchResultsToMetas([makeLetterboxdFilm({ links: OVER_THE_GARDEN_WALL_LINKS })]);
+
+    expect([logMeta?.type, listMeta?.type, activityMeta?.type, searchMeta?.type]).toEqual(['series', 'series', 'series', 'series']);
+  });
+
+  it('does not enrich a series with Cinemeta movie data (wrong title)', async () => {
+    const meta = { id: 'tt3718778', type: 'series' as const, name: 'Over the Garden Wall', _rankSuffix: '#3' };
+
+    await enrichMetasWithCinemeta([meta]);
+
+    expect(mockGetFullFilmInfoFromCinemeta).not.toHaveBeenCalled();
+    expect(meta).toMatchObject({ description: '#3' });
+    expect(meta).not.toHaveProperty('_rankSuffix');
   });
 });
