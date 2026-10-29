@@ -7,7 +7,7 @@ import { setSessionCookie, clearSessionCookie } from '../../lib/session-cookie.j
 import { sessionMiddleware } from '../../middleware/auth.middleware.js';
 import { config } from '../../config/index.js';
 import { ENTITLED_SESSION_TTL_SECONDS } from '../../lib/entitlement.js';
-import { getEntitlementStatus } from '../billing/billing.service.js';
+import { getEntitlement, getEntitlementStatus } from '../billing/billing.service.js';
 import {
   getUserPreferences,
   revokeUserSessions,
@@ -231,6 +231,48 @@ export async function authRoutes(app: FastifyInstance) {
       updateUserPreferences(request.sessionUser!.id, parsed.data.preferences);
 
       return { success: true };
+    }
+  );
+
+  // Lists the member liked on letterboxd.com, for the supporter-only picker in the
+  // configuration UI. Read with the app token: likes are public, and the member's
+  // own refresh token stays out of a browse-only call.
+  app.get(
+    '/auth/liked-lists',
+    {
+      config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+      preHandler: sessionMiddleware,
+    },
+    async (request: FastifyRequest<{ Querystring: { cursor?: string } }>, reply) => {
+      const user = request.sessionUser!;
+
+      const { cursor } = request.query;
+      if (cursor !== undefined && !/^start=\d{1,6}$/.test(cursor)) {
+        return reply.status(400).send({ error: 'Invalid cursor' });
+      }
+
+      if (!(await getEntitlement(user.id))) {
+        return reply.status(403).send({ error: 'Supporter feature', code: 'NOT_ENTITLED' });
+      }
+
+      const response = await callWithAppToken((token) =>
+        rawSearchLists(token, {
+          member: user.letterboxd_id,
+          memberRelationship: 'Liked',
+          perPage: 50,
+          cursor,
+        })
+      );
+
+      return {
+        items: response.items.map((l) => ({
+          id: l.id,
+          name: l.name,
+          owner: l.owner?.displayName || l.owner?.username || '',
+          filmCount: l.filmCount,
+        })),
+        cursor: response.cursor,
+      };
     }
   );
 
