@@ -287,7 +287,7 @@ export const PUBLIC_MANIFEST_DESCRIPTION =
 export function generateBaseManifest(): StremioManifest {
   return {
     id: 'community.stremboxd',
-    version: '2.0.0',
+    version: '2.1.0',
     name: 'Stremboxd',
     description: PUBLIC_MANIFEST_DESCRIPTION,
     logo: `${config.PUBLIC_URL}/logo.png`,
@@ -466,7 +466,7 @@ export function generatePublicManifest(
 
   return {
     id: 'community.stremboxd',
-    version: '2.0.0',
+    version: '2.1.0',
     name: `Stremboxd${namePart}`,
     description: PUBLIC_MANIFEST_DESCRIPTION,
     logo: `${config.PUBLIC_URL}/logo.png`,
@@ -499,7 +499,7 @@ export function generateManifest(user: {
 
   return {
     id: 'community.stremboxd',
-    version: '2.0.0',
+    version: '2.1.0',
     name: `Letterboxd for ${displayName}`,
     description: `Your personal Letterboxd ratings and watchlist synced to Stremio. Connected as ${user.username}.`,
     logo: `${config.PUBLIC_URL}/logo.png`,
@@ -673,7 +673,7 @@ export function generateDynamicManifest(
 
   return {
     id: 'community.stremboxd',
-    version: '2.0.0',
+    version: '2.1.0',
     name: `Letterboxd for ${displayName}`,
     description: `Your personal Letterboxd ratings and watchlist synced to Stremio. Connected as ${user.username}.`,
     logo: `${config.PUBLIC_URL}/logo.png`,
