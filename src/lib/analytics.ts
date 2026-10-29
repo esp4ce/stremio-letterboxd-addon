@@ -20,6 +20,8 @@ export interface AnalyticsEvents {
   checkout_confirmed: { entitled: boolean };
   supporter_reason_answered: { reason: "auto_log" | "auto_sync" | "stay_signed_in" | "support_project" | "other" };
   native_sync_enabled_from_checkout: Record<never, never>;
+  liked_list_added: Record<never, never>;
+  liked_lists_blocked: Record<never, never>;
 }
 
 export type AnalyticsEventName = keyof AnalyticsEvents;

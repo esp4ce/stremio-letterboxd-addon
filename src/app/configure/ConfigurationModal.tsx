@@ -29,6 +29,9 @@ import { ConfigureSteps } from "./components/ConfigureSteps";
 import Footer from "../components/Footer";
 import { NativeSyncRow } from "./components/NativeSyncRow";
 import { MetadataLanguageRow } from "./components/MetadataLanguageRow";
+import { LikedListsSection } from "./components/LikedListsSection";
+import { track } from "../../lib/analytics";
+import { likedListsBlockedMessage, withLikedList, type LikedList } from "../../lib/liked-lists";
 import type { MetadataLanguage } from "../../lib/metadata-language";
 
 interface BaseProps {
@@ -95,6 +98,8 @@ interface PublicModeProps extends BaseProps {
 type ConfigurationModalProps = FullModeProps | PublicModeProps;
 
 type ConfigSection = "catalogs" | "display" | "accounts";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
 export default function ConfigurationModal(props: ConfigurationModalProps) {
   const { mode, user, lists, onBack, onSave, isSaving, externalListUrl, onExternalListUrlChange, onAddExternalList, isResolvingList } = props;
@@ -455,6 +460,18 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
     });
   };
 
+  const addLikedList = (list: LikedList) => {
+    if (isPublic) return;
+    const p = props as FullModeProps;
+    p.onPreferencesChange(withLikedList(p.preferences, list));
+    track("liked_list_added");
+  };
+
+  const blockLikedLists = () => {
+    track("liked_lists_blocked");
+    props.onUpsell(likedListsBlockedMessage());
+  };
+
   const removeExternalWatchlist = (username: string) => {
     const catId = `letterboxd-watchlist-${username}`;
     const hasVariants = catalogHasVariants(catId);
@@ -803,6 +820,21 @@ export default function ConfigurationModal(props: ConfigurationModalProps) {
                       />
                     </div>
                   </details>
+                )}
+
+                {!isPublic && (
+                  <LikedListsSection
+                    backendUrl={BACKEND_URL}
+                    entitled={fullProps.entitled}
+                    isIncluded={(id) =>
+                      fullProps.preferences.ownLists.includes(id) ||
+                      fullProps.preferences.externalLists.some((l) => l.id === id)
+                    }
+                    isOwned={(id) => fullProps.preferences.ownLists.includes(id)}
+                    onAdd={addLikedList}
+                    onRemove={removeExternalList}
+                    onBlocked={blockLikedLists}
+                  />
                 )}
               </div>
             )}
