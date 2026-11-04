@@ -258,9 +258,9 @@ export const tmdbToImdbCache = createCache<string>({
   ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
 });
 
-// IMDb ID → TMDB ID mapping (never changes)
+// IMDb ID → TMDB ID mapping (never changes), also filled from Letterboxd film links
 export const imdbToTmdbCache = createCache<string>({
-  maxSize: 1000,
+  maxSize: 10000,
   ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
 });
 
@@ -272,8 +272,14 @@ export interface ReleaseDatesInfo {
   homeReleaseDates: string[];
 }
 export const releaseDatesCache = createCache<ReleaseDatesInfo>({
-  maxSize: 1000,
-  ttl: 24 * 60 * 60 * 1000, // 24h — an upcoming release can become effective
+  maxSize: 10000,
+  ttl: 24 * 60 * 60 * 1000, // 24h — an upcoming release can become effective; set longer per write for old films
+});
+
+// IMDb IDs TMDB had no release dates for (or failed on). TTL set per write.
+export const releaseDatesMissCache = createCache<true>({
+  maxSize: 10000,
+  ttl: 24 * 60 * 60 * 1000,
 });
 
 // TMDB ID → adult flag + poster path (permanent data)
@@ -418,6 +424,7 @@ export const allCaches = [
   { name: 'tmdbToImdb', cache: tmdbToImdbCache },
   { name: 'imdbToTmdb', cache: imdbToTmdbCache },
   { name: 'releaseDates', cache: releaseDatesCache },
+  { name: 'releaseDatesMiss', cache: releaseDatesMissCache },
   { name: 'localizedMetadata', cache: localizedMetadataCache },
   { name: 'localizedLogo', cache: localizedLogoCache },
   { name: 'userClient', cache: userClientCache },
@@ -460,5 +467,6 @@ export function getCacheStats(): CacheStats {
     localizedMetadata: { size: localizedMetadataCache.size, max: localizedMetadataCache.max },
     localizedLogo: { size: localizedLogoCache.size, max: localizedLogoCache.max },
     releaseDates: { size: releaseDatesCache.size, max: releaseDatesCache.max },
+    releaseDatesMiss: { size: releaseDatesMissCache.size, max: releaseDatesMissCache.max },
   };
 }
