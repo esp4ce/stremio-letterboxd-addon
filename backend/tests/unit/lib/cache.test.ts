@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createCache, Coalescer } from '../../../src/lib/cache.js';
+import { createCache, Coalescer, isStale } from '../../../src/lib/cache.js';
 
 describe('cache (LRU wrapper)', () => {
   it('stores and retrieves a value', () => {
@@ -25,6 +25,17 @@ describe('cache (LRU wrapper)', () => {
     await new Promise((r) => setTimeout(r, 100));
 
     expect(cache.get('key1')).toBeUndefined();
+  });
+
+  it('keeps an entry readable but stale once it is older than its freshness window', async () => {
+    const cache = createCache<string>({ maxSize: 10, ttl: 60_000 });
+    cache.set('key1', 'value1');
+
+    expect(isStale(cache, 'key1', 50)).toBe(false);
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(isStale(cache, 'key1', 50)).toBe(true);
+    expect(cache.get('key1')).toBe('value1');
   });
 
   it('evicts LRU entry when max size reached', () => {

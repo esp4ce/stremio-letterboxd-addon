@@ -9,6 +9,7 @@ import {
   likedFilmsCache,
   recommendationCache,
 } from '../../../lib/cache.js';
+import { inflightCatalog } from './catalog-loader.js';
 
 // ─── Filter suffix (shared cache key component) ──────────────────────────────
 
@@ -124,10 +125,22 @@ export function cacheKeyPublicContributor(
 // ─── Full catalog lookup from cache ──────────────────────────────────────────
 
 /**
- * Read the full (unpaginated) catalog from the appropriate cache.
+ * The full catalog cached under `key`, or the one still loading under it: a page
+ * can be served before its catalog is complete (see catalog-loader).
+ */
+async function cachedOrLoading(
+  cache: { get(key: string): { metas: StremioMeta[] } | undefined },
+  key: string,
+): Promise<StremioMeta[] | undefined> {
+  return cache.get(key)?.metas ?? (await inflightCatalog(key));
+}
+
+/**
+ * Read the full (unpaginated) catalog from the appropriate cache, waiting for it
+ * when it is still loading.
  * Returns undefined if not found — caller should fall back to paginated result.
  */
-export function getFullCatalogFromCache(
+export async function getFullCatalogFromCache(
   catalogId: string,
   userId: string,
   showRatings: boolean,
@@ -135,81 +148,87 @@ export function getFullCatalogFromCache(
   extMemberId?: string,
   includeGenre?: string[],
   decade?: number,
-): StremioMeta[] | undefined {
+): Promise<StremioMeta[] | undefined> {
   // `extMemberId` is set for own catalogs served from the public path after a
   // session expiry — check that cache before the authenticated one.
   if (catalogId === 'letterboxd-watchlist') {
     const pub = extMemberId
-      ? publicWatchlistCache.get(cacheKeyPublicWatchlist(extMemberId, showRatings, sort, includeGenre, decade))?.metas
+      ? await cachedOrLoading(publicWatchlistCache, cacheKeyPublicWatchlist(extMemberId, showRatings, sort, includeGenre, decade))
       : undefined;
-    return pub ?? userCatalogCache.get(cacheKeyWatchlist(userId, showRatings, sort, includeGenre, decade))?.metas;
+    return pub ?? cachedOrLoading(userCatalogCache, cacheKeyWatchlist(userId, showRatings, sort, includeGenre, decade));
   }
   if (catalogId === 'letterboxd-diary')
-    return userCatalogCache.get(cacheKeyDiary(userId, showRatings, sort))?.metas;
+    return cachedOrLoading(userCatalogCache, cacheKeyDiary(userId, showRatings, sort));
   if (catalogId === 'letterboxd-friends')
-    return userCatalogCache.get(cacheKeyFriends(userId, showRatings))?.metas;
+    return cachedOrLoading(userCatalogCache, cacheKeyFriends(userId, showRatings));
   if (catalogId === 'letterboxd-liked-films') {
     const pub = extMemberId
-      ? likedFilmsCache.get(cacheKeyPublicLiked(extMemberId, showRatings, sort, includeGenre, decade))?.metas
+      ? await cachedOrLoading(likedFilmsCache, cacheKeyPublicLiked(extMemberId, showRatings, sort, includeGenre, decade))
       : undefined;
-    return pub ?? userCatalogCache.get(cacheKeyLiked(userId, showRatings, sort, includeGenre, decade))?.metas;
+    return pub ?? cachedOrLoading(userCatalogCache, cacheKeyLiked(userId, showRatings, sort, includeGenre, decade));
   }
   if (catalogId === 'letterboxd-recommended')
     return recommendationCache.get(cacheKeyReco(userId, sort))?.metas;
   if (catalogId === 'letterboxd-popular')
-    return popularCatalogCache.get(cacheKeyPopular(showRatings, sort, includeGenre, decade))?.metas;
+    return cachedOrLoading(popularCatalogCache, cacheKeyPopular(showRatings, sort, includeGenre, decade));
   if (catalogId === 'letterboxd-top250')
-    return top250CatalogCache.get(cacheKeyTop250(showRatings, sort, includeGenre, decade))?.metas;
+    return cachedOrLoading(top250CatalogCache, cacheKeyTop250(showRatings, sort, includeGenre, decade));
   if (catalogId.startsWith('letterboxd-watchlist-') && extMemberId)
-    return publicWatchlistCache.get(
+    return cachedOrLoading(
+      publicWatchlistCache,
       cacheKeyPublicWatchlist(extMemberId, showRatings, sort, includeGenre, decade),
-    )?.metas;
+    );
   if (catalogId.startsWith('letterboxd-list-')) {
     const listId = catalogId.replace('letterboxd-list-', '');
     // Public-first path, then the authenticated cache for private lists.
     return (
-      publicListCache.get(cacheKeyPublicList(listId, showRatings, sort, includeGenre, decade))?.metas ??
-      userCatalogCache.get(cacheKeyList(userId, listId, showRatings, sort, includeGenre, decade))?.metas
+      (await cachedOrLoading(publicListCache, cacheKeyPublicList(listId, showRatings, sort, includeGenre, decade))) ??
+      cachedOrLoading(userCatalogCache, cacheKeyList(userId, listId, showRatings, sort, includeGenre, decade))
     );
   }
   // Contributor catalogs share the public cache even on the authenticated path.
   const contrib = catalogId.match(/^letterboxd-contributor-([das])-([A-Za-z0-9]+)$/);
   if (contrib)
-    return publicContributorCache.get(
+    return cachedOrLoading(
+      publicContributorCache,
       cacheKeyPublicContributor(contrib[1]!, contrib[2]!, showRatings, sort),
-    )?.metas;
+    );
   return undefined;
 }
 
 /**
- * Read the full (unpaginated) catalog from the matching public cache.
+ * Read the full (unpaginated) catalog from the matching public cache, waiting for
+ * it when it is still loading.
  * Returns undefined if not found — the caller should then fall back to the page already served.
  */
-export function getFullPublicCatalogFromCache(
+export async function getFullPublicCatalogFromCache(
   catalogId: string,
   showRatings: boolean,
   sort?: string,
   memberId?: string | null,
   includeGenre?: string[],
   decade?: number,
-): StremioMeta[] | undefined {
+): Promise<StremioMeta[] | undefined> {
   if (catalogId === 'letterboxd-popular')
-    return popularCatalogCache.get(cacheKeyPopular(showRatings, sort, includeGenre, decade))?.metas;
+    return cachedOrLoading(popularCatalogCache, cacheKeyPopular(showRatings, sort, includeGenre, decade));
   if (catalogId === 'letterboxd-top250')
-    return top250CatalogCache.get(cacheKeyTop250(showRatings, sort, includeGenre, decade))?.metas;
+    return cachedOrLoading(top250CatalogCache, cacheKeyTop250(showRatings, sort, includeGenre, decade));
   if (catalogId === 'letterboxd-liked-films' && memberId)
-    return likedFilmsCache.get(
+    return cachedOrLoading(
+      likedFilmsCache,
       cacheKeyPublicLiked(memberId, showRatings, sort, includeGenre, decade),
-    )?.metas;
+    );
   if ((catalogId === 'letterboxd-watchlist' || catalogId.startsWith('letterboxd-watchlist-')) && memberId)
-    return publicWatchlistCache.get(
+    return cachedOrLoading(
+      publicWatchlistCache,
       cacheKeyPublicWatchlist(memberId, showRatings, sort, includeGenre, decade),
-    )?.metas;
+    );
   if (catalogId.startsWith('letterboxd-list-'))
-    return publicListCache.get(
+    return cachedOrLoading(
+      publicListCache,
       cacheKeyPublicList(catalogId.replace('letterboxd-list-', ''), showRatings, sort, includeGenre, decade),
-    )?.metas;
+    );
   const contrib = catalogId.match(/^letterboxd-contributor-([das])-([A-Za-z0-9]+)$/);
-  if (contrib) return publicContributorCache.get(cacheKeyPublicContributor(contrib[1]!, contrib[2]!, showRatings, sort))?.metas;
+  if (contrib) return cachedOrLoading(publicContributorCache, cacheKeyPublicContributor(contrib[1]!, contrib[2]!, showRatings, sort));
   return undefined;
 }

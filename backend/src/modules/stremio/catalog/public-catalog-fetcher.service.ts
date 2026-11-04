@@ -21,6 +21,7 @@ import type { PublicConfig } from '../../../lib/config-encoding.js';
 import { SORT_VARIANT_KEYS } from '../stremio.service.js';
 import { trackEvent } from '../../../lib/metrics.js';
 import { callWithAppToken } from '../../../lib/app-client.js';
+import type { LRUCache } from 'lru-cache';
 import {
   popularCatalogCache,
   top250CatalogCache,
@@ -30,7 +31,15 @@ import {
   likedFilmsCache,
   memberIdCache,
   listNameCache,
+  isStale,
+  POPULAR_FRESH_MS,
+  TOP250_FRESH_MS,
+  PUBLIC_WATCHLIST_FRESH_MS,
+  PUBLIC_LIST_FRESH_MS,
+  PUBLIC_CONTRIBUTOR_FRESH_MS,
+  LIKED_FILMS_FRESH_MS,
 } from '../../../lib/cache.js';
+import { loadCatalogPage, refreshCatalog, type CatalogSource } from './catalog-loader.js';
 import { createChildLogger } from '../../../lib/logger.js';
 import {
   cacheKeyPopular,
@@ -66,6 +75,40 @@ export async function resolveMemberId(username: string): Promise<string | null> 
   return member.id;
 }
 
+// ─── Shared loading ───────────────────────────────────────────────────────────
+
+/**
+ * One page of a public catalog: from cache when there (refreshing it in the
+ * background once older than `freshMs`), otherwise from a progressive load.
+ */
+async function servePublicCatalog<T>(
+  cache: LRUCache<string, { metas: StremioMeta[] }>,
+  freshMs: number,
+  source: CatalogSource<T>,
+  skip: number,
+): Promise<{ metas: StremioMeta[] }> {
+  const cached = cache.get(source.key);
+  if (cached) {
+    if (isStale(cache, source.key, freshMs)) refreshCatalog(source);
+    return { metas: cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE) };
+  }
+  return { metas: await loadCatalogPage(source, skip, CATALOG_PAGE_SIZE) };
+}
+
+async function filmsToMetas(films: WatchlistFilm[], showRatings: boolean, fixAdultPosters: boolean): Promise<StremioMeta[]> {
+  const metas = await transformWatchlistToMetas(films, showRatings);
+  if (fixAdultPosters) await applyAdultPosterFixes(films, metas, showRatings);
+  for (const film of films) cacheFilmMapping(film);
+  return metas;
+}
+
+async function listEntriesToMetas(entries: ListEntry[], showRatings: boolean, fixAdultPosters: boolean): Promise<StremioMeta[]> {
+  const metas = await transformListEntriesToMetas(entries, showRatings);
+  if (fixAdultPosters) await applyAdultPosterFixes(entries.map((e) => e.film), metas, showRatings);
+  for (const entry of entries) cacheFilmMapping(entry.film);
+  return metas;
+}
+
 // ─── Popular ──────────────────────────────────────────────────────────────────
 
 export async function fetchPopularCatalogPublic(
@@ -78,33 +121,20 @@ export async function fetchPopularCatalogPublic(
   const isShuffle = sort === 'Shuffle';
   const effectiveSort = isShuffle ? 'FilmPopularityThisWeek' : (sort || 'FilmPopularityThisWeek');
   const cacheKey = cacheKeyPopular(showRatings, sort, includeGenre, decade);
-  const cached = popularCatalogCache.get(cacheKey);
-  if (cached) {
-    return { metas: cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE) };
-  }
 
-  const allFilms: WatchlistFilm[] = [];
-  let cursor: string | undefined;
-  let page = 0;
-
-  do {
-    page++;
-    const response = await callWithAppToken((token) =>
+  return servePublicCatalog(popularCatalogCache, POPULAR_FRESH_MS, {
+    key: cacheKey,
+    maxPages: 10,
+    fetchPage: (cursor) => callWithAppToken((token) =>
       rawGetFilms(token, { sort: effectiveSort, perPage: 100, cursor, includeGenre, decade }),
-    );
-    allFilms.push(...response.items);
-    cursor = response.cursor;
-  } while (cursor && page < 10);
-
-  let allMetas = await transformWatchlistToMetas(allFilms, showRatings);
-  await applyAdultPosterFixes(allFilms, allMetas, showRatings);
-  if (isShuffle) allMetas = shuffleArray(allMetas);
-  for (const film of allFilms) cacheFilmMapping(film);
-
-  popularCatalogCache.set(cacheKey, { metas: allMetas });
-  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
-  logger.info({ total: allMetas.length, skip, returned: metas.length }, 'Public popular fetched');
-  return { metas };
+    ),
+    toMetas: (films) => filmsToMetas(films, showRatings, true),
+    finalize: isShuffle ? shuffleArray : undefined,
+    store: (metas) => {
+      popularCatalogCache.set(cacheKey, { metas });
+      logger.info({ total: metas.length }, 'Public popular fetched');
+    },
+  }, skip);
 }
 
 // ─── Top 250 ──────────────────────────────────────────────────────────────────
@@ -117,32 +147,19 @@ export async function fetchTop250CatalogPublic(
   decade?: number,
 ): Promise<{ metas: StremioMeta[] }> {
   const cacheKey = cacheKeyTop250(showRatings, sort, includeGenre, decade);
-  const cached = top250CatalogCache.get(cacheKey);
-  if (cached) {
-    return { metas: cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE) };
-  }
 
-  const allEntries: ListEntry[] = [];
-  let cursor: string | undefined;
-  let page = 0;
-
-  do {
-    page++;
-    const response = await callWithAppToken((token) =>
+  return servePublicCatalog(top250CatalogCache, TOP250_FRESH_MS, {
+    key: cacheKey,
+    maxPages: 5,
+    fetchPage: (cursor) => callWithAppToken((token) =>
       rawGetListEntries(token, TOP_250_LIST_ID, { perPage: 100, cursor, sort, includeGenre, decade }),
-    );
-    allEntries.push(...response.items);
-    cursor = response.cursor;
-  } while (cursor && page < 5);
-
-  const allMetas = await transformListEntriesToMetas(allEntries, showRatings);
-  await applyAdultPosterFixes(allEntries.map((e) => e.film), allMetas, showRatings);
-  for (const entry of allEntries) cacheFilmMapping(entry.film);
-
-  top250CatalogCache.set(cacheKey, { metas: allMetas });
-  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
-  logger.info({ total: allMetas.length, skip, returned: metas.length }, 'Public top250 fetched');
-  return { metas };
+    ),
+    toMetas: (entries) => listEntriesToMetas(entries, showRatings, true),
+    store: (metas) => {
+      top250CatalogCache.set(cacheKey, { metas });
+      logger.info({ total: metas.length }, 'Public top250 fetched');
+    },
+  }, skip);
 }
 
 // ─── Public watchlist ─────────────────────────────────────────────────────────
@@ -156,32 +173,19 @@ export async function fetchWatchlistCatalogPublic(
   decade?: number,
 ): Promise<{ metas: StremioMeta[] }> {
   const cacheKey = cacheKeyPublicWatchlist(memberId, showRatings, sort, includeGenre, decade);
-  const cached = publicWatchlistCache.get(cacheKey);
-  if (cached) {
-    return { metas: cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE) };
-  }
 
-  const allFilms: WatchlistFilm[] = [];
-  let cursor: string | undefined;
-  let page = 0;
-
-  do {
-    page++;
-    const response = await callWithAppToken((token) =>
+  return servePublicCatalog(publicWatchlistCache, PUBLIC_WATCHLIST_FRESH_MS, {
+    key: cacheKey,
+    maxPages: 10,
+    fetchPage: (cursor) => callWithAppToken((token) =>
       rawGetWatchlist(token, memberId, { perPage: 100, cursor, sort, includeGenre, decade }),
-    );
-    allFilms.push(...response.items);
-    cursor = response.cursor;
-  } while (cursor && page < 10);
-
-  const allMetas = await transformWatchlistToMetas(allFilms, showRatings);
-  await applyAdultPosterFixes(allFilms, allMetas, showRatings);
-  for (const film of allFilms) cacheFilmMapping(film);
-
-  publicWatchlistCache.set(cacheKey, { metas: allMetas });
-  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
-  logger.info({ total: allMetas.length, skip, returned: metas.length, memberId }, 'Public watchlist fetched');
-  return { metas };
+    ),
+    toMetas: (films) => filmsToMetas(films, showRatings, true),
+    store: (metas) => {
+      publicWatchlistCache.set(cacheKey, { metas });
+      logger.info({ total: metas.length, memberId }, 'Public watchlist fetched');
+    },
+  }, skip);
 }
 
 // ─── Public list ──────────────────────────────────────────────────────────────
@@ -195,31 +199,19 @@ export async function fetchListCatalogPublic(
   decade?: number,
 ): Promise<{ metas: StremioMeta[] }> {
   const cacheKey = cacheKeyPublicList(listId, showRatings, sort, includeGenre, decade);
-  const cached = publicListCache.get(cacheKey);
-  if (cached) {
-    return { metas: cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE) };
-  }
 
-  const allEntries: ListEntry[] = [];
-  let cursor: string | undefined;
-  let page = 0;
-
-  do {
-    page++;
-    const response = await callWithAppToken((token) =>
+  return servePublicCatalog(publicListCache, PUBLIC_LIST_FRESH_MS, {
+    key: cacheKey,
+    maxPages: 10,
+    fetchPage: (cursor) => callWithAppToken((token) =>
       rawGetListEntries(token, listId, { perPage: 100, cursor, sort, includeGenre, decade }),
-    );
-    allEntries.push(...response.items);
-    cursor = response.cursor;
-  } while (cursor && page < 10);
-
-  const allMetas = await transformListEntriesToMetas(allEntries, showRatings);
-  for (const entry of allEntries) cacheFilmMapping(entry.film);
-
-  publicListCache.set(cacheKey, { metas: allMetas });
-  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
-  logger.info({ total: allMetas.length, skip, returned: metas.length, listId }, 'Public list fetched');
-  return { metas };
+    ),
+    toMetas: (entries) => listEntriesToMetas(entries, showRatings, false),
+    store: (metas) => {
+      publicListCache.set(cacheKey, { metas });
+      logger.info({ total: metas.length, listId }, 'Public list fetched');
+    },
+  }, skip);
 }
 
 // ─── Public liked films ───────────────────────────────────────────────────────
@@ -235,18 +227,11 @@ export async function fetchLikedFilmsCatalogPublic(
   const isShuffle = sort === 'Shuffle';
   const effectiveSort = isShuffle ? 'DateLatestFirst' : (sort || 'DateLatestFirst');
   const cacheKey = cacheKeyPublicLiked(memberId, showRatings, sort, includeGenre, decade);
-  const cached = likedFilmsCache.get(cacheKey);
-  if (cached) {
-    return { metas: cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE) };
-  }
 
-  const allFilms: WatchlistFilm[] = [];
-  let cursor: string | undefined;
-  let page = 0;
-
-  do {
-    page++;
-    const response = await callWithAppToken((token) =>
+  return servePublicCatalog(likedFilmsCache, LIKED_FILMS_FRESH_MS, {
+    key: cacheKey,
+    maxPages: 10,
+    fetchPage: (cursor) => callWithAppToken((token) =>
       rawGetFilms(token, {
         member: memberId,
         memberRelationship: 'Liked',
@@ -257,19 +242,14 @@ export async function fetchLikedFilmsCatalogPublic(
         includeGenre,
         decade,
       }),
-    );
-    allFilms.push(...response.items);
-    cursor = response.cursor;
-  } while (cursor && page < 10);
-
-  let allMetas = await transformWatchlistToMetas(allFilms, showRatings);
-  if (isShuffle) allMetas = shuffleArray(allMetas);
-  for (const film of allFilms) cacheFilmMapping(film);
-
-  likedFilmsCache.set(cacheKey, { metas: allMetas });
-  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
-  logger.info({ total: allMetas.length, skip, returned: metas.length, memberId }, 'Public liked films fetched');
-  return { metas };
+    ),
+    toMetas: (films) => filmsToMetas(films, showRatings, false),
+    finalize: isShuffle ? shuffleArray : undefined,
+    store: (metas) => {
+      likedFilmsCache.set(cacheKey, { metas });
+      logger.info({ total: metas.length, memberId }, 'Public liked films fetched');
+    },
+  }, skip);
 }
 
 // ─── Public contributor (director/actor/studio) ──────────────────────────────
@@ -289,36 +269,27 @@ export async function fetchContributorCatalogPublic(
 ): Promise<{ metas: StremioMeta[] }> {
   const apiType = CONTRIBUTOR_KIND_TO_API[kind];
   const cacheKey = cacheKeyPublicContributor(kind, contribId, showRatings, sort);
-  const cached = publicContributorCache.get(cacheKey);
-  if (cached) {
-    return { metas: cached.metas.slice(skip, skip + CATALOG_PAGE_SIZE) };
-  }
 
-  const allFilms: WatchlistFilm[] = [];
-  let cursor: string | undefined;
-  let page = 0;
-
-  do {
-    page++;
-    const response = await callWithAppToken((token) =>
-      rawGetContributorContributions(token, contribId, {
-        type: apiType,
-        perPage: 100,
-        cursor,
-        sort: sort || 'FilmPopularity',
-      }),
-    );
-    allFilms.push(...response.items.map((i) => i.film));
-    cursor = response.cursor;
-  } while (cursor && page < 10);
-
-  const allMetas = await transformWatchlistToMetas(allFilms, showRatings);
-  for (const film of allFilms) cacheFilmMapping(film);
-
-  publicContributorCache.set(cacheKey, { metas: allMetas });
-  const metas = allMetas.slice(skip, skip + CATALOG_PAGE_SIZE);
-  logger.info({ total: allMetas.length, skip, returned: metas.length, contribId, kind }, 'Public contributor fetched');
-  return { metas };
+  return servePublicCatalog(publicContributorCache, PUBLIC_CONTRIBUTOR_FRESH_MS, {
+    key: cacheKey,
+    maxPages: 10,
+    fetchPage: async (cursor) => {
+      const response = await callWithAppToken((token) =>
+        rawGetContributorContributions(token, contribId, {
+          type: apiType,
+          perPage: 100,
+          cursor,
+          sort: sort || 'FilmPopularity',
+        }),
+      );
+      return { items: response.items.map((i) => i.film), cursor: response.cursor };
+    },
+    toMetas: (films) => filmsToMetas(films, showRatings, false),
+    store: (metas) => {
+      publicContributorCache.set(cacheKey, { metas });
+      logger.info({ total: metas.length, contribId, kind }, 'Public contributor fetched');
+    },
+  }, skip);
 }
 
 // ─── Public catalog request orchestrator ──────────────────────────────────────
@@ -415,7 +386,7 @@ export async function handlePublicCatalogRequest(
     if (hideUnreleased) {
       // Filter the full catalog then re-paginate; filtering the sliced page
       // returns short pages and drifts the client's pagination.
-      const full = getFullPublicCatalogFromCache(
+      const full = await getFullPublicCatalogFromCache(
         baseCatalogId,
         showRatings,
         sort,

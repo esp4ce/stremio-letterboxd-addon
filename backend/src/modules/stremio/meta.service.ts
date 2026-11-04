@@ -1,6 +1,6 @@
 import { AuthenticatedClient, LetterboxdFilm } from '../letterboxd/letterboxd.client.js';
 import { createChildLogger } from '../../lib/logger.js';
-import { Coalescer, imdbToLetterboxdCache, cinemetaCache, cinemetaRawCache, filmReviewsCache, filmLookupCache, userRatingCache } from '../../lib/cache.js';
+import { Coalescer, imdbToLetterboxdCache, cinemetaCache, cinemetaRawCache, cinemetaMissCache, filmReviewsCache, filmLookupCache, userRatingCache } from '../../lib/cache.js';
 import type { CachedRating, CinemetaFilmData } from '../../lib/cache.js';
 import { serverConfig } from '../../config/index.js';
 import { signAction } from '../../lib/action-sign.js';
@@ -32,6 +32,17 @@ export const externalIdLookupBreaker = createCircuitBreaker({
 });
 
 // ============================================================================
+// Cinemeta limits
+// ============================================================================
+
+/** A catalog page waits on Cinemeta, so a stuck request must not hold it. */
+const CINEMETA_TIMEOUT_MS = 3000;
+/** Cinemeta has no entry for the film: it won't have one a minute later either. */
+const CINEMETA_NOT_FOUND_TTL_MS = 60 * 60 * 1000;
+/** Timeout, network error or 5xx: retry soon, but not on every catalog request. */
+const CINEMETA_FAILURE_TTL_MS = 60 * 1000;
+
+// ============================================================================
 // Interfaces
 // ============================================================================
 
@@ -52,6 +63,7 @@ interface FilmLookupResult {
 async function fetchCinemetaRaw(imdbId: string): Promise<Record<string, unknown> | null> {
   const cached = cinemetaRawCache.get(imdbId);
   if (cached) return cached;
+  if (cinemetaMissCache.get(imdbId)) return null;
 
   return cinemetaCoalescer.run(imdbId, async () => {
     // Double-check after coalesce
@@ -63,19 +75,26 @@ async function fetchCinemetaRaw(imdbId: string): Promise<Record<string, unknown>
         `https://v3-cinemeta.strem.io/meta/movie/${encodeURIComponent(imdbId)}.json`,
         { extraHosts: CINEMETA_ALLOWED_HOSTS },
       );
-      const response = await fetch(cinemetaUrl);
+      const response = await fetch(cinemetaUrl, { signal: AbortSignal.timeout(CINEMETA_TIMEOUT_MS) });
       if (!response.ok) {
         logger.debug({ imdbId, status: response.status }, 'Cinemeta lookup failed');
+        cinemetaMissCache.set(imdbId, true, {
+          ttl: response.status === 404 ? CINEMETA_NOT_FOUND_TTL_MS : CINEMETA_FAILURE_TTL_MS,
+        });
         return null;
       }
 
       const data = await response.json() as { meta?: Record<string, unknown> };
-      if (!data.meta?.['name']) return null;
+      if (!data.meta?.['name']) {
+        cinemetaMissCache.set(imdbId, true, { ttl: CINEMETA_NOT_FOUND_TTL_MS });
+        return null;
+      }
 
       cinemetaRawCache.set(imdbId, data.meta);
       return data.meta;
     } catch (error) {
       logger.error({ err: error, imdbId }, 'Error fetching from Cinemeta');
+      cinemetaMissCache.set(imdbId, true, { ttl: CINEMETA_FAILURE_TTL_MS });
       return null;
     }
   });

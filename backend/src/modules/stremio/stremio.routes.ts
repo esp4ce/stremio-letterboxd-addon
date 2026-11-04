@@ -224,7 +224,7 @@ export async function stremioRoutes(app: FastifyInstance) {
       const effectiveSort = isShuffle ? 'Shuffle' : sort;
       const { metas } = await fetchPopularCatalogPublic(skip, true, effectiveSort, includeGenre, decade);
       if (!isReleasedOnly) return withCatalogCache(reply, { metas }, GLOBAL_CATALOG_MAX_AGE);
-      const full = getFullPublicCatalogFromCache('letterboxd-popular', true, effectiveSort, undefined, includeGenre, decade);
+      const full = await getFullPublicCatalogFromCache('letterboxd-popular', true, effectiveSort, undefined, includeGenre, decade);
       return withCatalogCache(
         reply,
         { metas: full ? sliceReleased(full, skip, CATALOG_PAGE_SIZE, true) : filterUnreleasedFilms(metas, true) },
@@ -248,7 +248,7 @@ export async function stremioRoutes(app: FastifyInstance) {
       const effectiveSort = isShuffle ? 'Shuffle' : sort;
       const { metas } = await fetchTop250CatalogPublic(skip, true, effectiveSort, includeGenre, decade);
       if (!isReleasedOnly) return withCatalogCache(reply, { metas }, GLOBAL_CATALOG_MAX_AGE);
-      const full = getFullPublicCatalogFromCache('letterboxd-top250', true, effectiveSort, undefined, includeGenre, decade);
+      const full = await getFullPublicCatalogFromCache('letterboxd-top250', true, effectiveSort, undefined, includeGenre, decade);
       return withCatalogCache(
         reply,
         { metas: full ? sliceReleased(full, skip, CATALOG_PAGE_SIZE, true) : filterUnreleasedFilms(metas, true) },
