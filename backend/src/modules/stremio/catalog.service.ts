@@ -1,6 +1,6 @@
 import { WatchlistFilm, LogEntry, ListEntry, ActivityItem, LetterboxdFilm } from '../letterboxd/letterboxd.client.js';
 import { createChildLogger } from '../../lib/logger.js';
-import { imdbToLetterboxdCache, cinemetaCache, tmdbAdultCache } from '../../lib/cache.js';
+import { imdbToLetterboxdCache, imdbToTmdbCache, cinemetaCache, tmdbAdultCache } from '../../lib/cache.js';
 import { serverConfig, tmdbConfig } from '../../config/index.js';
 import { getFullFilmInfoFromCinemeta } from './meta.service.js';
 import { mapConcurrent } from '../../lib/concurrency.js';
@@ -73,6 +73,14 @@ export function getTmdbId(film: FilmLike): number | null {
  * Resolve IMDb ID from film links, with TMDB external_ids fallback when missing.
  */
 async function resolveImdbId(film: FilmLike): Promise<string | null> {
+  const imdbId = await lookupImdbId(film);
+  // Letterboxd already links the TMDB movie: the release-date filter needn't look it up.
+  const tmdbId = imdbId ? getTmdbId(film) : null;
+  if (imdbId && tmdbId) imdbToTmdbCache.set(imdbId, String(tmdbId));
+  return imdbId;
+}
+
+async function lookupImdbId(film: FilmLike): Promise<string | null> {
   const direct = getImdbId(film);
   if (direct) return direct;
 

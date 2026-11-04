@@ -1,6 +1,6 @@
 import { tmdbConfig } from '../../../config/index.js';
 import { createChildLogger } from '../../../lib/logger.js';
-import { imdbToTmdbCache, releaseDatesCache, type ReleaseDatesInfo } from '../../../lib/cache.js';
+import { imdbToTmdbCache, releaseDatesCache, releaseDatesMissCache, type ReleaseDatesInfo } from '../../../lib/cache.js';
 import { mapConcurrent } from '../../../lib/concurrency.js';
 import { findTmdbIdByImdbId, getTmdbReleaseDates } from '../../../lib/tmdb-client.js';
 import { filterUnreleasedFilms } from './catalog-filter.js';
@@ -23,6 +23,14 @@ const LOOKUP_CONCURRENCY = 10;
  * physically but their TMDB type 4/5/6 entries are often missing.
  */
 const HOME_RELEASE_GRACE_MS = 2 * 365 * 24 * 60 * 60 * 1000;
+
+/** Release dates of a film out for over a year no longer change: keep them a month. */
+const SETTLED_RELEASE_AGE_MS = 365 * 24 * 60 * 60 * 1000;
+const SETTLED_RELEASE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** TMDB has no such film: it won't have one tomorrow either. */
+const NOT_FOUND_TTL_MS = 24 * 60 * 60 * 1000;
+/** TMDB failed: retry soon, but not on every catalog page. */
+const FAILURE_TTL_MS = 60 * 1000;
 
 export interface ReleaseFilterOptions {
   /** Hide films whose real release date is in the future (issue #77). */
@@ -71,6 +79,7 @@ function normalizeReleaseDates(
 async function getReleaseInfo(imdbId: string, apiKey: string): Promise<ReleaseDatesInfo | null> {
   const cached = releaseDatesCache.get(imdbId);
   if (cached) return cached;
+  if (releaseDatesMissCache.get(imdbId)) return null;
 
   try {
     let tmdbId: number | null = null;
@@ -81,16 +90,34 @@ async function getReleaseInfo(imdbId: string, apiKey: string): Promise<ReleaseDa
       tmdbId = await findTmdbIdByImdbId(imdbId, apiKey);
       if (tmdbId !== null) imdbToTmdbCache.set(imdbId, String(tmdbId));
     }
-    if (tmdbId === null || Number.isNaN(tmdbId)) return null;
+    if (tmdbId === null || Number.isNaN(tmdbId)) {
+      releaseDatesMissCache.set(imdbId, true, { ttl: NOT_FOUND_TTL_MS });
+      return null;
+    }
 
     const results = await getTmdbReleaseDates(tmdbId, apiKey);
     const info = normalizeReleaseDates(results);
-    releaseDatesCache.set(imdbId, info);
+    const settled =
+      info.earliestRelease !== null && Date.now() - Date.parse(info.earliestRelease) > SETTLED_RELEASE_AGE_MS;
+    releaseDatesCache.set(imdbId, info, settled ? { ttl: SETTLED_RELEASE_TTL_MS } : undefined);
     return info;
   } catch (err) {
     logger.warn({ imdbId, err }, 'TMDB release-dates lookup failed');
+    releaseDatesMissCache.set(imdbId, true, { ttl: FAILURE_TTL_MS });
     return null;
   }
+}
+
+/**
+ * True when the decision for this film can depend on TMDB. A film from a past
+ * year is out (#77), and one from three or more years ago is past the
+ * home-release grace period (#90): their answer is known without a lookup.
+ */
+function needsReleaseInfo(meta: StremioMeta, options: ReleaseFilterOptions, currentYear: number): boolean {
+  if (meta.year === undefined) return true;
+  if (options.hideUnreleased && meta.year >= currentYear) return true;
+  if (options.hideNoHomeRelease && meta.year > currentYear - 3) return true;
+  return false;
 }
 
 /**
@@ -120,7 +147,10 @@ export async function filterFilmsByReleaseData(
   }
 
   const now = Date.now();
-  const infos = await mapConcurrent(metas, LOOKUP_CONCURRENCY, (m) => getReleaseInfo(m.id, apiKey));
+  const currentYear = new Date(now).getFullYear();
+  const infos = await mapConcurrent(metas, LOOKUP_CONCURRENCY, (m) =>
+    needsReleaseInfo(m, options, currentYear) ? getReleaseInfo(m.id, apiKey) : Promise.resolve(null),
+  );
 
   const kept: StremioMeta[] = [];
   for (let i = 0; i < metas.length; i++) {

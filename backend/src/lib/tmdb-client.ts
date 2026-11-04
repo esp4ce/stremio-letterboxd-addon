@@ -6,6 +6,8 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const MAX_CONCURRENT = 10;
 const MAX_RETRIES = 2;
 const RETRY_BASE_DELAY = 1000;
+/** Catalog pages wait on TMDB lookups, so a stuck request must not hold them. */
+const REQUEST_TIMEOUT_MS = 3000;
 
 export interface TmdbRecommendation {
   id: number;
@@ -56,7 +58,7 @@ async function tmdbFetch<T>(url: string): Promise<T> {
   await semaphore.acquire();
   try {
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
 
       if (response.status === 429 && attempt < MAX_RETRIES) {
         const retryAfter = response.headers.get('retry-after');
