@@ -4,6 +4,8 @@ import { http, HttpResponse } from 'msw';
 import { configure } from '@esp4ce/letterboxd-client';
 import { makeWatchlistFilm } from '../../helpers/msw-server.js';
 import { fetchListCatalogPublic } from '../../../src/modules/stremio/catalog/public-catalog-fetcher.service.js';
+import { inflightCatalog } from '../../../src/modules/stremio/catalog/catalog-loader.js';
+import { cacheKeyPublicList } from '../../../src/modules/stremio/catalog/catalog-cache-keys.js';
 import { catalogConfig } from '../../../src/config/index.js';
 
 // Diagnostic harness: latency of public list catalogs (see /diagnose on catalog latency).
@@ -50,19 +52,25 @@ beforeAll(() => {
 });
 afterAll(() => server.close());
 
+const listKey = (listId: string) => cacheKeyPublicList(listId, true);
+
 describe('public list catalog latency (diagnostic)', () => {
-  it('cold fetch of an 829-entry list: pages fetched and wall-clock time', async () => {
+  it('cold fetch of an 829-entry list: first page answered before the full load', async () => {
     listCalls = 0;
     const started = Date.now();
     const { metas } = await fetchListCatalogPublic('solo', 0, true);
-    const elapsed = Date.now() - started;
+    const firstPage = Date.now() - started;
+    const callsForFirstPage = listCalls;
+    await inflightCatalog(listKey('solo'));
+    const fullLoad = Date.now() - started;
 
-    console.log(`[HARNESS] solo: listCalls=${listCalls} elapsed=${elapsed}ms returned=${metas.length}`);
+    console.log(`[HARNESS] solo: firstPage=${firstPage}ms (${callsForFirstPage} calls) fullLoad=${fullLoad}ms (${listCalls} calls)`);
 
     expect(metas).toHaveLength(PER_PAGE);
+    expect(callsForFirstPage).toBeLessThan(Math.ceil(LIST_SIZE / PER_PAGE));
     expect(listCalls).toBe(Math.ceil(LIST_SIZE / PER_PAGE));
     // Pacer floor: each upstream call costs at least PACER_MS, even on an instant response.
-    expect(elapsed).toBeGreaterThanOrEqual(listCalls * PACER_MS * 0.9);
+    expect(fullLoad).toBeGreaterThanOrEqual((listCalls - 1) * PACER_MS * 0.9);
   }, 30_000);
 
   it('warm fetch of the same list is served from cache (no upstream calls)', async () => {
@@ -84,7 +92,10 @@ describe('public list catalog latency (diagnostic)', () => {
     const ids = Array.from({ length: 4 }, (_, i) => `burst-${i}`);
     const started = Date.now();
     await Promise.all(ids.map((id) => fetchListCatalogPublic(id, 0, true)));
+    const firstPages = Date.now() - started;
+    await Promise.all(ids.map((id) => inflightCatalog(listKey(id))));
     const elapsed = Date.now() - started;
+    console.log(`[HARNESS] burst: first pages of ${ids.length} lists answered in ${firstPages}ms`);
 
     const expectedCalls = ids.length * Math.ceil(LIST_SIZE / PER_PAGE);
     console.log(
@@ -93,6 +104,6 @@ describe('public list catalog latency (diagnostic)', () => {
     );
 
     expect(listCalls).toBe(expectedCalls);
-    expect(elapsed).toBeGreaterThanOrEqual(listCalls * PACER_MS * 0.9);
+    expect(elapsed).toBeGreaterThanOrEqual((listCalls - 1) * PACER_MS * 0.9);
   }, 60_000);
 });

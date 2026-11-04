@@ -53,6 +53,7 @@ import {
   parseExtra,
 } from './catalog-filter.js';
 import { filterFilmsByReleaseData } from './release-filter.js';
+import { loadCatalogPage, type CatalogSource } from './catalog-loader.js';
 import { localizeMetas, resolveMetadataLanguage } from '../metadata-language.js';
 import { createClientForUser, getWatchedImdbIds, SessionExpiredError } from '../user-client.service.js';
 import { fetchPopularCatalogPublic, fetchTop250CatalogPublic, fetchWatchlistCatalogPublic, fetchLikedFilmsCatalogPublic, fetchListCatalogPublic, resolveMemberId, fetchContributorCatalogPublic } from './public-catalog-fetcher.service.js';
@@ -77,25 +78,30 @@ export async function fetchWatchlistCatalog(
   if (cached) return cached;
 
   const client = await createClientForUser(user);
-  const allFilms: WatchlistFilm[] = [];
-  let cursor: string | undefined;
-  let page = 0;
+  return serveUserCatalog({
+    key: cacheKey,
+    maxPages: 10,
+    fetchPage: async (cursor) => {
+      const watchlist = await client.getWatchlist({ perPage: 100, cursor, sort, includeGenre, decade });
+      logger.info({ itemsCount: watchlist.items.length, hasCursor: !!watchlist.cursor }, 'Watchlist page fetched');
+      return watchlist;
+    },
+    toMetas: async (films) => {
+      const metas = await transformWatchlistToMetas(films, showRatings);
+      await applyAdultPosterFixes(films, metas, showRatings);
+      for (const film of films) cacheFilmMapping(film);
+      return metas;
+    },
+    store: (metas) => {
+      setUserCatalog(user.id, cacheKey, metas, 0, 0);
+      logger.info({ total: metas.length, username: user.letterboxd_username }, 'Watchlist fetched');
+    },
+  }, skip);
+}
 
-  do {
-    page++;
-    const watchlist = await client.getWatchlist({ perPage: 100, cursor, sort, includeGenre, decade });
-    logger.info({ page, itemsCount: watchlist.items.length, hasCursor: !!watchlist.cursor }, 'Watchlist page fetched');
-    allFilms.push(...watchlist.items);
-    cursor = watchlist.cursor;
-  } while (cursor && page < 10);
-
-  const allMetas = await transformWatchlistToMetas(allFilms, showRatings);
-  await applyAdultPosterFixes(allFilms, allMetas, showRatings);
-  for (const film of allFilms) cacheFilmMapping(film);
-
-  const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
-  logger.info({ total: allMetas.length, skip, returned: result.metas.length, username: user.letterboxd_username }, 'Watchlist fetched');
-  return result;
+/** One page of an authenticated catalog, served without waiting for the pages after it. */
+async function serveUserCatalog<T>(source: CatalogSource<T>, skip: number): Promise<{ metas: StremioMeta[] }> {
+  return { metas: await loadCatalogPage(source, skip, CATALOG_PAGE_SIZE) };
 }
 
 // ─── Diary ────────────────────────────────────────────────────────────────────
@@ -111,22 +117,22 @@ export async function fetchDiaryCatalog(
   if (cached) return cached;
 
   const client = await createClientForUser(user);
-  const allEntries: LogEntry[] = [];
-  let cursor: string | undefined;
-  let page = 0;
-
-  do {
-    page++;
-    const response = await client.getMemberLogEntries({ perPage: 100, cursor, sort });
-    logger.info({ page, itemsCount: response.items.length, hasCursor: !!response.cursor }, 'Diary page fetched');
-    allEntries.push(...response.items);
-    cursor = response.cursor;
-  } while (cursor && page < 5);
-
-  const allMetas = await transformLogEntriesToMetas(allEntries, showRatings);
-  const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
-  logger.info({ total: allMetas.length, skip, returned: result.metas.length, username: user.letterboxd_username }, 'Diary fetched');
-  return result;
+  return serveUserCatalog<LogEntry>({
+    key: cacheKey,
+    maxPages: 5,
+    fetchPage: async (cursor) => {
+      const response = await client.getMemberLogEntries({ perPage: 100, cursor, sort });
+      logger.info({ itemsCount: response.items.length, hasCursor: !!response.cursor }, 'Diary page fetched');
+      return response;
+    },
+    toMetas: (entries) => transformLogEntriesToMetas(entries, showRatings),
+    // A film logged again on a later page keeps its first (most recent) entry.
+    dedupe: true,
+    store: (metas) => {
+      setUserCatalog(user.id, cacheKey, metas, 0, 0);
+      logger.info({ total: metas.length, username: user.letterboxd_username }, 'Diary fetched');
+    },
+  }, skip);
 }
 
 // ─── Friends activity ─────────────────────────────────────────────────────────
@@ -141,22 +147,22 @@ export async function fetchFriendsCatalog(
   if (cached) return cached;
 
   const client = await createClientForUser(user);
-  const allItems: ActivityItem[] = [];
-  let nextStart: string | undefined;
-  let page = 0;
-
-  do {
-    page++;
-    const response = await client.getFriendsActivity({ perPage: 100, start: nextStart });
-    logger.info({ page, itemsCount: response.items.length, hasNext: !!response.next }, 'Friends activity page fetched');
-    allItems.push(...response.items);
-    nextStart = response.next?.replace('start=', '');
-  } while (nextStart && page < 3);
-
-  const allMetas = await transformActivityToMetas(allItems, user.letterboxd_id, showRatings);
-  const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
-  logger.info({ total: allMetas.length, skip, returned: result.metas.length, username: user.letterboxd_username }, 'Friends activity fetched');
-  return result;
+  return serveUserCatalog<ActivityItem>({
+    key: cacheKey,
+    maxPages: 3,
+    fetchPage: async (nextStart) => {
+      const response = await client.getFriendsActivity({ perPage: 100, start: nextStart });
+      logger.info({ itemsCount: response.items.length, hasNext: !!response.next }, 'Friends activity page fetched');
+      return { items: response.items, cursor: response.next?.replace('start=', '') };
+    },
+    toMetas: (items) => transformActivityToMetas(items, user.letterboxd_id, showRatings),
+    // A film seen in several friends' activity keeps its first (most recent) item.
+    dedupe: true,
+    store: (metas) => {
+      setUserCatalog(user.id, cacheKey, metas, 0, 0);
+      logger.info({ total: metas.length, username: user.letterboxd_username }, 'Friends activity fetched');
+    },
+  }, skip);
 }
 
 // ─── List ─────────────────────────────────────────────────────────────────────
@@ -175,24 +181,24 @@ export async function fetchListCatalog(
   if (cached) return cached;
 
   const client = await createClientForUser(user);
-  const allEntries: ListEntry[] = [];
-  let cursor: string | undefined;
-  let page = 0;
-
-  do {
-    page++;
-    const response = await client.getListEntries(listId, { perPage: 100, cursor, sort, includeGenre, decade });
-    logger.info({ page, listId, itemsCount: response.items.length, hasCursor: !!response.cursor }, 'List page fetched');
-    allEntries.push(...response.items);
-    cursor = response.cursor;
-  } while (cursor && page < 10);
-
-  const allMetas = await transformListEntriesToMetas(allEntries, showRatings);
-  for (const entry of allEntries) cacheFilmMapping(entry.film);
-
-  const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
-  logger.info({ total: allMetas.length, skip, returned: result.metas.length, listId, username: user.letterboxd_username }, 'List fetched');
-  return result;
+  return serveUserCatalog<ListEntry>({
+    key: cacheKey,
+    maxPages: 10,
+    fetchPage: async (cursor) => {
+      const response = await client.getListEntries(listId, { perPage: 100, cursor, sort, includeGenre, decade });
+      logger.info({ listId, itemsCount: response.items.length, hasCursor: !!response.cursor }, 'List page fetched');
+      return response;
+    },
+    toMetas: async (entries) => {
+      const metas = await transformListEntriesToMetas(entries, showRatings);
+      for (const entry of entries) cacheFilmMapping(entry.film);
+      return metas;
+    },
+    store: (metas) => {
+      setUserCatalog(user.id, cacheKey, metas, 0, 0);
+      logger.info({ total: metas.length, listId, username: user.letterboxd_username }, 'List fetched');
+    },
+  }, skip);
 }
 
 // ─── Liked films ──────────────────────────────────────────────────────────────
@@ -212,36 +218,35 @@ export async function fetchLikedFilmsCatalog(
   const isShuffle = sort === 'Shuffle';
   const apiSort = isShuffle ? 'DateLatestFirst' : (sort || 'DateLatestFirst');
   const client = await createClientForUser(user);
-
-  const allFilms: WatchlistFilm[] = [];
-  let cursor: string | undefined;
-  let page = 0;
-
-  do {
-    page++;
-    const response = await client.getFilms({
-      member: user.letterboxd_id,
-      memberRelationship: 'Liked',
-      includeFriends: 'None',
-      sort: apiSort,
-      perPage: 100,
-      cursor,
-      includeGenre,
-      decade,
-    });
-    logger.info({ page, itemsCount: response.items.length, hasCursor: !!response.cursor }, 'Liked films page fetched');
-    allFilms.push(...response.items);
-    cursor = response.cursor;
-  } while (cursor && page < 10);
-
-  let allMetas = await transformWatchlistToMetas(allFilms, showRatings);
-  await applyAdultPosterFixes(allFilms, allMetas, showRatings);
-  if (isShuffle) allMetas = shuffleArray(allMetas);
-  for (const film of allFilms) cacheFilmMapping(film);
-
-  const result = setUserCatalog(user.id, cacheKey, allMetas, skip, CATALOG_PAGE_SIZE);
-  logger.info({ total: allMetas.length, skip, returned: result.metas.length, username: user.letterboxd_username }, 'Liked films fetched');
-  return result;
+  return serveUserCatalog<WatchlistFilm>({
+    key: cacheKey,
+    maxPages: 10,
+    fetchPage: async (cursor) => {
+      const response = await client.getFilms({
+        member: user.letterboxd_id,
+        memberRelationship: 'Liked',
+        includeFriends: 'None',
+        sort: apiSort,
+        perPage: 100,
+        cursor,
+        includeGenre,
+        decade,
+      });
+      logger.info({ itemsCount: response.items.length, hasCursor: !!response.cursor }, 'Liked films page fetched');
+      return response;
+    },
+    toMetas: async (films) => {
+      const metas = await transformWatchlistToMetas(films, showRatings);
+      await applyAdultPosterFixes(films, metas, showRatings);
+      for (const film of films) cacheFilmMapping(film);
+      return metas;
+    },
+    finalize: isShuffle ? shuffleArray : undefined,
+    store: (metas) => {
+      setUserCatalog(user.id, cacheKey, metas, 0, 0);
+      logger.info({ total: metas.length, username: user.letterboxd_username }, 'Liked films fetched');
+    },
+  }, skip);
 }
 
 // ─── Recommendations ──────────────────────────────────────────────────────────
@@ -684,7 +689,7 @@ export async function handleCatalogRequest(
     // re-pagination; filtering the already-sliced page returns short pages and
     // drifts the client's pagination (duplicate or missing items at the top).
     if (isNotWatched || hideUnreleased) {
-      const fullMetas = getFullCatalogFromCache(
+      const fullMetas = await getFullCatalogFromCache(
         baseCatalogId,
         user.id,
         showRatings,

@@ -31,6 +31,14 @@ export function createCache<T extends NonNullable<unknown>>(options: CacheOption
   });
 }
 
+/**
+ * True once an entry written with the cache's default TTL is older than `freshMs`.
+ * Lets a cache keep serving an entry (its TTL) after it should be refreshed (`freshMs`).
+ */
+export function isStale<T extends NonNullable<unknown>>(cache: LRUCache<string, T>, key: string, freshMs: number): boolean {
+  return cache.ttl - cache.getRemainingTTL(key) > freshMs;
+}
+
 export interface CachedFilm {
   id: string;
   name: string;
@@ -107,7 +115,6 @@ export const cinemetaCache = createCache<CinemetaFilmData>({
   ttl: 60 * 60 * 1000, // 1 hour
 });
 
-
 // IMDb IDs Cinemeta had nothing for (or failed on), so a catalog doesn't re-ask on every
 // request. The entry TTL is set per write: long for "not found", short for an outage.
 export const cinemetaMissCache = createCache<true>({
@@ -122,19 +129,25 @@ export const cinemetaRawCache = createCache<Record<string, unknown>>({
 });
 
 // ── Public catalog caches ────────────────────────────────────────────────────
+// Stale-while-revalidate: past its *_FRESH_MS an entry is still served, while a
+// background load replaces it; the cache TTL only bounds how stale it may get.
 
 import type { StremioMeta } from '../modules/stremio/catalog.service.js';
 
-// Popular This Week cache (24 hours - changes weekly)
+const PUBLIC_CATALOG_STALE_TTL = 24 * 60 * 60 * 1000;
+
+// Popular This Week (changes weekly)
+export const POPULAR_FRESH_MS = 24 * 60 * 60 * 1000;
 export const popularCatalogCache = createCache<{ metas: StremioMeta[] }>({
   maxSize: 10,
-  ttl: 24 * 60 * 60 * 1000,
+  ttl: 3 * POPULAR_FRESH_MS,
 });
 
-// Top 250 cache (24 hours - changes very rarely)
+// Top 250 (changes very rarely)
+export const TOP250_FRESH_MS = 24 * 60 * 60 * 1000;
 export const top250CatalogCache = createCache<{ metas: StremioMeta[] }>({
   maxSize: 10,
-  ttl: 24 * 60 * 60 * 1000,
+  ttl: 3 * TOP250_FRESH_MS,
 });
 
 // Username → memberId mapping (24 hours - never changes)
@@ -143,16 +156,18 @@ export const memberIdCache = createCache<string>({
   ttl: 24 * 60 * 60 * 1000,
 });
 
-// Public watchlist cache (configurable TTL, default 5 min)
+// Public watchlist (configurable freshness, default 5 min)
+export const PUBLIC_WATCHLIST_FRESH_MS = cacheConfig.watchlistTtl;
 export const publicWatchlistCache = createCache<{ metas: StremioMeta[] }>({
   maxSize: 300,
-  ttl: cacheConfig.watchlistTtl,
+  ttl: Math.max(PUBLIC_CATALOG_STALE_TTL, PUBLIC_WATCHLIST_FRESH_MS),
 });
 
-// Public list catalog cache (5 minutes)
+// Public list catalog
+export const PUBLIC_LIST_FRESH_MS = 5 * 60 * 1000;
 export const publicListCache = createCache<{ metas: StremioMeta[] }>({
   maxSize: 300,
-  ttl: 5 * 60 * 1000,
+  ttl: PUBLIC_CATALOG_STALE_TTL,
 });
 
 // List ID → name cache (24 hours - list names rarely change)
@@ -161,10 +176,11 @@ export const listNameCache = createCache<string>({
   ttl: 24 * 60 * 60 * 1000,
 });
 
-// Public contributor catalog cache (5 minutes)
+// Public contributor catalog
+export const PUBLIC_CONTRIBUTOR_FRESH_MS = 5 * 60 * 1000;
 export const publicContributorCache = createCache<{ metas: StremioMeta[] }>({
   maxSize: 100,
-  ttl: 5 * 60 * 1000,
+  ttl: PUBLIC_CATALOG_STALE_TTL,
 });
 
 // Contributor ID → display name cache (24 hours)
@@ -181,10 +197,11 @@ export const CONTRIBUTOR_KIND_SHORT: Record<'director' | 'actor' | 'studio', Con
 };
 export const contributorCacheKey = (kind: ContributorKindShort, id: string) => `${kind}:${id}`;
 
-// Liked films cache (5 minutes - user may update frequently)
+// Public liked films (user may update frequently)
+export const LIKED_FILMS_FRESH_MS = 5 * 60 * 1000;
 export const likedFilmsCache = createCache<{ metas: StremioMeta[] }>({
   maxSize: 50,
-  ttl: 5 * 60 * 1000,
+  ttl: PUBLIC_CATALOG_STALE_TTL,
 });
 
 // Poster cache (from poster.service.ts - imported dynamically to avoid circular deps)

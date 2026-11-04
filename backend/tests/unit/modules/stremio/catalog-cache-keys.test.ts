@@ -159,24 +159,24 @@ describe('catalog-cache-keys', () => {
       userCatalogCache.clear();
     });
 
-    it('reads the public watchlist cache when extMemberId is provided', () => {
+    it('reads the public watchlist cache when extMemberId is provided', async () => {
       publicWatchlistCache.set(cacheKeyPublicWatchlist('member-9', true), { metas });
 
-      expect(getFullCatalogFromCache('letterboxd-watchlist', 'user-9', true, undefined, 'member-9')).toEqual(metas);
+      expect(await getFullCatalogFromCache('letterboxd-watchlist', 'user-9', true, undefined, 'member-9')).toEqual(metas);
       // Without the member id it can only see the (empty) authenticated cache.
-      expect(getFullCatalogFromCache('letterboxd-watchlist', 'user-9', true)).toBeUndefined();
+      expect(await getFullCatalogFromCache('letterboxd-watchlist', 'user-9', true)).toBeUndefined();
     });
 
-    it('reads the public liked-films cache when extMemberId is provided', () => {
+    it('reads the public liked-films cache when extMemberId is provided', async () => {
       likedFilmsCache.set(cacheKeyPublicLiked('member-9', true), { metas });
 
-      expect(getFullCatalogFromCache('letterboxd-liked-films', 'user-9', true, undefined, 'member-9')).toEqual(metas);
+      expect(await getFullCatalogFromCache('letterboxd-liked-films', 'user-9', true, undefined, 'member-9')).toEqual(metas);
     });
 
-    it('falls back to the authenticated cache when the public one misses', () => {
+    it('falls back to the authenticated cache when the public one misses', async () => {
       userCatalogCache.set(cacheKeyWatchlist('user-9', true), { metas });
 
-      expect(getFullCatalogFromCache('letterboxd-watchlist', 'user-9', true, undefined, 'member-9')).toEqual(metas);
+      expect(await getFullCatalogFromCache('letterboxd-watchlist', 'user-9', true, undefined, 'member-9')).toEqual(metas);
     });
   });
 
