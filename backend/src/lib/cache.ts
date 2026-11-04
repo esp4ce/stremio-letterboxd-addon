@@ -108,6 +108,13 @@ export const cinemetaCache = createCache<CinemetaFilmData>({
 });
 
 
+// IMDb IDs Cinemeta had nothing for (or failed on), so a catalog doesn't re-ask on every
+// request. The entry TTL is set per write: long for "not found", short for an outage.
+export const cinemetaMissCache = createCache<true>({
+  maxSize: 5000,
+  ttl: 60 * 60 * 1000, // 1 hour
+});
+
 // Raw Cinemeta meta cache — stores the full unfiltered meta object for pass-through
 export const cinemetaRawCache = createCache<Record<string, unknown>>({
   maxSize: 2000,
@@ -385,6 +392,7 @@ export const allCaches = [
   { name: 'film', cache: filmCache },
   { name: 'userRating', cache: userRatingCache },
   { name: 'imdbToLetterboxd', cache: imdbToLetterboxdCache },
+  { name: 'cinemetaMiss', cache: cinemetaMissCache },
   { name: 'userLists', cache: userListsCache },
   { name: 'memberId', cache: memberIdCache },
   { name: 'listName', cache: listNameCache },
@@ -414,6 +422,7 @@ export function getCacheStats(): CacheStats {
     imdbToLetterboxd: { size: imdbToLetterboxdCache.size, max: imdbToLetterboxdCache.max },
     userLists: { size: userListsCache.size, max: userListsCache.max },
     cinemeta: { size: cinemetaCache.size, max: cinemetaCache.max },
+    cinemetaMiss: { size: cinemetaMissCache.size, max: cinemetaMissCache.max },
     popularCatalog: { size: popularCatalogCache.size, max: popularCatalogCache.max },
     top250Catalog: { size: top250CatalogCache.size, max: top250CatalogCache.max },
     memberId: { size: memberIdCache.size, max: memberIdCache.max },

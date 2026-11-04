@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { setupServer } from 'msw/node';
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, delay } from 'msw';
 import { initDb, closeDb } from '../../../src/db/index.js';
 import { cinemetaCache, imdbToLetterboxdCache, cinemetaRawCache } from '../../../src/lib/cache.js';
 import { getFullFilmInfoFromCinemeta, getRawCinemetaMeta } from '../../../src/modules/stremio/meta.service.js';
@@ -90,6 +90,35 @@ describe('meta service', () => {
       const result = await getFullFilmInfoFromCinemeta('tt0000000');
       expect(result).toBeNull();
     });
+
+    it('does not ask Cinemeta again for a film it does not know', async () => {
+      let calls = 0;
+      server.use(
+        http.get(`${CINEMETA}/meta/movie/tt0000002.json`, () => {
+          calls++;
+          return HttpResponse.json({}, { status: 404 });
+        }),
+      );
+
+      expect(await getFullFilmInfoFromCinemeta('tt0000002')).toBeNull();
+      expect(await getFullFilmInfoFromCinemeta('tt0000002')).toBeNull();
+      expect(calls).toBe(1);
+    });
+
+    it('gives up on a Cinemeta that does not answer', async () => {
+      server.use(
+        http.get(`${CINEMETA}/meta/movie/tt0000003.json`, async () => {
+          await delay('infinite');
+          return HttpResponse.json(cinemetaResponse);
+        }),
+      );
+
+      const started = Date.now();
+      const result = await getFullFilmInfoFromCinemeta('tt0000003');
+
+      expect(result).toBeNull();
+      expect(Date.now() - started).toBeLessThan(5_000);
+    }, 10_000);
 
     it('returns null when meta has no name', async () => {
       server.use(
