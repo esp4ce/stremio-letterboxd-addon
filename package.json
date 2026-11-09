@@ -33,7 +33,7 @@
     "msw": "^3.0.3",
     "tailwindcss": "^4",
     "typescript": "^6",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   },
   "overrides": {
     "postcss": "^8.5.10"
