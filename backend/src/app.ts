@@ -17,6 +17,7 @@ import { billingRoutes } from './modules/billing/billing.routes.js';
 import { nativeSyncRoutes } from './modules/native-sync/native-sync.routes.js';
 import { generateBaseManifest } from './modules/stremio/stremio.service.js';
 import { startMemoryGuard } from './lib/memory-guard.js';
+import { startMemoryTelemetry } from './lib/memory-telemetry.js';
 
 const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" rx="8" fill="#0a0a0a"/>
@@ -174,6 +175,7 @@ export async function buildApp(httpsOptions?: ServerOptions) {
   });
 
   startMemoryGuard();
+  startMemoryTelemetry();
 
   return app;
 }
