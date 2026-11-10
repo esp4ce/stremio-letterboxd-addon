@@ -7,7 +7,10 @@ vi.mock('../../src/lib/cache.js', () => ({
   ],
 }));
 
-import { sampleMemory, sampleCacheSizes } from '../../src/lib/memory-telemetry.js';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { sampleMemory, sampleCacheSizes, sampleStorage } from '../../src/lib/memory-telemetry.js';
 
 const MB = 1024 * 1024;
 
@@ -29,6 +32,31 @@ describe('sampleMemory', () => {
       arrayBuffersMB: 150,
       nonHeapMB: 1500,
     });
+  });
+});
+
+describe('sampleStorage', () => {
+  it('sums the database, its WAL and the backup folder in MB', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'telemetry-'));
+    try {
+      mkdirSync(join(dir, 'backups'));
+      writeFileSync(join(dir, 'app.db'), Buffer.alloc(3 * MB));
+      writeFileSync(join(dir, 'app.db-wal'), Buffer.alloc(2 * MB));
+      writeFileSync(join(dir, 'backups', 'a.db.gz'), Buffer.alloc(1 * MB));
+      writeFileSync(join(dir, 'backups', 'b.db.gz'), Buffer.alloc(2 * MB));
+
+      expect(sampleStorage(join(dir, 'app.db'), join(dir, 'backups'))).toEqual({
+        dbMB: 3,
+        walMB: 2,
+        backupsMB: 3,
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('reports zeros when nothing exists yet', () => {
+    expect(sampleStorage('/nope/app.db', '/nope/backups')).toEqual({ dbMB: 0, walMB: 0, backupsMB: 0 });
   });
 });
 
