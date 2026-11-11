@@ -10,7 +10,7 @@ vi.mock('../../src/lib/cache.js', () => ({
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { sampleMemory, sampleCacheSizes, sampleStorage } from '../../src/lib/memory-telemetry.js';
+import { sampleMemory, sampleCacheSizes, sampleStorage, estimateCacheMB } from '../../src/lib/memory-telemetry.js';
 
 const MB = 1024 * 1024;
 
@@ -57,6 +57,21 @@ describe('sampleStorage', () => {
 
   it('reports zeros when nothing exists yet', () => {
     expect(sampleStorage('/nope/app.db', '/nope/backups')).toEqual({ dbMB: 0, walMB: 0, backupsMB: 0 });
+  });
+});
+
+describe('estimateCacheMB', () => {
+  const cacheOf = (values: unknown[]) => ({ size: values.length, values: () => values.values() });
+
+  it('scales the sampled entry size by the entry count', () => {
+    const entry = { text: 'z'.repeat(1024 * 1024) };
+    expect(estimateCacheMB(cacheOf(Array.from({ length: 40 }, () => entry)))).toBeGreaterThanOrEqual(38);
+  });
+
+  it('counts Buffers by byte length and ignores what cannot be serialized', () => {
+    expect(estimateCacheMB(cacheOf([Buffer.alloc(2 * MB), Buffer.alloc(2 * MB)]))).toBe(4);
+    expect(estimateCacheMB(cacheOf([() => 1]))).toBe(0);
+    expect(estimateCacheMB(cacheOf([]))).toBe(0);
   });
 });
 

@@ -1,5 +1,6 @@
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { serialize } from 'node:v8';
 import { allCaches } from './cache.js';
 import { createChildLogger } from './logger.js';
 
@@ -41,6 +42,49 @@ export function sampleCacheSizes(): Record<string, number> {
   return sizes;
 }
 
+const BYTES_SAMPLE_PER_CACHE = 5;
+const BYTES_EVERY_MS = 10 * 60_000;
+
+interface SizedCache {
+  size: number;
+  values(): IterableIterator<unknown>;
+}
+
+/**
+ * Rough bytes held by one cache: serialized size of a few evenly spaced entries times the
+ * entry count. values() does not touch LRU recency, so sampling never changes what is evicted.
+ */
+export function estimateCacheMB(cache: SizedCache): number {
+  const total = cache.size;
+  if (total === 0) return 0;
+  const step = Math.max(1, Math.floor(total / BYTES_SAMPLE_PER_CACHE));
+  let sampled = 0;
+  let bytes = 0;
+  let index = 0;
+  for (const value of cache.values()) {
+    if (index++ % step !== 0) continue;
+    try {
+      bytes += Buffer.isBuffer(value) ? value.byteLength : serialize(value).byteLength;
+      sampled++;
+    } catch {
+      // Not serializable (functions, native handles): leave it out of the sample.
+    }
+    if (sampled >= BYTES_SAMPLE_PER_CACHE) break;
+  }
+  if (sampled === 0) return 0;
+  return Math.round(((bytes / sampled) * total) / MB);
+}
+
+/** Estimated MB per cache, only for caches above 1 MB. */
+export function sampleCacheMB(): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const { name, cache } of allCaches) {
+    const mb = estimateCacheMB(cache as unknown as SizedCache);
+    if (mb >= 1) result[name] = mb;
+  }
+  return result;
+}
+
 export interface StorageSample {
   dbMB: number;
   walMB: number;
@@ -76,6 +120,7 @@ export function sampleStorage(dbPath: string, backupDir: string): StorageSample 
 }
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
+let bytesIntervalId: ReturnType<typeof setInterval> | null = null;
 
 /** Logs process memory once a minute so RSS can be lined up with scheduled jobs. */
 export function startMemoryTelemetry(dbPath: string, backupDir: string): void {
@@ -87,10 +132,16 @@ export function startMemoryTelemetry(dbPath: string, backupDir: string): void {
     );
   }, INTERVAL_MS);
   intervalId.unref();
+
+  bytesIntervalId = setInterval(() => {
+    log.info({ cacheMB: sampleCacheMB() }, 'Cache memory estimate');
+  }, BYTES_EVERY_MS);
+  bytesIntervalId.unref();
 }
 
 export function stopMemoryTelemetry(): void {
-  if (!intervalId) return;
-  clearInterval(intervalId);
+  if (intervalId) clearInterval(intervalId);
+  if (bytesIntervalId) clearInterval(bytesIntervalId);
   intervalId = null;
+  bytesIntervalId = null;
 }

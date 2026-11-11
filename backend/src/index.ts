@@ -4,6 +4,7 @@ import { configure } from '@esp4ce/letterboxd-client';
 import { buildApp } from './app.js';
 import { initDb, closeDb, getDb } from './db/index.js';
 import { backupOptionsFromEnv, startBackupScheduler } from './lib/backup.js';
+import { startDbFootprintLog } from './lib/db-footprint.js';
 import { startNativeSyncWorker } from './modules/native-sync/native-sync.worker.js';
 import { config, catalogConfig } from './config/index.js';
 import { logger, createChildLogger } from './lib/logger.js';
@@ -55,6 +56,7 @@ async function main() {
   }
 
   const stopBackups = startBackupScheduler(getDb, backupOptionsFromEnv(config));
+  const stopDbFootprint = startDbFootprintLog(getDb);
   const stopNativeSync = startNativeSyncWorker();
 
   const runEventPurge = () => {
@@ -71,6 +73,7 @@ async function main() {
     logger.info({ signal }, 'Received shutdown signal');
     clearInterval(eventPurgeTimer);
     stopBackups();
+    stopDbFootprint();
     const nativeSyncStopped = stopNativeSync();
     await app.close();
     await nativeSyncStopped;
