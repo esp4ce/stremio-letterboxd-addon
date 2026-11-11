@@ -220,6 +220,16 @@ async function findFilmBySearch(
 }
 
 /**
+ * What filmLookupCache keeps of a film: the fields its readers use (id, name, year, links,
+ * poster sizes). The full record also carries cast, crew and releases, which made this cache
+ * the heaviest in the process for data nobody reads from it.
+ */
+function slimFilm(film: LetterboxdFilm): LetterboxdFilm {
+  const { id, name, releaseYear, links, poster } = film;
+  return { id, name, releaseYear, links, poster: poster && { sizes: poster.sizes } } as LetterboxdFilm;
+}
+
+/**
  * Try to find Letterboxd film by IMDb ID using cache, external ID lookup, or search fallback.
  * Full result is cached (filmLookupCache) to avoid extra API calls on cache hit.
  */
@@ -248,7 +258,7 @@ export async function findFilmByImdb(
       try {
         const film = await client.getFilmByLid(cachedId);
         const result: FilmLookupResult = { letterboxdFilmId: cachedId, film };
-        filmLookupCache.set(imdbId, { letterboxdFilmId: cachedId, film });
+        filmLookupCache.set(imdbId, { letterboxdFilmId: cachedId, film: slimFilm(film) });
         return result;
       } catch (error) {
         logger.warn({ err: error, imdbId, letterboxdFilmId: cachedId }, 'Cached Letterboxd ID invalid, trying external lookup');
@@ -265,7 +275,7 @@ export async function findFilmByImdb(
         if (film) {
           externalIdLookupBreaker.recordSuccess();
           imdbToLetterboxdCache.set(imdbId, film.id);
-          filmLookupCache.set(imdbId, { letterboxdFilmId: film.id, film });
+          filmLookupCache.set(imdbId, { letterboxdFilmId: film.id, film: slimFilm(film) });
           logger.debug({ imdbId, letterboxdFilmId: film.id }, 'Resolved film via external ID');
           return { letterboxdFilmId: film.id, film };
         }
@@ -299,7 +309,7 @@ export async function findFilmByImdb(
 
     // Cache the mapping for future lookups
     imdbToLetterboxdCache.set(imdbId, film.id);
-    filmLookupCache.set(imdbId, { letterboxdFilmId: film.id, film });
+    filmLookupCache.set(imdbId, { letterboxdFilmId: film.id, film: slimFilm(film) });
     logger.info({ imdbId, letterboxdFilmId: film.id, filmName: film.name }, 'Found Letterboxd film via search fallback');
 
     return { letterboxdFilmId: film.id, film, cinemetaData };

@@ -95,6 +95,32 @@ describe('findFilmByImdb upstream call budget', () => {
     expect(calls.search).toBe(0);
   });
 
+  it('caches only the film fields its readers use, not the full record', async () => {
+    const fullFilm = {
+      id: 'LBFULL',
+      name: 'Found Film',
+      releaseYear: 2020,
+      links: [{ type: 'imdb', id: 'tt0000010', url: 'https://www.imdb.com/title/tt0000010/' }],
+      poster: { sizes: [{ width: 300, height: 450, url: 'https://img/300.jpg' }] },
+      contributions: Array.from({ length: 200 }, (_, i) => ({ type: 'Actor', contributors: [{ name: `Actor ${i}` }] })),
+      releases: Array.from({ length: 100 }, (_, i) => ({ country: `C${i}`, date: '2020-01-01' })),
+      description: 'x'.repeat(2000),
+    };
+    const client = { getFilmByExternalId: async () => fullFilm } as never;
+
+    await findFilmByImdb(client, 'tt0000010');
+    const cached = filmLookupCache.get('tt0000010');
+
+    expect(cached?.letterboxdFilmId).toBe('LBFULL');
+    expect(cached?.film).toEqual({
+      id: 'LBFULL',
+      name: 'Found Film',
+      releaseYear: 2020,
+      links: fullFilm.links,
+      poster: { sizes: fullFilm.poster.sizes },
+    });
+  });
+
   it('serves a repeated lookup from cache without any upstream call', async () => {
     const { client, calls } = makeClient({ externalResolves: false });
     await findFilmByImdb(client, 'tt0000009');
