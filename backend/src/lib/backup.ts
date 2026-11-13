@@ -401,6 +401,32 @@ export async function runBackup(
   }
 }
 
+// setTimeout stores its delay in 32 bits: longer values fire immediately.
+const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
+
+/**
+ * Delay before the first scheduled snapshot. The schedule is measured from the newest
+ * snapshot on disk, not from process start: a redeploy then no longer restarts the cycle,
+ * which matters once the interval is longer than the time between deploys.
+ */
+export function firstBackupDelayMs(
+  dir: string,
+  intervalMs: number,
+  initialDelayMs: number,
+  nowMs: number = Date.now(),
+): number {
+  try {
+    let newest = 0;
+    for (const f of readdirSync(dir)) {
+      if (FILE_RE.test(f)) newest = Math.max(newest, statSync(join(dir, f)).mtimeMs);
+    }
+    if (newest === 0) return initialDelayMs;
+    return Math.min(MAX_TIMER_DELAY_MS, Math.max(initialDelayMs, intervalMs - (nowMs - newest)));
+  } catch {
+    return initialDelayMs;
+  }
+}
+
 /** Starts the in-process schedule. Timers are unref'd. Returns a stop function. */
 export function startBackupScheduler(
   getDb: () => Database.Database,
@@ -430,16 +456,22 @@ export function startBackupScheduler(
       );
     }
   };
+  const firstDelayMs = firstBackupDelayMs(options.dir, options.intervalMs, options.initialDelayMs);
   let interval: NodeJS.Timeout | undefined;
   const first = setTimeout(() => {
     tick();
     interval = setInterval(tick, options.intervalMs);
     interval.unref();
-  }, options.initialDelayMs);
+  }, firstDelayMs);
   first.unref();
 
   logger.info(
-    { everyMs: options.intervalMs, keep: options.keep, remote: Boolean(options.s3) },
+    {
+      everyMs: options.intervalMs,
+      firstRunInMs: firstDelayMs,
+      keep: options.keep,
+      remote: Boolean(options.s3),
+    },
     'Database backups scheduled',
   );
 

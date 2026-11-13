@@ -15,7 +15,7 @@ vi.mock('node:fs', async (importOriginal) => {
 });
 import { envSchema } from '../../../src/config/env.schema.js';
 import Database from 'better-sqlite3';
-import { mkdtempSync, mkdirSync, rmSync, readdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, readdirSync, writeFileSync, existsSync, readFileSync, utimesSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -25,6 +25,7 @@ import {
   uploadToS3,
   runBackup,
   startBackupScheduler,
+  firstBackupDelayMs,
   backupOptionsFromEnv,
   cleanupOrphans,
   deriveSigningKey,
@@ -375,6 +376,51 @@ describe('cleanupOrphans', () => {
   });
 });
 
+describe('firstBackupDelayMs', () => {
+  const NOW = Date.parse('2026-11-13T12:00:00Z');
+  const HOUR = 3_600_000;
+
+  /** Writes a snapshot-named file whose modification time is `ageMs` before NOW. */
+  function snapshotAged(name: string, ageMs: number) {
+    const backups = join(dir, 'backups');
+    mkdirSync(backups, { recursive: true });
+    const path = join(backups, name);
+    writeFileSync(path, 'x');
+    const when = new Date(NOW - ageMs);
+    utimesSync(path, when, when);
+  }
+
+  it('uses the start-up delay when there is no snapshot yet', () => {
+    expect(firstBackupDelayMs(join(dir, 'backups'), 24 * HOUR, 600_000, NOW)).toBe(600_000);
+  });
+
+  it('waits for the rest of the interval when the newest snapshot is still recent', () => {
+    snapshotAged('stremio-letterboxd-20261113T060000Z.db.gz', 6 * HOUR);
+    expect(firstBackupDelayMs(join(dir, 'backups'), 168 * HOUR, 600_000, NOW)).toBe(162 * HOUR);
+  });
+
+  it('uses the newest snapshot, not an older one', () => {
+    snapshotAged('stremio-letterboxd-20261101T060000Z.db.gz', 300 * HOUR);
+    snapshotAged('stremio-letterboxd-20261112T060000Z.db.gz', 30 * HOUR);
+    expect(firstBackupDelayMs(join(dir, 'backups'), 168 * HOUR, 600_000, NOW)).toBe(138 * HOUR);
+  });
+
+  it('backs up soon after start-up when the newest snapshot is older than the interval', () => {
+    snapshotAged('stremio-letterboxd-20261101T060000Z.db.gz', 200 * HOUR);
+    expect(firstBackupDelayMs(join(dir, 'backups'), 168 * HOUR, 600_000, NOW)).toBe(600_000);
+  });
+
+  it('never waits less than the start-up delay', () => {
+    snapshotAged('stremio-letterboxd-20261112T120000Z.db.gz', 24 * HOUR - 1_000);
+    expect(firstBackupDelayMs(join(dir, 'backups'), 24 * HOUR, 600_000, NOW)).toBe(600_000);
+  });
+
+  it('ignores files that are not snapshots', () => {
+    snapshotAged('notes.txt', 1_000);
+    expect(firstBackupDelayMs(join(dir, 'backups'), 168 * HOUR, 600_000, NOW)).toBe(600_000);
+  });
+});
+
 describe('startBackupScheduler', () => {
   const fake = () =>
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
@@ -397,6 +443,19 @@ describe('startBackupScheduler', () => {
     });
     stop();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('does not restart the cycle on a redeploy: a recent snapshot postpones the first run', async () => {
+    fake();
+    const backups = join(dir, 'backups');
+    mkdirSync(backups, { recursive: true });
+    writeFileSync(join(backups, 'stremio-letterboxd-20261113T060000Z.db.gz'), 'x');
+
+    const stop = startBackupScheduler(() => db, opts({ initialDelayMs: 100, intervalMs: 3_600_000 }));
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(readdirSync(backups)).toEqual(['stremio-letterboxd-20261113T060000Z.db.gz']);
+    stop();
   });
 });
 
