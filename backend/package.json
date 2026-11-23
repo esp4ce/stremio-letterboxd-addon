@@ -23,7 +23,7 @@
     "lru-cache": "^11.5.3",
     "pino": "^10.4.0",
     "pino-pretty": "^13.2.0",
-    "posthog-node": "^5.73.0",
+    "posthog-node": "^6.0.5",
     "sharp": "^0.35.5",
     "zod": "^4.6.7"
   },
